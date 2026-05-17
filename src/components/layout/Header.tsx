@@ -21,7 +21,7 @@ export function Header({ onAddProfile }: HeaderProps) {
         className="text-xl font-bold tracking-tight"
         style={{ color: 'var(--primary)' }}
       >
-        ví.app
+        Vislet
       </span>
       <ProfileSwitcher onAddProfile={onAddProfile} />
     </header>
