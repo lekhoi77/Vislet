@@ -22,7 +22,7 @@ import { Transaction, Debt, TransactionType } from '@/lib/types';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Separator } from '@/components/ui/separator';
 import { EmptyState } from '@/components/shared/EmptyState';
-import { Handshake } from 'lucide-react';
+import { Handshake, LayoutDashboard, ArrowLeftRight, Target, Plus } from 'lucide-react';
 import { Toaster } from '@/components/ui/sonner';
 
 type ActiveTab = 'overview' | 'transactions' | 'goals' | 'debts';
@@ -146,12 +146,79 @@ export default function HomePage() {
     );
   }
 
+  const DESKTOP_TABS = [
+    { value: 'overview' as ActiveTab, label: 'Tổng quan', icon: LayoutDashboard },
+    { value: 'transactions' as ActiveTab, label: 'Giao dịch', icon: ArrowLeftRight },
+    { value: 'goals' as ActiveTab, label: 'Mục tiêu', icon: Target },
+    { value: 'debts' as ActiveTab, label: 'Nợ', icon: Handshake },
+  ];
+
   return (
     <div className="app-container">
       <Header onAddProfile={() => setShowAddProfile(true)} />
-      <TabNav value={activeTab} onChange={handleTabChange} />
 
-      <main style={{ paddingBottom: 120 }}>
+      <div className="md:flex" style={{ minHeight: 'calc(100dvh - 56px)' }}>
+        {/* Desktop sidebar */}
+        <aside
+          className="hidden md:flex flex-col w-56 shrink-0 sticky overflow-y-auto"
+          style={{
+            top: 56,
+            height: 'calc(100dvh - 56px)',
+            background: 'var(--background)',
+            borderRight: '1px solid var(--border)',
+          }}
+        >
+          <nav className="flex flex-col gap-1 p-3 flex-1">
+            {DESKTOP_TABS.map(({ value, label, icon: Icon }) => (
+              <button
+                key={value}
+                onClick={() => handleTabChange(value)}
+                className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-colors w-full text-left"
+                style={{
+                  background: activeTab === value ? 'var(--accent)' : 'transparent',
+                  color: activeTab === value ? 'var(--accent-foreground)' : 'var(--muted-foreground)',
+                }}
+              >
+                <Icon size={18} />
+                {label}
+              </button>
+            ))}
+          </nav>
+          <div className="p-3 flex flex-col gap-2" style={{ borderTop: '1px solid var(--border)' }}>
+            {activeTab === 'debts' ? (
+              <button
+                onClick={() => { setEditingDebt(null); setDebtFormOpen(true); }}
+                className="flex items-center gap-2 h-10 px-4 rounded-xl font-semibold text-sm w-full justify-center transition-all hover:opacity-90 active:scale-95"
+                style={{ background: 'var(--primary)', color: 'var(--primary-foreground)' }}
+              >
+                <Plus size={15} /> Ghi nợ
+              </button>
+            ) : (
+              <>
+                <button
+                  onClick={handleOpenIncomForm}
+                  className="flex items-center gap-2 h-10 px-4 rounded-xl font-semibold text-sm w-full justify-center transition-all hover:bg-[var(--primary-soft)] active:scale-95"
+                  style={{ border: '1.5px solid var(--primary)', color: 'var(--primary)', background: 'transparent' }}
+                >
+                  <Plus size={15} /> Thu nhập
+                </button>
+                <button
+                  onClick={handleOpenExpenseForm}
+                  className="flex items-center gap-2 h-10 px-4 rounded-xl font-semibold text-sm w-full justify-center transition-all hover:bg-[var(--muted)] active:scale-95"
+                  style={{ border: '1.5px solid var(--border)', color: 'var(--foreground)', background: 'transparent' }}
+                >
+                  <Plus size={15} /> Chi tiêu
+                </button>
+              </>
+            )}
+          </div>
+        </aside>
+
+        {/* Content area */}
+        <div className="flex-1 min-w-0">
+          <TabNav value={activeTab} onChange={handleTabChange} />
+
+          <main className="pb-[120px] md:pb-10">
         {/* ─── OVERVIEW TAB ─── */}
         {activeTab === 'overview' && (
           <div key={`overview-${contentKey}`} className="page-appear flex flex-col gap-7 p-5 pt-5">
@@ -248,14 +315,16 @@ export default function HomePage() {
         )}
       </main>
 
-      {/* FAB */}
-      <FAB
-        activeTab={activeTab}
-        onIncome={handleOpenIncomForm}
-        onExpense={handleOpenExpenseForm}
-        onDebt={() => { setEditingDebt(null); setDebtFormOpen(true); }}
-        isFirstTime={isFirstTime}
-      />
+          {/* FAB - mobile only */}
+          <FAB
+            activeTab={activeTab}
+            onIncome={handleOpenIncomForm}
+            onExpense={handleOpenExpenseForm}
+            onDebt={() => { setEditingDebt(null); setDebtFormOpen(true); }}
+            isFirstTime={isFirstTime}
+          />
+        </div>
+      </div>
 
       {/* Sheets & Dialogs */}
       <AddProfileSheet open={showAddProfile} onClose={() => setShowAddProfile(false)} />

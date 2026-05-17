@@ -19,7 +19,7 @@ const TABS: { value: TabValue; label: string }[] = [
 export function TabNav({ value, onChange }: TabNavProps) {
   return (
     <div
-      className="sticky z-40"
+      className="sticky z-40 md:hidden"
       style={{
         top: 56,
         background: 'var(--background)',

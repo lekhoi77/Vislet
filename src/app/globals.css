@@ -234,3 +234,10 @@
   position: relative;
   box-shadow: 0 0 40px rgba(0,0,0,0.06);
 }
+
+@media (min-width: 768px) {
+  .app-container {
+    max-width: 100%;
+    box-shadow: none;
+  }
+}
