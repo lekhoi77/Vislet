@@ -1,3 +1,14 @@
+export const BUILT_IN_SOURCES = ['bank', 'cash', 'momo'] as const;
+export const BUILT_IN_GOALS = ['none', 'saving', 'travel', 'soon'] as const;
+
+export const BUDGET_ICONS = [
+  'PiggyBank','ShoppingCart','Coffee','Car','Home','Heart',
+  'Briefcase','GraduationCap','Plane','Music','Dumbbell','Gift',
+  'Smartphone','Shirt','Baby','Utensils','Zap','Star',
+  'Gamepad2','BookOpen','Tv','Bus','Camera','Stethoscope',
+  'Leaf','Package','CreditCard','Scissors','Pencil','Wrench',
+] as const;
+
 export const AVATAR_COLORS = [
   'hsl(145, 45%, 42%)',
   'hsl(210, 65%, 52%)',

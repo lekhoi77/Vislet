@@ -126,7 +126,8 @@
   }
   body {
     font-family: 'Lexend', sans-serif;
-    background-color: var(--background-subtle);
+    background: linear-gradient(160deg, hsl(200, 70%, 96%) 0%, hsl(190, 40%, 98%) 35%, hsl(0, 0%, 100%) 65%);
+    background-attachment: fixed;
     color: var(--foreground);
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;

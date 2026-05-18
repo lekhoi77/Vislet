@@ -6,8 +6,21 @@ export interface UserProfile {
   createdAt: string;
 }
 
-export type TransactionSource = 'bank' | 'cash' | 'momo';
-export type TransactionGoal = 'none' | 'saving' | 'travel' | 'soon';
+export type TransactionSource = string;
+export type TransactionGoal = string;
+
+export interface CustomSource {
+  id: string;
+  label: string;
+  createdAt: string;
+}
+
+export interface CustomBudget {
+  id: string;
+  label: string;
+  icon: string;
+  createdAt: string;
+}
 export type TransactionType = 'income' | 'expense';
 
 export interface Transaction {

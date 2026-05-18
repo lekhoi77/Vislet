@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { v4 as uuidv4 } from 'uuid';
-import { UserProfile, Transaction, Debt } from '@/lib/types';
+import { UserProfile, Transaction, Debt, CustomSource, CustomBudget } from '@/lib/types';
 import { storage } from '@/lib/storage';
 import { AVATAR_COLORS } from '@/lib/constants';
 
@@ -9,6 +9,8 @@ interface AppState {
   currentProfileId: string | null;
   transactions: Transaction[];
   debts: Debt[];
+  customSources: CustomSource[];
+  customBudgets: CustomBudget[];
   isLoaded: boolean;
 
   // Actions
@@ -25,6 +27,12 @@ interface AppState {
   updateDebt: (id: string, data: Partial<Debt>) => void;
   settleDebt: (id: string) => void;
   deleteDebt: (id: string) => void;
+
+  addCustomSource: (label: string) => void;
+  removeCustomSource: (id: string) => void;
+
+  addCustomBudget: (label: string, icon: string) => void;
+  removeCustomBudget: (id: string) => void;
 }
 
 export const useAppStore = create<AppState>((set, get) => ({
@@ -32,6 +40,8 @@ export const useAppStore = create<AppState>((set, get) => ({
   currentProfileId: null,
   transactions: [],
   debts: [],
+  customSources: [],
+  customBudgets: [],
   isLoaded: false,
 
   initApp: () => {
@@ -39,8 +49,7 @@ export const useAppStore = create<AppState>((set, get) => ({
     const currentId = storage.getCurrentProfileId();
 
     if (profiles.length === 0) {
-      // Fresh install — onboarding will handle it
-      set({ profiles: [], currentProfileId: null, transactions: [], debts: [], isLoaded: true });
+      set({ profiles: [], currentProfileId: null, transactions: [], debts: [], customSources: [], customBudgets: [], isLoaded: true });
       return;
     }
 
@@ -50,8 +59,10 @@ export const useAppStore = create<AppState>((set, get) => ({
 
     const transactions = storage.getTransactions(active);
     const debts = storage.getDebts(active);
+    const customSources = storage.getCustomSources(active);
+    const customBudgets = storage.getCustomBudgets(active);
 
-    set({ profiles, currentProfileId: active, transactions, debts, isLoaded: true });
+    set({ profiles, currentProfileId: active, transactions, debts, customSources, customBudgets, isLoaded: true });
   },
 
   createProfile: (name: string) => {
@@ -80,7 +91,9 @@ export const useAppStore = create<AppState>((set, get) => ({
     storage.setCurrentProfileId(id);
     const transactions = storage.getTransactions(id);
     const debts = storage.getDebts(id);
-    set({ currentProfileId: id, transactions, debts });
+    const customSources = storage.getCustomSources(id);
+    const customBudgets = storage.getCustomBudgets(id);
+    set({ currentProfileId: id, transactions, debts, customSources, customBudgets });
   },
 
   deleteProfile: (id: string) => {
@@ -168,5 +181,39 @@ export const useAppStore = create<AppState>((set, get) => ({
     const updated = debts.filter(d => d.id !== id);
     storage.setDebts(currentProfileId, updated);
     set({ debts: updated });
+  },
+
+  addCustomSource: (label) => {
+    const { currentProfileId, customSources } = get();
+    if (!currentProfileId) return;
+    const source: CustomSource = { id: uuidv4(), label: label.trim(), createdAt: new Date().toISOString() };
+    const updated = [...customSources, source];
+    storage.setCustomSources(currentProfileId, updated);
+    set({ customSources: updated });
+  },
+
+  removeCustomSource: (id) => {
+    const { currentProfileId, customSources } = get();
+    if (!currentProfileId) return;
+    const updated = customSources.filter(s => s.id !== id);
+    storage.setCustomSources(currentProfileId, updated);
+    set({ customSources: updated });
+  },
+
+  addCustomBudget: (label, icon) => {
+    const { currentProfileId, customBudgets } = get();
+    if (!currentProfileId) return;
+    const budget: CustomBudget = { id: uuidv4(), label: label.trim(), icon, createdAt: new Date().toISOString() };
+    const updated = [...customBudgets, budget];
+    storage.setCustomBudgets(currentProfileId, updated);
+    set({ customBudgets: updated });
+  },
+
+  removeCustomBudget: (id) => {
+    const { currentProfileId, customBudgets } = get();
+    if (!currentProfileId) return;
+    const updated = customBudgets.filter(b => b.id !== id);
+    storage.setCustomBudgets(currentProfileId, updated);
+    set({ customBudgets: updated });
   },
 }));

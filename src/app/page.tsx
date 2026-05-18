@@ -18,6 +18,9 @@ import { GoalBlocks } from '@/components/dashboard/GoalBlocks';
 import { RecentTransactions } from '@/components/dashboard/RecentTransactions';
 import { MonthSelector } from '@/components/dashboard/MonthSelector';
 import { GoalOverview } from '@/components/goals/GoalOverview';
+import { ExpenseBreakdown } from '@/components/dashboard/ExpenseBreakdown';
+import { AddSourceSheet } from '@/components/dashboard/AddSourceSheet';
+import { AddBudgetSheet } from '@/components/dashboard/AddBudgetSheet';
 import { Transaction, Debt, TransactionType } from '@/lib/types';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Separator } from '@/components/ui/separator';
@@ -51,6 +54,10 @@ export default function HomePage() {
 
   // Debt filter tab
   const [debtFilter, setDebtFilter] = useState<DebtFilter>('open');
+
+  // Source/budget manager sheets
+  const [showAddSource, setShowAddSource] = useState(false);
+  const [showAddBudget, setShowAddBudget] = useState(false);
 
   // Page content transition
   const [contentKey, setContentKey] = useState(0);
@@ -116,6 +123,28 @@ export default function HomePage() {
     setEditingDebt(debt);
     setDebtFormOpen(true);
   }, []);
+
+  const handleSelectMonth = useCallback((m: number, y: number) => {
+    setMonth(m);
+    setYear(y);
+    setContentKey(k => k + 1);
+    window.scrollTo({ top: 0 });
+  }, []);
+
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if (!e.ctrlKey || !e.altKey) return;
+      if (e.key === 't' || e.key === 'T') {
+        e.preventDefault();
+        handleOpenIncomForm();
+      } else if (e.key === 'e' || e.key === 'E') {
+        e.preventDefault();
+        handleOpenExpenseForm();
+      }
+    };
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+  }, [handleOpenIncomForm, handleOpenExpenseForm]);
 
   const filteredDebts = debts.filter(d => debtFilter === 'open' ? !d.settled : d.settled);
   const monthTxs = transactions.filter(tx => {
@@ -195,20 +224,32 @@ export default function HomePage() {
               </button>
             ) : (
               <>
-                <button
-                  onClick={handleOpenIncomForm}
-                  className="flex items-center gap-2 h-10 px-4 rounded-xl font-semibold text-sm w-full justify-center transition-all hover:bg-[var(--primary-soft)] active:scale-95"
-                  style={{ border: '1.5px solid var(--primary)', color: 'var(--primary)', background: 'transparent' }}
-                >
-                  <Plus size={15} /> Thu nhập
-                </button>
-                <button
-                  onClick={handleOpenExpenseForm}
-                  className="flex items-center gap-2 h-10 px-4 rounded-xl font-semibold text-sm w-full justify-center transition-all hover:bg-[var(--muted)] active:scale-95"
-                  style={{ border: '1.5px solid var(--border)', color: 'var(--foreground)', background: 'transparent' }}
-                >
-                  <Plus size={15} /> Chi tiêu
-                </button>
+                <div className="relative group">
+                  <button
+                    onClick={handleOpenIncomForm}
+                    className="flex items-center gap-2 h-10 px-4 rounded-xl font-semibold text-sm w-full justify-center transition-all hover:bg-[var(--primary-soft)] active:scale-95"
+                    style={{ border: '1.5px solid var(--primary)', color: 'var(--primary)', background: 'transparent' }}
+                  >
+                    <Plus size={15} /> Thu nhập
+                  </button>
+                  <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5 px-2 py-1 rounded-md text-xs font-medium opacity-0 group-hover:opacity-100 pointer-events-none whitespace-nowrap transition-opacity duration-150 z-50"
+                    style={{ background: '#1a1a1a', color: '#fff' }}>
+                    Ctrl+Alt+T
+                  </div>
+                </div>
+                <div className="relative group">
+                  <button
+                    onClick={handleOpenExpenseForm}
+                    className="flex items-center gap-2 h-10 px-4 rounded-xl font-semibold text-sm w-full justify-center transition-all hover:bg-[var(--muted)] active:scale-95"
+                    style={{ border: '1.5px solid var(--border)', color: 'var(--foreground)', background: 'transparent' }}
+                  >
+                    <Plus size={15} /> Chi tiêu
+                  </button>
+                  <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5 px-2 py-1 rounded-md text-xs font-medium opacity-0 group-hover:opacity-100 pointer-events-none whitespace-nowrap transition-opacity duration-150 z-50"
+                    style={{ background: '#1a1a1a', color: '#fff' }}>
+                    Ctrl+Alt+E
+                  </div>
+                </div>
               </>
             )}
           </div>
@@ -221,21 +262,49 @@ export default function HomePage() {
           <main className="pb-[120px] md:pb-10">
         {/* ─── OVERVIEW TAB ─── */}
         {activeTab === 'overview' && (
-          <div key={`overview-${contentKey}`} className="page-appear flex flex-col gap-7 p-5 pt-5">
+          <div key={`overview-${contentKey}`} className="page-appear flex flex-col gap-6 p-5 pt-5">
             <div className="flex items-center">
-              <MonthSelector month={month} year={year} onPrev={handlePrevMonth} onNext={handleNextMonth} />
+              <MonthSelector month={month} year={year} onPrev={handlePrevMonth} onNext={handleNextMonth} onSelect={handleSelectMonth} />
             </div>
             <SummaryCards transactions={transactions} month={month} year={year} />
-            <div>
-              <p className="text-overline mb-4">Nguồn tiền</p>
-              <SourceBlocks transactions={transactions} />
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="flex flex-col">
+                <div className="flex items-center justify-between mb-3">
+                  <p className="text-overline">Nguồn tiền</p>
+                  <button
+                    onClick={() => setShowAddSource(true)}
+                    className="flex items-center gap-1 text-xs font-medium px-2 py-1 rounded-lg hover:bg-[var(--muted)] transition-colors"
+                    style={{ color: 'var(--primary)' }}
+                  >
+                    <Plus size={12} /> Thêm
+                  </button>
+                </div>
+                <div className="md:h-[280px]">
+                  <SourceBlocks transactions={transactions} />
+                </div>
+              </div>
+              <div className="flex flex-col">
+                <div className="flex items-center justify-between mb-3">
+                  <p className="text-overline">Mục tiêu</p>
+                  <button
+                    onClick={() => setShowAddBudget(true)}
+                    className="flex items-center gap-1 text-xs font-medium px-2 py-1 rounded-lg hover:bg-[var(--muted)] transition-colors"
+                    style={{ color: 'var(--primary)' }}
+                  >
+                    <Plus size={12} /> Thêm
+                  </button>
+                </div>
+                <div className="md:h-[280px]">
+                  <GoalBlocks transactions={transactions} />
+                </div>
+              </div>
             </div>
             <div>
-              <p className="text-overline mb-4">Quỹ mục tiêu</p>
-              <GoalBlocks transactions={transactions} />
+              <p className="text-overline mb-3">Chi tiêu theo danh mục</p>
+              <ExpenseBreakdown transactions={transactions} month={month} year={year} />
             </div>
             <div>
-              <p className="text-overline mb-4">Giao dịch gần đây</p>
+              <p className="text-overline mb-3">Giao dịch gần đây</p>
               <RecentTransactions
                 transactions={transactions}
                 month={month}
@@ -252,7 +321,7 @@ export default function HomePage() {
           <div key={`tx-${contentKey}`} className="page-appear flex flex-col gap-5 pt-5">
             <div className="flex items-center justify-between px-5">
               <p className="text-overline">Lịch sử giao dịch</p>
-              <MonthSelector month={month} year={year} onPrev={handlePrevMonth} onNext={handleNextMonth} />
+              <MonthSelector month={month} year={year} onPrev={handlePrevMonth} onNext={handleNextMonth} onSelect={handleSelectMonth} />
             </div>
             <div
               className="mx-5 rounded-2xl overflow-hidden"
@@ -270,7 +339,7 @@ export default function HomePage() {
         {/* ─── GOALS TAB ─── */}
         {activeTab === 'goals' && (
           <div key={`goals-${contentKey}`} className="page-appear p-5 pt-5">
-            <GoalOverview transactions={transactions} onEdit={handleEditTx} />
+            <GoalOverview transactions={transactions} month={month} year={year} onEdit={handleEditTx} />
           </div>
         )}
 
@@ -340,6 +409,8 @@ export default function HomePage() {
         editingDebt={editingDebt}
       />
 
+      <AddSourceSheet open={showAddSource} onClose={() => setShowAddSource(false)} />
+      <AddBudgetSheet open={showAddBudget} onClose={() => setShowAddBudget(false)} />
       <Toaster position="top-center" richColors />
     </div>
   );
