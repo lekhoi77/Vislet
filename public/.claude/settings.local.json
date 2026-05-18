@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(Get-ChildItem -Path \"C:\\\\Users\\\\kvxl\\\\Desktop\\\\Vislet\" -Force)",
+      "Bash(Select-Object Name, PSIsContainer)",
+      "PowerShell(Get-ChildItem -Recurse \"C:\\\\Users\\\\kvxl\\\\Desktop\\\\Vislet\\\\src\" | Where-Object { !$_.PSIsContainer } | Select-Object FullName)",
+      "Bash(npm install *)"
+    ]
+  }
+}

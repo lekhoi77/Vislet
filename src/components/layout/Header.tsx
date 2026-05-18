@@ -17,12 +17,12 @@ export function Header({ onAddProfile }: HeaderProps) {
         borderBottom: '1px solid var(--border)',
       }}
     >
-      <span
-        className="text-xl font-bold tracking-tight"
-        style={{ color: 'var(--primary)' }}
-      >
-        Vislet
-      </span>
+      <img
+        src="/logo-text.svg"
+        alt="Vislet"
+        height={48}
+        style={{ height: 48, width: 'auto' }}
+      />
       <ProfileSwitcher onAddProfile={onAddProfile} />
     </header>
   );

@@ -5,6 +5,11 @@ export const metadata: Metadata = {
   title: 'Vislet — Quản lý tài chính cá nhân',
   description: 'Theo dõi thu nhập, chi tiêu, mục tiêu tài chính và quản lý nợ một cách đơn giản.',
   keywords: ['tài chính', 'chi tiêu', 'thu nhập', 'quản lý nợ', 'tiết kiệm'],
+  icons: {
+    icon: '/logo.svg',
+    shortcut: '/logo.svg',
+    apple: '/logo.svg',
+  },
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

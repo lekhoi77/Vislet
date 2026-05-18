@@ -1,8 +1,24 @@
 import { create } from 'zustand';
 import { v4 as uuidv4 } from 'uuid';
 import { UserProfile, Transaction, Debt, CustomSource, CustomBudget } from '@/lib/types';
-import { storage } from '@/lib/storage';
 import { AVATAR_COLORS } from '@/lib/constants';
+import {
+  supabase,
+  toProfile,
+  toTransaction,
+  toDebt,
+  toCustomSource,
+  toCustomBudget,
+} from '@/lib/supabase';
+
+// localStorage chỉ lưu currentProfileId (client-side preference)
+const CURRENT_KEY = 'viapp_current';
+function getStoredProfileId(): string | null {
+  try { return localStorage.getItem(CURRENT_KEY); } catch { return null; }
+}
+function setStoredProfileId(id: string): void {
+  try { localStorage.setItem(CURRENT_KEY, id); } catch { /* noop */ }
+}
 
 interface AppState {
   profiles: UserProfile[];
@@ -12,28 +28,65 @@ interface AppState {
   customSources: CustomSource[];
   customBudgets: CustomBudget[];
   isLoaded: boolean;
+  isLoading: boolean;
 
   // Actions
-  initApp: () => void;
-  createProfile: (name: string) => void;
-  switchProfile: (id: string) => void;
-  deleteProfile: (id: string) => void;
+  initApp: () => Promise<void>;
+  createProfile: (name: string) => Promise<void>;
+  switchProfile: (id: string) => Promise<void>;
+  deleteProfile: (id: string) => Promise<void>;
 
-  addTransaction: (tx: Omit<Transaction, 'id' | 'createdAt'>) => void;
-  updateTransaction: (id: string, data: Partial<Transaction>) => void;
-  deleteTransaction: (id: string) => void;
+  addTransaction: (tx: Omit<Transaction, 'id' | 'createdAt'>) => Promise<void>;
+  updateTransaction: (id: string, data: Partial<Omit<Transaction, 'id' | 'createdAt'>>) => Promise<void>;
+  deleteTransaction: (id: string) => Promise<void>;
 
-  addDebt: (debt: Omit<Debt, 'id' | 'createdAt' | 'settled' | 'settledAt'>) => void;
-  updateDebt: (id: string, data: Partial<Debt>) => void;
-  settleDebt: (id: string) => void;
-  deleteDebt: (id: string) => void;
+  addDebt: (debt: Omit<Debt, 'id' | 'createdAt' | 'settled' | 'settledAt'>) => Promise<void>;
+  updateDebt: (id: string, data: Partial<Omit<Debt, 'id' | 'createdAt'>>) => Promise<void>;
+  settleDebt: (id: string) => Promise<void>;
+  deleteDebt: (id: string) => Promise<void>;
 
-  addCustomSource: (label: string) => void;
-  removeCustomSource: (id: string) => void;
+  addCustomSource: (label: string) => Promise<void>;
+  removeCustomSource: (id: string) => Promise<void>;
 
-  addCustomBudget: (label: string, icon: string) => void;
-  removeCustomBudget: (id: string) => void;
+  addCustomBudget: (label: string, icon: string) => Promise<void>;
+  removeCustomBudget: (id: string) => Promise<void>;
 }
+
+// ─── Helper: fetch tất cả data của 1 profile ───────────────
+
+async function fetchProfileData(profileId: string) {
+  const [txRes, debtRes, srcRes, bdgRes] = await Promise.all([
+    supabase
+      .from('transactions')
+      .select('*')
+      .eq('profile_id', profileId)
+      .order('date', { ascending: false }),
+    supabase
+      .from('debts')
+      .select('*')
+      .eq('profile_id', profileId)
+      .order('created_at', { ascending: false }),
+    supabase
+      .from('custom_sources')
+      .select('*')
+      .eq('profile_id', profileId)
+      .order('created_at', { ascending: true }),
+    supabase
+      .from('custom_budgets')
+      .select('*')
+      .eq('profile_id', profileId)
+      .order('created_at', { ascending: true }),
+  ]);
+
+  return {
+    transactions: (txRes.data ?? []).map(toTransaction),
+    debts: (debtRes.data ?? []).map(toDebt),
+    customSources: (srcRes.data ?? []).map(toCustomSource),
+    customBudgets: (bdgRes.data ?? []).map(toCustomBudget),
+  };
+}
+
+// ─── Store ──────────────────────────────────────────────────
 
 export const useAppStore = create<AppState>((set, get) => ({
   profiles: [],
@@ -43,177 +96,272 @@ export const useAppStore = create<AppState>((set, get) => ({
   customSources: [],
   customBudgets: [],
   isLoaded: false,
+  isLoading: false,
 
-  initApp: () => {
-    const profiles = storage.getProfiles();
-    const currentId = storage.getCurrentProfileId();
+  // ── Init ────────────────────────────────────────────────
+  initApp: async () => {
+    set({ isLoading: true });
 
-    if (profiles.length === 0) {
-      set({ profiles: [], currentProfileId: null, transactions: [], debts: [], customSources: [], customBudgets: [], isLoaded: true });
+    const { data: rows, error } = await supabase
+      .from('profiles')
+      .select('*')
+      .order('created_at', { ascending: true });
+
+    if (error || !rows || rows.length === 0) {
+      set({ profiles: [], currentProfileId: null, isLoaded: true, isLoading: false });
       return;
     }
 
-    const active = currentId && profiles.find(p => p.id === currentId)
-      ? currentId
+    const profiles = rows.map(toProfile);
+    const storedId = getStoredProfileId();
+    const activeId = (storedId && profiles.find(p => p.id === storedId))
+      ? storedId
       : profiles[0].id;
 
-    const transactions = storage.getTransactions(active);
-    const debts = storage.getDebts(active);
-    const customSources = storage.getCustomSources(active);
-    const customBudgets = storage.getCustomBudgets(active);
-
-    set({ profiles, currentProfileId: active, transactions, debts, customSources, customBudgets, isLoaded: true });
+    const profileData = await fetchProfileData(activeId);
+    set({ profiles, currentProfileId: activeId, ...profileData, isLoaded: true, isLoading: false });
   },
 
-  createProfile: (name: string) => {
+  // ── Profiles ────────────────────────────────────────────
+  createProfile: async (name: string) => {
     const { profiles } = get();
-    const id = uuidv4();
     const colorIndex = profiles.length % AVATAR_COLORS.length;
-    const profile: UserProfile = {
+    const id = uuidv4();
+
+    const { error } = await supabase.from('profiles').insert({
+      id,
+      name: name.trim(),
+      avatar_color: AVATAR_COLORS[colorIndex],
+      initial: name.trim().charAt(0).toUpperCase(),
+    });
+
+    if (error) { console.error('createProfile:', error); return; }
+
+    const newProfile: UserProfile = {
       id,
       name: name.trim(),
       avatarColor: AVATAR_COLORS[colorIndex],
       initial: name.trim().charAt(0).toUpperCase(),
       createdAt: new Date().toISOString(),
     };
-    const newProfiles = [...profiles, profile];
-    storage.setProfiles(newProfiles);
-    storage.setCurrentProfileId(id);
+
+    setStoredProfileId(id);
     set({
-      profiles: newProfiles,
+      profiles: [...profiles, newProfile],
       currentProfileId: id,
       transactions: [],
       debts: [],
+      customSources: [],
+      customBudgets: [],
     });
   },
 
-  switchProfile: (id: string) => {
-    storage.setCurrentProfileId(id);
-    const transactions = storage.getTransactions(id);
-    const debts = storage.getDebts(id);
-    const customSources = storage.getCustomSources(id);
-    const customBudgets = storage.getCustomBudgets(id);
-    set({ currentProfileId: id, transactions, debts, customSources, customBudgets });
+  switchProfile: async (id: string) => {
+    set({ isLoading: true });
+    const profileData = await fetchProfileData(id);
+    setStoredProfileId(id);
+    set({ currentProfileId: id, ...profileData, isLoading: false });
   },
 
-  deleteProfile: (id: string) => {
+  deleteProfile: async (id: string) => {
     const { profiles, currentProfileId } = get();
-    if (profiles.length <= 1) return; // can't delete last profile
+    if (profiles.length <= 1) return;
+
+    const { error } = await supabase.from('profiles').delete().eq('id', id);
+    if (error) { console.error('deleteProfile:', error); return; }
+
     const newProfiles = profiles.filter(p => p.id !== id);
-    storage.setProfiles(newProfiles);
 
     if (currentProfileId === id) {
       const nextId = newProfiles[0].id;
-      storage.setCurrentProfileId(nextId);
-      const transactions = storage.getTransactions(nextId);
-      const debts = storage.getDebts(nextId);
-      set({ profiles: newProfiles, currentProfileId: nextId, transactions, debts });
+      const profileData = await fetchProfileData(nextId);
+      setStoredProfileId(nextId);
+      set({ profiles: newProfiles, currentProfileId: nextId, ...profileData });
     } else {
       set({ profiles: newProfiles });
     }
   },
 
-  addTransaction: (txData) => {
+  // ── Transactions ────────────────────────────────────────
+  addTransaction: async (txData) => {
     const { currentProfileId, transactions } = get();
     if (!currentProfileId) return;
-    const tx: Transaction = {
-      ...txData,
-      id: uuidv4(),
-      createdAt: new Date().toISOString(),
-    };
-    const updated = [tx, ...transactions];
-    storage.setTransactions(currentProfileId, updated);
-    set({ transactions: updated });
+
+    const id = uuidv4();
+    const { error } = await supabase.from('transactions').insert({
+      id,
+      profile_id: currentProfileId,
+      type: txData.type,
+      title: txData.title,
+      amount: txData.amount,
+      source: txData.source,
+      goal: txData.goal,
+      note: txData.note ?? '',
+      date: txData.date,
+    });
+
+    if (error) { console.error('addTransaction:', error); return; }
+
+    const newTx: Transaction = { ...txData, id, createdAt: new Date().toISOString() };
+    set({ transactions: [newTx, ...transactions] });
   },
 
-  updateTransaction: (id, data) => {
+  updateTransaction: async (id, data) => {
     const { currentProfileId, transactions } = get();
     if (!currentProfileId) return;
-    const updated = transactions.map(t => t.id === id ? { ...t, ...data } : t);
-    storage.setTransactions(currentProfileId, updated);
-    set({ transactions: updated });
+
+    // camelCase → snake_case
+    const dbData: Record<string, unknown> = {};
+    if (data.type   !== undefined) dbData.type   = data.type;
+    if (data.title  !== undefined) dbData.title  = data.title;
+    if (data.amount !== undefined) dbData.amount = data.amount;
+    if (data.source !== undefined) dbData.source = data.source;
+    if (data.goal   !== undefined) dbData.goal   = data.goal;
+    if (data.note   !== undefined) dbData.note   = data.note;
+    if (data.date   !== undefined) dbData.date   = data.date;
+
+    const { error } = await supabase.from('transactions').update(dbData).eq('id', id);
+    if (error) { console.error('updateTransaction:', error); return; }
+
+    set({ transactions: transactions.map(t => t.id === id ? { ...t, ...data } : t) });
   },
 
-  deleteTransaction: (id) => {
+  deleteTransaction: async (id) => {
     const { currentProfileId, transactions } = get();
     if (!currentProfileId) return;
-    const updated = transactions.filter(t => t.id !== id);
-    storage.setTransactions(currentProfileId, updated);
-    set({ transactions: updated });
+
+    const { error } = await supabase.from('transactions').delete().eq('id', id);
+    if (error) { console.error('deleteTransaction:', error); return; }
+
+    set({ transactions: transactions.filter(t => t.id !== id) });
   },
 
-  addDebt: (debtData) => {
+  // ── Debts ───────────────────────────────────────────────
+  addDebt: async (debtData) => {
     const { currentProfileId, debts } = get();
     if (!currentProfileId) return;
-    const debt: Debt = {
+
+    const id = uuidv4();
+    const { error } = await supabase.from('debts').insert({
+      id,
+      profile_id: currentProfileId,
+      type: debtData.type,
+      person: debtData.person,
+      amount: debtData.amount,
+      note: debtData.note ?? '',
+      due_date: debtData.dueDate ?? null,
+      settled: false,
+      settled_at: null,
+    });
+
+    if (error) { console.error('addDebt:', error); return; }
+
+    const newDebt: Debt = {
       ...debtData,
-      id: uuidv4(),
+      id,
       settled: false,
       settledAt: null,
       createdAt: new Date().toISOString(),
     };
-    const updated = [debt, ...debts];
-    storage.setDebts(currentProfileId, updated);
-    set({ debts: updated });
+    set({ debts: [newDebt, ...debts] });
   },
 
-  updateDebt: (id, data) => {
+  updateDebt: async (id, data) => {
     const { currentProfileId, debts } = get();
     if (!currentProfileId) return;
-    const updated = debts.map(d => d.id === id ? { ...d, ...data } : d);
-    storage.setDebts(currentProfileId, updated);
-    set({ debts: updated });
+
+    const dbData: Record<string, unknown> = {};
+    if (data.type      !== undefined) dbData.type       = data.type;
+    if (data.person    !== undefined) dbData.person     = data.person;
+    if (data.amount    !== undefined) dbData.amount     = data.amount;
+    if (data.note      !== undefined) dbData.note       = data.note;
+    if (data.dueDate   !== undefined) dbData.due_date   = data.dueDate;
+    if (data.settled   !== undefined) dbData.settled    = data.settled;
+    if (data.settledAt !== undefined) dbData.settled_at = data.settledAt;
+
+    const { error } = await supabase.from('debts').update(dbData).eq('id', id);
+    if (error) { console.error('updateDebt:', error); return; }
+
+    set({ debts: debts.map(d => d.id === id ? { ...d, ...data } : d) });
   },
 
-  settleDebt: (id) => {
+  settleDebt: async (id) => {
+    const now = new Date().toISOString();
+    const { error } = await supabase
+      .from('debts')
+      .update({ settled: true, settled_at: now })
+      .eq('id', id);
+
+    if (error) { console.error('settleDebt:', error); return; }
+
+    const { debts } = get();
+    set({ debts: debts.map(d => d.id === id ? { ...d, settled: true, settledAt: now } : d) });
+  },
+
+  deleteDebt: async (id) => {
     const { currentProfileId, debts } = get();
     if (!currentProfileId) return;
-    const updated = debts.map(d =>
-      d.id === id ? { ...d, settled: true, settledAt: new Date().toISOString() } : d
-    );
-    storage.setDebts(currentProfileId, updated);
-    set({ debts: updated });
+
+    const { error } = await supabase.from('debts').delete().eq('id', id);
+    if (error) { console.error('deleteDebt:', error); return; }
+
+    set({ debts: debts.filter(d => d.id !== id) });
   },
 
-  deleteDebt: (id) => {
-    const { currentProfileId, debts } = get();
-    if (!currentProfileId) return;
-    const updated = debts.filter(d => d.id !== id);
-    storage.setDebts(currentProfileId, updated);
-    set({ debts: updated });
-  },
-
-  addCustomSource: (label) => {
+  // ── Custom Sources ──────────────────────────────────────
+  addCustomSource: async (label) => {
     const { currentProfileId, customSources } = get();
     if (!currentProfileId) return;
-    const source: CustomSource = { id: uuidv4(), label: label.trim(), createdAt: new Date().toISOString() };
-    const updated = [...customSources, source];
-    storage.setCustomSources(currentProfileId, updated);
-    set({ customSources: updated });
+
+    const id = uuidv4();
+    const { error } = await supabase.from('custom_sources').insert({
+      id,
+      profile_id: currentProfileId,
+      label: label.trim(),
+    });
+
+    if (error) { console.error('addCustomSource:', error); return; }
+
+    const source: CustomSource = { id, label: label.trim(), createdAt: new Date().toISOString() };
+    set({ customSources: [...customSources, source] });
   },
 
-  removeCustomSource: (id) => {
+  removeCustomSource: async (id) => {
     const { currentProfileId, customSources } = get();
     if (!currentProfileId) return;
-    const updated = customSources.filter(s => s.id !== id);
-    storage.setCustomSources(currentProfileId, updated);
-    set({ customSources: updated });
+
+    const { error } = await supabase.from('custom_sources').delete().eq('id', id);
+    if (error) { console.error('removeCustomSource:', error); return; }
+
+    set({ customSources: customSources.filter(s => s.id !== id) });
   },
 
-  addCustomBudget: (label, icon) => {
+  // ── Custom Budgets ──────────────────────────────────────
+  addCustomBudget: async (label, icon) => {
     const { currentProfileId, customBudgets } = get();
     if (!currentProfileId) return;
-    const budget: CustomBudget = { id: uuidv4(), label: label.trim(), icon, createdAt: new Date().toISOString() };
-    const updated = [...customBudgets, budget];
-    storage.setCustomBudgets(currentProfileId, updated);
-    set({ customBudgets: updated });
+
+    const id = uuidv4();
+    const { error } = await supabase.from('custom_budgets').insert({
+      id,
+      profile_id: currentProfileId,
+      label: label.trim(),
+      icon,
+    });
+
+    if (error) { console.error('addCustomBudget:', error); return; }
+
+    const budget: CustomBudget = { id, label: label.trim(), icon, createdAt: new Date().toISOString() };
+    set({ customBudgets: [...customBudgets, budget] });
   },
 
-  removeCustomBudget: (id) => {
+  removeCustomBudget: async (id) => {
     const { currentProfileId, customBudgets } = get();
     if (!currentProfileId) return;
-    const updated = customBudgets.filter(b => b.id !== id);
-    storage.setCustomBudgets(currentProfileId, updated);
-    set({ customBudgets: updated });
+
+    const { error } = await supabase.from('custom_budgets').delete().eq('id', id);
+    if (error) { console.error('removeCustomBudget:', error); return; }
+
+    set({ customBudgets: customBudgets.filter(b => b.id !== id) });
   },
 }));
