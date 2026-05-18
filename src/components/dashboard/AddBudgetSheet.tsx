@@ -72,7 +72,6 @@ export function AddBudgetSheet({ open, onClose }: AddBudgetSheetProps) {
                   )}
                   style={{
                     background: icon === name ? 'var(--primary-soft)' : 'var(--muted)',
-                    ringColor: 'var(--primary)',
                     outline: icon === name ? '2px solid var(--primary)' : 'none',
                   }}
                   title={name}
