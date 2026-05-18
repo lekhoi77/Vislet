@@ -12,6 +12,7 @@ export type TransactionGoal = string;
 export interface CustomSource {
   id: string;
   label: string;
+  icon: string;
   createdAt: string;
 }
 

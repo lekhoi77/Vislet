@@ -45,7 +45,7 @@ interface AppState {
   settleDebt: (id: string) => Promise<void>;
   deleteDebt: (id: string) => Promise<void>;
 
-  addCustomSource: (label: string) => Promise<void>;
+  addCustomSource: (label: string, icon?: string) => Promise<void>;
   removeCustomSource: (id: string) => Promise<void>;
 
   addCustomBudget: (label: string, icon: string) => Promise<void>;
@@ -309,7 +309,7 @@ export const useAppStore = create<AppState>((set, get) => ({
   },
 
   // ── Custom Sources ──────────────────────────────────────
-  addCustomSource: async (label) => {
+  addCustomSource: async (label, icon = 'Wallet') => {
     const { currentProfileId, customSources } = get();
     if (!currentProfileId) return;
 
@@ -318,11 +318,12 @@ export const useAppStore = create<AppState>((set, get) => ({
       id,
       profile_id: currentProfileId,
       label: label.trim(),
+      icon,
     });
 
     if (error) { console.error('addCustomSource:', error); return; }
 
-    const source: CustomSource = { id, label: label.trim(), createdAt: new Date().toISOString() };
+    const source: CustomSource = { id, label: label.trim(), icon, createdAt: new Date().toISOString() };
     set({ customSources: [...customSources, source] });
   },
 

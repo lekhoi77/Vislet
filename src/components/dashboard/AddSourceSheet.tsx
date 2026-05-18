@@ -6,8 +6,10 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { useAppStore } from '@/store/app-store';
+import { AppIcon, SOURCE_ICON_NAMES } from '@/lib/icons';
 import { Plus, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
+import { cn } from '@/lib/utils';
 
 interface AddSourceSheetProps {
   open: boolean;
@@ -17,18 +19,19 @@ interface AddSourceSheetProps {
 export function AddSourceSheet({ open, onClose }: AddSourceSheetProps) {
   const { customSources, addCustomSource, removeCustomSource } = useAppStore();
   const [label, setLabel] = useState('');
+  const [icon, setIcon] = useState('Wallet');
 
   const handleAdd = () => {
-    if (!label.trim()) return;
-    if (label.trim().length > 30) return;
-    addCustomSource(label);
+    if (!label.trim() || label.trim().length > 30) return;
+    addCustomSource(label, icon);
     setLabel('');
+    setIcon('Wallet');
     toast.success('Đã thêm nguồn tiền');
   };
 
   return (
     <Sheet open={open} onOpenChange={v => !v && onClose()}>
-      <SheetContent side="bottom" className="rounded-t-2xl max-h-[80dvh] gap-0" style={{ padding: 0, background: 'var(--background)' }}>
+      <SheetContent side="bottom" className="rounded-t-2xl max-h-[92dvh] gap-0" style={{ padding: 0, background: 'var(--background)' }}>
         <div className="shrink-0 px-5 pt-3 pb-3" style={{ borderBottom: '1px solid var(--border)' }}>
           <div className="mx-auto w-10 h-1 rounded-full bg-[var(--border)] mb-3" />
           <SheetHeader className="p-0">
@@ -39,31 +42,55 @@ export function AddSourceSheet({ open, onClose }: AddSourceSheetProps) {
         </div>
 
         <div className="flex-1 overflow-y-auto px-5 py-4 flex flex-col gap-5">
-          {/* Add new */}
+          {/* Tên nguồn */}
           <div className="flex flex-col gap-2">
             <Label className="text-xs font-medium tracking-wide uppercase" style={{ color: 'var(--muted-foreground)' }}>
-              Thêm nguồn mới
+              Tên nguồn tiền
             </Label>
-            <div className="flex gap-2">
-              <Input
-                value={label}
-                onChange={e => setLabel(e.target.value)}
-                placeholder="VD: Ví Zalopay, Crypto..."
-                maxLength={30}
-                onKeyDown={e => e.key === 'Enter' && handleAdd()}
-              />
-              <Button
-                onClick={handleAdd}
-                disabled={!label.trim()}
-                className="shrink-0 h-10 px-3 rounded-xl"
-                style={{ background: 'var(--primary)', color: 'var(--primary-foreground)' }}
-              >
-                <Plus size={16} />
-              </Button>
+            <Input
+              value={label}
+              onChange={e => setLabel(e.target.value)}
+              placeholder="VD: Ví Zalopay, Thẻ tín dụng..."
+              maxLength={30}
+              onKeyDown={e => e.key === 'Enter' && handleAdd()}
+            />
+          </div>
+
+          {/* Icon picker */}
+          <div className="flex flex-col gap-2">
+            <Label className="text-xs font-medium tracking-wide uppercase" style={{ color: 'var(--muted-foreground)' }}>
+              Chọn icon
+            </Label>
+            <div className="grid grid-cols-5 gap-2">
+              {SOURCE_ICON_NAMES.map(name => (
+                <button
+                  key={name}
+                  type="button"
+                  onClick={() => setIcon(name)}
+                  className={cn('flex items-center justify-center h-11 rounded-xl transition-all')}
+                  style={{
+                    background: icon === name ? 'var(--primary-soft)' : 'var(--muted)',
+                    outline: icon === name ? '2px solid var(--primary)' : 'none',
+                  }}
+                  title={name}
+                >
+                  <AppIcon name={name} size={18} style={{ color: icon === name ? 'var(--primary)' : 'var(--muted-foreground)' }} />
+                </button>
+              ))}
             </div>
           </div>
 
-          {/* Custom list */}
+          {/* Nút thêm */}
+          <Button
+            onClick={handleAdd}
+            disabled={!label.trim()}
+            className="w-full h-11 rounded-xl text-sm font-semibold flex items-center gap-2"
+            style={{ background: 'var(--primary)', color: 'var(--primary-foreground)' }}
+          >
+            <Plus size={15} /> Thêm nguồn tiền
+          </Button>
+
+          {/* Danh sách custom sources */}
           {customSources.length > 0 && (
             <div className="flex flex-col gap-2">
               <Label className="text-xs font-medium tracking-wide uppercase" style={{ color: 'var(--muted-foreground)' }}>
@@ -76,7 +103,12 @@ export function AddSourceSheet({ open, onClose }: AddSourceSheetProps) {
                     className="flex items-center justify-between px-4 py-3"
                     style={{ borderTop: i > 0 ? '1px solid var(--border)' : 'none', background: 'var(--card)' }}
                   >
-                    <span className="text-sm font-medium" style={{ color: 'var(--foreground)' }}>{s.label}</span>
+                    <div className="flex items-center gap-2.5">
+                      <div className="w-8 h-8 flex items-center justify-center rounded-lg" style={{ background: 'var(--muted)' }}>
+                        <AppIcon name={(s as { icon?: string }).icon ?? 'Wallet'} size={16} style={{ color: 'var(--primary)' }} />
+                      </div>
+                      <span className="text-sm font-medium" style={{ color: 'var(--foreground)' }}>{s.label}</span>
+                    </div>
                     <button
                       onClick={() => { removeCustomSource(s.id); toast.success('Đã xoá'); }}
                       className="p-1.5 rounded-lg hover:bg-[var(--muted)] transition-colors"
