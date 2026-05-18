@@ -3,7 +3,10 @@
     "allow": [
       "Bash(ls \"/mnt/c/Users/kvxl/Desktop/Vislet/public/.claude/worktrees/loving-galileo-39a8a9/node_modules/.bin/\" 2>&1 | grep next | head -5)",
       "mcp__Claude_Preview__preview_start",
-      "Bash(grep -i \"tooltip\\\\|radix\" \"/mnt/c/Users/kvxl/Desktop/Vislet/public/.claude/worktrees/loving-galileo-39a8a9/package.json\")"
+      "Bash(grep -i \"tooltip\\\\|radix\" \"/mnt/c/Users/kvxl/Desktop/Vislet/public/.claude/worktrees/loving-galileo-39a8a9/package.json\")",
+      "Bash(git fetch *)",
+      "Bash(git add *)",
+      "Bash(git commit *)"
     ]
   }
 }
