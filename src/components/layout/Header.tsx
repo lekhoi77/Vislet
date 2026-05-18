@@ -20,8 +20,8 @@ export function Header({ onAddProfile }: HeaderProps) {
       <img
         src="/logo-text.svg"
         alt="Vislet"
-        height={28}
-        style={{ height: 28, width: 'auto' }}
+        height={48}
+        style={{ height: 48, width: 'auto' }}
       />
       <ProfileSwitcher onAddProfile={onAddProfile} />
     </header>
