@@ -167,8 +167,8 @@ export default function HomePage() {
   if (!isLoaded) {
     return (
       <div className="app-container flex items-center justify-center min-h-dvh">
-        <div className="flex flex-col items-center gap-3">
-          <p className="text-2xl font-bold" style={{ color: 'var(--primary)' }}>Vislet</p>
+        <div className="flex flex-col items-center gap-4">
+          <img src="/logo-text.svg" alt="Vislet" style={{ height: 100, width: 'auto' }} />
           <div className="flex gap-1">
             {[0,1,2].map(i => (
               <div key={i} className="w-1.5 h-1.5 rounded-full skeleton-animate" style={{ background: 'var(--primary)', animationDelay: `${i * 0.2}s` }} />
