@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import {
   Sheet,
   SheetContent,
@@ -127,7 +127,7 @@ export function TransactionForm({ open, type, editingTx, onClose }: TransactionF
     return Object.keys(e).length === 0;
   };
 
-  const handleSubmit = () => {
+  const handleSubmit = useCallback(() => {
     if (!validate()) return;
     const txData = {
       type,
@@ -146,7 +146,25 @@ export function TransactionForm({ open, type, editingTx, onClose }: TransactionF
       toast.success(type === 'income' ? 'Đã lưu thu nhập' : 'Đã lưu chi tiêu');
     }
     onClose();
-  };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [type, title, amount, source, goal, note, date, editingTx, onClose]);
+
+  // Enter = submit (trừ khi đang gõ trong textarea)
+  const handleSubmitRef = useRef(handleSubmit);
+  handleSubmitRef.current = handleSubmit;
+
+  useEffect(() => {
+    if (!open) return;
+    const handler = (e: KeyboardEvent) => {
+      if (e.key !== 'Enter') return;
+      const tag = (e.target as HTMLElement).tagName;
+      if (tag === 'TEXTAREA') return; // Enter trong textarea = xuống dòng bình thường
+      e.preventDefault();
+      handleSubmitRef.current();
+    };
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+  }, [open]);
 
   const isIncome = type === 'income';
   const titleStr = editingTx

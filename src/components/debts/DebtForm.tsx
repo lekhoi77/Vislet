@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -54,7 +54,7 @@ export function DebtForm({ open, onClose, editingDebt }: DebtFormProps) {
     return Object.keys(e).length === 0;
   };
 
-  const handleSubmit = () => {
+  const handleSubmit = useCallback(() => {
     if (!validate()) return;
     const data = {
       type,
@@ -71,7 +71,25 @@ export function DebtForm({ open, onClose, editingDebt }: DebtFormProps) {
       toast.success('Đã lưu khoản nợ');
     }
     onClose();
-  };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [type, person, amount, dueDate, note, editingDebt, onClose]);
+
+  // Enter = submit (trừ khi đang gõ trong textarea)
+  const handleSubmitRef = useRef(handleSubmit);
+  handleSubmitRef.current = handleSubmit;
+
+  useEffect(() => {
+    if (!open) return;
+    const handler = (e: KeyboardEvent) => {
+      if (e.key !== 'Enter') return;
+      const tag = (e.target as HTMLElement).tagName;
+      if (tag === 'TEXTAREA') return;
+      e.preventDefault();
+      handleSubmitRef.current();
+    };
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+  }, [open]);
 
   return (
     <Sheet open={open} onOpenChange={v => !v && onClose()}>

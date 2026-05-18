@@ -136,15 +136,27 @@ export default function HomePage() {
       if (!e.ctrlKey || !e.altKey) return;
       if (e.key === 't' || e.key === 'T') {
         e.preventDefault();
-        handleOpenIncomForm();
+        // Nếu đang mở form income → đóng lại; ngược lại mở ra
+        if (txFormOpen && txFormType === 'income') {
+          setTxFormOpen(false);
+          setEditingTx(null);
+        } else {
+          handleOpenIncomForm();
+        }
       } else if (e.key === 'e' || e.key === 'E') {
         e.preventDefault();
-        handleOpenExpenseForm();
+        // Nếu đang mở form expense → đóng lại; ngược lại mở ra
+        if (txFormOpen && txFormType === 'expense') {
+          setTxFormOpen(false);
+          setEditingTx(null);
+        } else {
+          handleOpenExpenseForm();
+        }
       }
     };
     window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
-  }, [handleOpenIncomForm, handleOpenExpenseForm]);
+  }, [handleOpenIncomForm, handleOpenExpenseForm, txFormOpen, txFormType]);
 
   const filteredDebts = debts.filter(d => debtFilter === 'open' ? !d.settled : d.settled);
   const monthTxs = transactions.filter(tx => {
