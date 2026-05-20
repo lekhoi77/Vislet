@@ -45,6 +45,7 @@ export interface CustomSourceRow {
   id: string;
   profile_id: string;
   label: string;
+  icon: string;
   created_at: string;
 }
 
@@ -102,6 +103,7 @@ export function toCustomSource(row: CustomSourceRow): CustomSource {
   return {
     id: row.id,
     label: row.label,
+    icon: row.icon,
     createdAt: row.created_at,
   };
 }
