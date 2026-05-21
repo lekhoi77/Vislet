@@ -1,13 +1,15 @@
 'use client';
 
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { Transaction, Debt } from '@/lib/types';
+import { DayDetailSheet } from './DayDetailSheet';
 
 interface CalendarBlockProps {
   transactions: Transaction[];
   debts: Debt[];
   month: number;
   year: number;
+  onEdit?: (tx: Transaction) => void;
 }
 
 const WEEKDAY_LABELS = ['T2', 'T3', 'T4', 'T5', 'T6', 'T7', 'CN'];
@@ -20,7 +22,9 @@ interface DayCell {
   hasDebt: boolean;
 }
 
-export function CalendarBlock({ transactions, debts, month, year }: CalendarBlockProps) {
+export function CalendarBlock({ transactions, debts, month, year, onEdit }: CalendarBlockProps) {
+  const [selectedDay, setSelectedDay] = useState<number | null>(null);
+
   const days = useMemo<DayCell[]>(() => {
     const now = new Date();
     const firstDay = new Date(year, month - 1, 1);
@@ -63,6 +67,8 @@ export function CalendarBlock({ transactions, debts, month, year }: CalendarBloc
     return cells;
   }, [transactions, debts, month, year]);
 
+  const selectedDate = selectedDay !== null ? new Date(year, month - 1, selectedDay) : null;
+
   return (
     <div
       className="rounded-2xl overflow-hidden h-full flex flex-col"
@@ -73,13 +79,13 @@ export function CalendarBlock({ transactions, debts, month, year }: CalendarBloc
         <p className="text-overline">Lịch hoạt động</p>
         <div className="flex items-center gap-2.5 text-[14px] font-medium" style={{ color: 'var(--muted-foreground)' }}>
           <span className="flex items-center gap-1">
-            <span style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--income)' }} /> Thu
+            <span style={{ width: 8, height: 8, borderRadius: '50%', background: 'var(--income)' }} /> Thu
           </span>
           <span className="flex items-center gap-1">
-            <span style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--orange)' }} /> Chi
+            <span style={{ width: 8, height: 8, borderRadius: '50%', background: 'var(--orange)' }} /> Chi
           </span>
           <span className="flex items-center gap-1">
-            <span style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--expense)' }} /> Nợ
+            <span style={{ width: 8, height: 8, borderRadius: '50%', background: 'var(--expense)' }} /> Nợ
           </span>
         </div>
       </div>
@@ -103,17 +109,22 @@ export function CalendarBlock({ transactions, debts, month, year }: CalendarBloc
           if (c.day === null) {
             return <div key={i} aria-hidden />;
           }
+          const hasAny = c.hasIncome || c.hasExpense || c.hasDebt;
           return (
-            <div
+            <button
               key={i}
-              className="flex flex-col items-center justify-start aspect-square rounded-lg pt-1"
+              type="button"
+              onClick={() => setSelectedDay(c.day)}
+              className="flex flex-col items-center justify-start aspect-square rounded-lg pt-1 transition-colors hover:bg-[var(--muted)] active:scale-95"
               style={{
                 background: c.isToday ? 'var(--primary-soft)' : 'transparent',
                 border: c.isToday ? '1px solid var(--primary-muted)' : '1px solid transparent',
+                cursor: 'pointer',
               }}
+              aria-label={`Ngày ${c.day}${hasAny ? ', có giao dịch' : ''}`}
             >
               <span
-                className="text-[11px] leading-none"
+                className="text-[13px] leading-none"
                 style={{
                   color: c.isToday ? 'var(--primary)' : 'var(--foreground)',
                   fontWeight: c.isToday ? 700 : 500,
@@ -121,21 +132,30 @@ export function CalendarBlock({ transactions, debts, month, year }: CalendarBloc
               >
                 {c.day}
               </span>
-              <div className="flex gap-0.5 mt-1 min-h-[5px]">
+              <div className="flex gap-1 mt-1.5 min-h-[8px]">
                 {c.hasIncome && (
-                  <span style={{ width: 4, height: 4, borderRadius: '50%', background: 'var(--income)' }} />
+                  <span style={{ width: 7, height: 7, borderRadius: '50%', background: 'var(--income)' }} />
                 )}
                 {c.hasExpense && (
-                  <span style={{ width: 4, height: 4, borderRadius: '50%', background: 'var(--orange)' }} />
+                  <span style={{ width: 7, height: 7, borderRadius: '50%', background: 'var(--orange)' }} />
                 )}
                 {c.hasDebt && (
-                  <span style={{ width: 4, height: 4, borderRadius: '50%', background: 'var(--expense)' }} />
+                  <span style={{ width: 7, height: 7, borderRadius: '50%', background: 'var(--expense)' }} />
                 )}
               </div>
-            </div>
+            </button>
           );
         })}
       </div>
+
+      <DayDetailSheet
+        date={selectedDate}
+        transactions={transactions}
+        debts={debts}
+        filterType="all"
+        onEdit={onEdit}
+        onClose={() => setSelectedDay(null)}
+      />
     </div>
   );
 }

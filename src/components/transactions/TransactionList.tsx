@@ -16,9 +16,11 @@ interface TransactionListProps {
   onEdit: (tx: Transaction) => void;
   maxItems?: number;
   showLoadMore?: boolean;
+  /** Query để bôi đậm phần khớp trong title/note */
+  highlightQuery?: string;
 }
 
-export function TransactionList({ transactions, isLoading, onEdit, maxItems, showLoadMore }: TransactionListProps) {
+export function TransactionList({ transactions, isLoading, onEdit, maxItems, showLoadMore, highlightQuery }: TransactionListProps) {
   const [page, setPage] = useState(1);
 
   if (isLoading) {
@@ -52,7 +54,7 @@ export function TransactionList({ transactions, isLoading, onEdit, maxItems, sho
     <div className="flex flex-col">
       {visible.map((tx, i) => (
         <div key={tx.id}>
-          <TransactionItem tx={tx} onEdit={onEdit} />
+          <TransactionItem tx={tx} onEdit={onEdit} highlightQuery={highlightQuery} />
           {i < visible.length - 1 && <Separator className="mx-4" />}
         </div>
       ))}

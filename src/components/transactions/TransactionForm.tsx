@@ -44,11 +44,17 @@ function SelectGroup<T extends string>({
   options,
   value,
   onChange,
+  accent = 'primary',
 }: {
   options: { value: T; label: string; icon?: React.ReactNode }[];
   value: T;
   onChange: (v: T) => void;
+  accent?: 'primary' | 'orange';
 }) {
+  const selectedBorder = accent === 'orange' ? 'var(--orange-muted)' : 'var(--primary-muted)';
+  const selectedBg    = accent === 'orange' ? 'var(--orange-soft)'  : 'var(--primary-soft)';
+  const selectedColor = accent === 'orange' ? 'var(--orange)'       : 'var(--foreground)';
+
   return (
     <div className="flex gap-2 flex-wrap">
       {options.map(o => (
@@ -60,9 +66,9 @@ function SelectGroup<T extends string>({
             'flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium transition-all',
           )}
           style={{
-            border: value === o.value ? '1px solid var(--primary-muted)' : '1px solid var(--border)',
-            background: value === o.value ? 'var(--primary-soft)' : 'transparent',
-            color: value === o.value ? 'var(--foreground)' : 'var(--muted-foreground)',
+            border: value === o.value ? `1px solid ${selectedBorder}` : '1px solid var(--border)',
+            background: value === o.value ? selectedBg : 'transparent',
+            color: value === o.value ? selectedColor : 'var(--muted-foreground)',
           }}
         >
           {o.icon}
@@ -208,7 +214,10 @@ export function TransactionForm({ open, type, editingTx, onClose }: TransactionF
         </div>
 
         {/* Scrollable body */}
-        <div className="flex-1 overflow-y-auto px-5 py-4">
+        <div
+          className="flex-1 overflow-y-auto px-5 py-4"
+          style={!isIncome ? { '--ring': 'hsl(24, 90%, 58%)', '--ring-opacity': '0.4' } as React.CSSProperties : undefined}
+        >
           <div className="flex flex-col gap-5">
             {/* Title */}
             <div className="flex flex-col gap-2">
@@ -250,7 +259,7 @@ export function TransactionForm({ open, type, editingTx, onClose }: TransactionF
               <Label className="text-sm font-medium tracking-wide uppercase" style={{ color: 'var(--muted-foreground)' }}>
                 Nguồn tiền *
               </Label>
-              <SelectGroup options={SOURCES} value={source} onChange={setSource} />
+              <SelectGroup options={SOURCES} value={source} onChange={setSource} accent={isIncome ? 'primary' : 'orange'} />
               {sourcePreview && (
                 <div
                   className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium"
@@ -272,7 +281,7 @@ export function TransactionForm({ open, type, editingTx, onClose }: TransactionF
                 <Label className="text-sm font-medium tracking-wide uppercase" style={{ color: 'var(--muted-foreground)' }}>
                   Mục tiêu
                 </Label>
-                <SelectGroup options={GOALS} value={goal} onChange={setGoal} />
+                <SelectGroup options={GOALS} value={goal} onChange={setGoal} accent="orange" />
               </div>
             )}
 
@@ -303,7 +312,10 @@ export function TransactionForm({ open, type, editingTx, onClose }: TransactionF
             id="tx-submit"
             onClick={handleSubmit}
             className="w-full h-12 rounded-xl text-sm font-semibold tracking-wide"
-            style={{ background: 'var(--primary)', color: 'var(--primary-foreground)' }}
+            style={{
+              background: isIncome ? 'var(--primary)' : 'var(--orange)',
+              color: isIncome ? 'var(--primary-foreground)' : 'var(--orange-foreground)',
+            }}
           >
             {editingTx
               ? (isIncome ? 'CẬP NHẬT THU NHẬP' : 'CẬP NHẬT CHI TIÊU')

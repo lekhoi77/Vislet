@@ -10,6 +10,7 @@ import { FAB } from '@/components/layout/FAB';
 import { OnboardingScreen } from '@/components/profile/OnboardingScreen';
 import { TransactionForm } from '@/components/transactions/TransactionForm';
 import { TransactionList } from '@/components/transactions/TransactionList';
+import { TransactionPane } from '@/components/transactions/TransactionPane';
 import { DebtForm } from '@/components/debts/DebtForm';
 import { DebtCard } from '@/components/debts/DebtCard';
 import { DebtStats } from '@/components/debts/DebtStats';
@@ -332,43 +333,20 @@ export default function HomePage() {
               </div>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <CalendarBlock transactions={transactions} debts={debts} month={month} year={year} />
-              <ExpenseHeatmap transactions={transactions} month={month} year={year} />
-            </div>
-            <div>
-              <p className="text-overline mb-3">Chi tiêu theo danh mục</p>
-              <ExpenseBreakdown transactions={transactions} month={month} year={year} />
-            </div>
-            <div>
-              <p className="text-overline mb-3">Giao dịch gần đây</p>
-              <RecentTransactions
-                transactions={transactions}
-                month={month}
-                year={year}
-                onViewAll={() => handleTabChange('transactions')}
-                onEdit={handleEditTx}
-              />
+              <CalendarBlock transactions={transactions} debts={debts} month={month} year={year} onEdit={handleEditTx} />
+              <ExpenseHeatmap transactions={transactions} month={month} year={year} onEdit={handleEditTx} />
             </div>
           </div>
         )}
 
         {/* ─── TRANSACTIONS TAB ─── */}
         {activeTab === 'transactions' && (
-          <div key={`tx-${contentKey}`} className="page-appear flex flex-col gap-5 pt-5">
+          <div key={`tx-${contentKey}`} className="page-appear flex flex-col gap-4 pt-5">
             <div className="flex items-center justify-between px-5">
               <p className="text-overline">Lịch sử giao dịch</p>
               <MonthSelector month={month} year={year} onPrev={handlePrevMonth} onNext={handleNextMonth} onSelect={handleSelectMonth} onToday={handleToday} />
             </div>
-            <div
-              className="mx-5 rounded-2xl overflow-hidden"
-              style={{ background: 'var(--card)', border: '1px solid var(--border)', boxShadow: 'var(--shadow-card)', minHeight: 80 }}
-            >
-              <TransactionList
-                transactions={monthTxs}
-                onEdit={handleEditTx}
-                showLoadMore
-              />
-            </div>
+            <TransactionPane transactions={monthTxs} onEdit={handleEditTx} />
           </div>
         )}
 

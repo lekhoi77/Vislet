@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { Transaction } from '@/lib/types';
 import { formatCurrentDateTime, formatVND, formatVNDShort } from '@/lib/format';
 import { useAppStore } from '@/store/app-store';
@@ -21,6 +21,26 @@ function card(extra?: React.CSSProperties): React.CSSProperties {
     ...extra,
   };
 }
+
+// ── Greeting pool ──────────────────────────────────────────────
+// Tất cả câu KHÔNG có dấu câu cuối — sẽ tự thêm ", Tên?"
+const GREETINGS = [
+  'Hôm nay bạn thấy thế nào',
+  'Có ai rủ bạn đi ăn không',
+  'Ví tiền hôm nay ổn không',
+  'Hôm nay tiêu xài có vui không',
+  'Cà phê sáng tính vào đâu chưa',
+  'Bữa trưa ăn gì chưa tính chưa',
+  'Cuối tháng rồi ví còn bao nhiêu',
+  'Mua sắm hôm nay có gì hay không',
+  'Hôm nay có đặt mục tiêu gì chưa',
+  'Tháng này chi tiêu ổn không',
+  'Có khoản nào chưa ghi lại không',
+  'Hôm nay bỏ ống heo được không',
+  'Đi ăn ngoài hay tự nấu hôm nay',
+  'Tháng này tiết kiệm được bao nhiêu',
+  'Cuối tuần có kế hoạch gì chưa',
+];
 
 function LiveDateTime() {
   const [now, setNow] = useState(() => new Date());
@@ -58,6 +78,58 @@ function DeltaRow({ label, delta, isExpense }: { label: string; delta: number; i
   );
 }
 
+// ── Greeting card (left panel) ─────────────────────────────────
+interface GreetingCardProps {
+  profileName?: string;
+  deltaIncome: number;
+  deltaExpense: number;
+  isCurrentMonth: boolean;
+}
+
+function GreetingCard({ profileName, deltaIncome, deltaExpense, isCurrentMonth }: GreetingCardProps) {
+  // Pick one greeting per mount — won't re-randomise on re-renders
+  const greeting = useMemo(() => GREETINGS[Math.floor(Math.random() * GREETINGS.length)], []);
+
+  return (
+    <>
+      {/* Google Font — Playwrite England SemiJoined */}
+      <style>{`@import url('https://fonts.googleapis.com/css2?family=Playwrite+England+SemiJoined&display=swap');`}</style>
+
+      <div className="flex flex-col justify-between p-4 rounded-2xl" style={card({ minHeight: 148 })}>
+        <div>
+          <LiveDateTime />
+          <p className="text-base font-bold leading-snug mt-1" style={{ color: 'var(--foreground)' }}>
+            {greeting}
+            {profileName ? (
+              <>
+                {', '}
+                <span
+                  style={{
+                    fontFamily: "'Playwrite England SemiJoined', cursive",
+                    fontWeight: 400,
+                    fontSize: '1.125rem',
+                    background: 'linear-gradient(90deg, var(--primary) 0%, var(--orange) 100%)',
+                    WebkitBackgroundClip: 'text',
+                    WebkitTextFillColor: 'transparent',
+                    backgroundClip: 'text',
+                  }}
+                >
+                  {profileName}?
+                </span>
+              </>
+            ) : '?'}
+          </p>
+        </div>
+        <div className="flex flex-col gap-1.5 mt-3">
+          <DeltaRow label="Thu nhập hôm nay" delta={isCurrentMonth ? deltaIncome : 0} isExpense={false} />
+          <DeltaRow label="Chi tiêu hôm nay" delta={isCurrentMonth ? deltaExpense : 0} isExpense={true} />
+        </div>
+      </div>
+    </>
+  );
+}
+
+// ── Main export ────────────────────────────────────────────────
 export function SummaryCards({ transactions, month, year, isLoading }: SummaryCardsProps) {
   const { profiles, currentProfileId } = useAppStore();
   const profile = profiles.find(p => p.id === currentProfileId);
@@ -105,18 +177,12 @@ export function SummaryCards({ transactions, month, year, isLoading }: SummaryCa
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
       {/* ── Left: greeting + today delta ── */}
-      <div className="flex flex-col justify-between p-4 rounded-2xl" style={card({ minHeight: 148 })}>
-        <div>
-          <LiveDateTime />
-          <p className="text-base font-bold leading-snug mt-0.5" style={{ color: 'var(--foreground)' }}>
-            {profile?.name ? `Xin chào, ${profile.name}` : 'Xin chào'}
-          </p>
-        </div>
-        <div className="flex flex-col gap-1.5 mt-3">
-          <DeltaRow label="Thu nhập hôm nay" delta={isCurrentMonth ? deltaIncome : 0} isExpense={false} />
-          <DeltaRow label="Chi tiêu hôm nay" delta={isCurrentMonth ? deltaExpense : 0} isExpense={true} />
-        </div>
-      </div>
+      <GreetingCard
+        profileName={profile?.name}
+        deltaIncome={deltaIncome}
+        deltaExpense={deltaExpense}
+        isCurrentMonth={isCurrentMonth}
+      />
 
       {/* ── Right: balance + income/expense ── */}
       <div className="flex flex-col gap-3">

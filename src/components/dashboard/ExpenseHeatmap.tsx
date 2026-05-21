@@ -1,13 +1,15 @@
 'use client';
 
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { Transaction } from '@/lib/types';
 import { formatVND, formatVNDShort } from '@/lib/format';
+import { DayDetailSheet } from './DayDetailSheet';
 
 interface ExpenseHeatmapProps {
   transactions: Transaction[];
   month: number;
   year: number;
+  onEdit?: (tx: Transaction) => void;
 }
 
 const WEEKDAY_LABELS = ['T2', 'T3', 'T4', 'T5', 'T6', 'T7', 'CN'];
@@ -27,7 +29,8 @@ interface DayCell {
   level: number;
 }
 
-export function ExpenseHeatmap({ transactions, month, year }: ExpenseHeatmapProps) {
+export function ExpenseHeatmap({ transactions, month, year, onEdit }: ExpenseHeatmapProps) {
+  const [selectedDay, setSelectedDay] = useState<number | null>(null);
   const { days, maxAmount, totalAmount, activeDays } = useMemo(() => {
     const firstDay = new Date(year, month - 1, 1);
     const daysInMonth = new Date(year, month, 0).getDate();
@@ -100,18 +103,22 @@ export function ExpenseHeatmap({ transactions, month, year }: ExpenseHeatmapProp
           }
           const isDark = c.level >= 3;
           return (
-            <div
+            <button
               key={i}
+              type="button"
+              onClick={() => setSelectedDay(c.day)}
               title={`Ngày ${c.day}: ${c.amount > 0 ? formatVND(c.amount) : 'Không chi tiêu'}`}
-              className="rounded-md aspect-square flex items-center justify-center text-[14px] transition-colors"
+              className="rounded-md aspect-square flex items-center justify-center text-[14px] transition-all hover:ring-2 hover:ring-offset-1 active:scale-95"
               style={{
                 background: SHADE_COLORS[c.level],
                 color: isDark ? '#fff' : 'var(--muted-foreground)',
                 fontWeight: c.level > 0 ? 600 : 400,
+                cursor: 'pointer',
               }}
+              aria-label={`Ngày ${c.day}, chi tiêu ${c.amount > 0 ? formatVND(c.amount) : 'không có'}`}
             >
               {c.day}
-            </div>
+            </button>
           );
         })}
       </div>
@@ -131,6 +138,14 @@ export function ExpenseHeatmap({ transactions, month, year }: ExpenseHeatmapProp
           <span className="text-[14px]" style={{ color: 'var(--muted-foreground)' }}>Nhiều</span>
         </div>
       </div>
+
+      <DayDetailSheet
+        date={selectedDay !== null ? new Date(year, month - 1, selectedDay) : null}
+        transactions={transactions}
+        filterType="expense"
+        onEdit={onEdit}
+        onClose={() => setSelectedDay(null)}
+      />
     </div>
   );
 }

@@ -2,7 +2,7 @@
 
 import { Transaction } from '@/lib/types';
 import { formatVND } from '@/lib/format';
-import { GOAL_LABELS } from '@/lib/constants';
+import { GOAL_LABELS, getGoalColor } from '@/lib/constants';
 import { useAppStore } from '@/store/app-store';
 import { BudgetIcon } from '@/lib/icons';
 import { Separator } from '@/components/ui/separator';
@@ -14,11 +14,6 @@ const BUILT_IN_GOALS = [
   { id: 'saving', label: GOAL_LABELS['saving'], icon: <PiggyBank size={16} /> },
   { id: 'travel', label: GOAL_LABELS['travel'], icon: <Plane size={16} /> },
   { id: 'soon',   label: GOAL_LABELS['soon'],   icon: <Clock size={16} /> },
-];
-
-const PASTEL = [
-  '#B5EAD7', '#DCEDC1', '#FFD3B6', '#A8D8EA',
-  '#FFC8DD', '#D4A5F5', '#FFAAA5', '#C7CEEA',
 ];
 
 interface GoalBlocksProps {
@@ -48,7 +43,7 @@ export function GoalBlocks({ transactions, title, onAdd, addLabel = 'Thêm mục
       .reduce((s, t) => s + t.amount, 0);
   };
 
-  const balances = allGoals.map(g => ({ ...g, balance: getSpent(g.id) }));
+  const balances = allGoals.map(g => ({ ...g, balance: getSpent(g.id), color: getGoalColor(g.id, customBudgets) }));
   const total = balances.reduce((s, g) => s + g.balance, 0);
 
   const chartData = balances
@@ -96,8 +91,8 @@ export function GoalBlocks({ transactions, title, onAdd, addLabel = 'Thêm mục
               <PieChart>
                 <Pie data={chartData} cx="50%" cy="50%" innerRadius={50} outerRadius={80}
                   dataKey="value" paddingAngle={3}>
-                  {chartData.map((_, i) => (
-                    <Cell key={i} fill={PASTEL[i % PASTEL.length]} stroke="none" />
+                  {chartData.map((entry, i) => (
+                    <Cell key={i} fill={getGoalColor(balances.find(b => b.label === entry.name)?.id ?? '', customBudgets)} stroke="none" />
                   ))}
                 </Pie>
                 <Tooltip
@@ -125,7 +120,7 @@ export function GoalBlocks({ transactions, title, onAdd, addLabel = 'Thêm mục
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
                       <div className="flex items-center justify-center w-7 h-7 rounded-lg shrink-0"
-                        style={{ background: 'var(--muted)', color: 'var(--muted-foreground)' }}>
+                        style={{ background: `${g.color}20`, color: g.color }}>
                         {g.icon}
                       </div>
                       <p className="text-sm font-medium leading-tight" style={{ color: 'var(--foreground)' }}>{g.label}</p>
@@ -136,7 +131,7 @@ export function GoalBlocks({ transactions, title, onAdd, addLabel = 'Thêm mục
                   </div>
                   <div className="w-full h-1 rounded-full" style={{ background: 'var(--muted)' }}>
                     <div className="h-1 rounded-full transition-all duration-500"
-                      style={{ width: `${pct}%`, background: 'var(--primary)', minWidth: pct > 0 ? 4 : 0 }} />
+                      style={{ width: `${pct}%`, background: g.color, minWidth: pct > 0 ? 4 : 0 }} />
                   </div>
                 </div>
               </div>

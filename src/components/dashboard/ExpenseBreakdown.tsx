@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { Transaction, TransactionGoal, TransactionSource } from '@/lib/types';
 import { formatVND } from '@/lib/format';
-import { resolveGoalLabel, resolveSourceLabel } from '@/lib/constants';
+import { resolveGoalLabel, resolveSourceLabel, getGoalColor } from '@/lib/constants';
 import { useAppStore } from '@/store/app-store';
 import { BudgetIcon } from '@/lib/icons';
 import { Building2, Wallet, Smartphone, PiggyBank, Plane, Clock, Tag, CircleDot, ChevronDown } from 'lucide-react';
@@ -123,6 +123,9 @@ export function ExpenseBreakdown({ transactions, month, year }: ExpenseBreakdown
               ? (GOAL_ICONS[key as TransactionGoal] ?? (customBudget ? <BudgetIcon name={customBudget.icon} size={14} /> : <Tag size={14} />))
               : (SOURCE_ICONS[key as TransactionSource] ?? (customSource ? <CircleDot size={14} /> : <CircleDot size={14} />));
             const pct = total > 0 ? (g.amount / total) * 100 : 0;
+            const barColor = filterBy === 'goal'
+              ? getGoalColor(key, customBudgets)
+              : 'var(--primary)';
 
             return (
               <div
@@ -131,8 +134,14 @@ export function ExpenseBreakdown({ transactions, month, year }: ExpenseBreakdown
                 style={{ borderColor: 'var(--border)' }}
               >
                 <div className="flex items-center justify-between mb-1.5">
-                  <div className="flex items-center gap-2" style={{ color: 'var(--muted-foreground)' }}>
-                    {icon}
+                  <div className="flex items-center gap-2">
+                    <div className="flex items-center justify-center w-6 h-6 rounded-lg shrink-0"
+                      style={{
+                        background: filterBy === 'goal' ? `${barColor}20` : 'var(--primary-soft)',
+                        color: filterBy === 'goal' ? barColor : 'var(--primary)',
+                      }}>
+                      {icon}
+                    </div>
                     <span className="text-sm font-medium" style={{ color: 'var(--foreground)' }}>{label}</span>
                     <span className="text-sm" style={{ color: 'var(--muted-foreground)' }}>{g.count} lần</span>
                   </div>
@@ -149,7 +158,7 @@ export function ExpenseBreakdown({ transactions, month, year }: ExpenseBreakdown
                 <div className="h-1.5 rounded-full overflow-hidden" style={{ background: 'var(--muted)' }}>
                   <div
                     className="h-full rounded-full transition-all duration-500"
-                    style={{ width: `${pct}%`, background: 'var(--expense)' }}
+                    style={{ width: `${pct}%`, background: barColor }}
                   />
                 </div>
               </div>

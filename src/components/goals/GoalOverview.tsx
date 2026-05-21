@@ -2,24 +2,11 @@
 
 import { Transaction } from '@/lib/types';
 import { formatVND, formatVNDShort } from '@/lib/format';
-import { GOAL_LABELS } from '@/lib/constants';
+import { GOAL_LABELS, getGoalColor } from '@/lib/constants';
 import { useAppStore } from '@/store/app-store';
 import { BudgetIcon } from '@/lib/icons';
 import { PiggyBank, Plane, Clock, Tag, BarChart2 } from 'lucide-react';
 import { EmptyState } from '@/components/shared/EmptyState';
-
-const CATEGORY_COLORS = [
-  '#3b82f6', // blue
-  '#f59e0b', // amber
-  '#10b981', // emerald
-  '#f43f5e', // rose
-  '#8b5cf6', // violet
-  '#06b6d4', // cyan
-  '#f97316', // orange
-  '#84cc16', // lime
-  '#ec4899', // pink
-  '#14b8a6', // teal
-];
 
 const BUILT_IN_ICONS: Record<string, React.ReactNode> = {
   saving: <PiggyBank size={16} />,
@@ -55,12 +42,12 @@ export function GoalOverview({ transactions, month, year }: GoalOverviewProps) {
   const totalExpense = expenses.reduce((s, t) => s + t.amount, 0);
 
   const groups = allGoals
-    .map((g, colorIdx) => {
+    .map((g) => {
       const txs = expenses.filter(t => t.goal === g.id);
       const amount = txs.reduce((s, t) => s + t.amount, 0);
       const count = txs.length;
       const pct = totalExpense > 0 ? (amount / totalExpense) * 100 : 0;
-      return { ...g, amount, count, pct, color: CATEGORY_COLORS[colorIdx % CATEGORY_COLORS.length] };
+      return { ...g, amount, count, pct, color: getGoalColor(g.id, customBudgets) };
     })
     .filter(g => g.amount > 0)
     .sort((a, b) => b.amount - a.amount);

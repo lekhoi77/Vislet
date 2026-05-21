@@ -25,13 +25,16 @@ import {
 import { useAppStore } from '@/store/app-store';
 import { ArrowDownLeft, ArrowUpRight, FileText, Pencil, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
+import { Highlight } from '@/components/shared/Highlight';
 
 interface TransactionItemProps {
   tx: Transaction;
   onEdit: (tx: Transaction) => void;
+  /** Query để bôi cam phần khớp trong title/note */
+  highlightQuery?: string;
 }
 
-export function TransactionItem({ tx, onEdit }: TransactionItemProps) {
+export function TransactionItem({ tx, onEdit, highlightQuery = '' }: TransactionItemProps) {
   const { deleteTransaction, customSources, customBudgets } = useAppStore();
   const [showDetail, setShowDetail] = useState(false);
   const [showDelete, setShowDelete] = useState(false);
@@ -74,12 +77,12 @@ export function TransactionItem({ tx, onEdit }: TransactionItemProps) {
         {/* Content */}
         <div className="flex-1 min-w-0">
           <div className="flex items-start justify-between gap-2">
-            <p
+            <Highlight
+              text={tx.title}
+              query={highlightQuery}
               className="font-semibold text-sm truncate"
               style={{ color: 'var(--foreground)', lineHeight: '1.35' }}
-            >
-              {tx.title}
-            </p>
+            />
             <p
               className="flex-shrink-0 font-semibold text-sm amount"
               style={{ color: isIncome ? 'var(--income)' : 'var(--expense)' }}
@@ -111,9 +114,12 @@ export function TransactionItem({ tx, onEdit }: TransactionItemProps) {
           {tx.note && (
             <div className="flex items-center gap-1 mt-1">
               <FileText size={11} style={{ color: 'var(--muted-foreground)', flexShrink: 0 }} />
-              <p className="text-sm truncate" style={{ color: 'var(--muted-foreground)' }}>
-                {tx.note}
-              </p>
+              <Highlight
+                text={tx.note}
+                query={highlightQuery}
+                className="text-sm truncate"
+                style={{ color: 'var(--muted-foreground)' }}
+              />
             </div>
           )}
         </div>
