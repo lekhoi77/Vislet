@@ -94,7 +94,7 @@ export function SourceBlocks({ transactions, title, onAdd, addLabel = 'Thêm ngu
                 </Pie>
                 <Tooltip
                   formatter={(v) => formatVND(Number(v))}
-                  contentStyle={{ borderRadius: 10, border: '1px solid var(--border)', background: 'var(--card)', fontSize: 12 }}
+                  contentStyle={{ borderRadius: 10, border: '1px solid var(--border)', background: 'var(--card)', fontSize: 14 }}
                   itemStyle={{ color: 'var(--foreground)', fontWeight: 600 }}
                   labelStyle={{ color: 'var(--foreground)', fontWeight: 600 }}
                 />

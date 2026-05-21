@@ -97,7 +97,7 @@ export function LoginScreen() {
 
         <div className="flex flex-col gap-3 text-left">
           <div className="flex flex-col gap-1.5">
-            <Label style={{ color: 'var(--muted-foreground)', fontSize: 12, fontWeight: 500 }}>
+            <Label style={{ color: 'var(--muted-foreground)', fontSize: 14, fontWeight: 500 }}>
               Email
             </Label>
             <Input
@@ -116,7 +116,7 @@ export function LoginScreen() {
           </div>
 
           <div className="flex flex-col gap-1.5">
-            <Label style={{ color: 'var(--muted-foreground)', fontSize: 12, fontWeight: 500 }}>
+            <Label style={{ color: 'var(--muted-foreground)', fontSize: 14, fontWeight: 500 }}>
               Mật khẩu
             </Label>
             <div className="relative">

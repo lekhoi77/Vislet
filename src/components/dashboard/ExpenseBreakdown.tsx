@@ -51,7 +51,12 @@ export function ExpenseBreakdown({ transactions, month, year }: ExpenseBreakdown
 
   monthExpenses.forEach(tx => {
     const key = filterBy === 'goal' ? tx.goal : tx.source;
-    const g = groups.get(key)!;
+    if (!key) return;
+    let g = groups.get(key);
+    if (!g) {
+      g = { amount: 0, count: 0 };
+      groups.set(key, g);
+    }
     g.amount += tx.amount;
     g.count += 1;
   });
@@ -106,9 +111,9 @@ export function ExpenseBreakdown({ transactions, month, year }: ExpenseBreakdown
       ) : (
         <div className="flex flex-col">
           {rows.map(([key, g], i) => {
-            const label = filterBy === 'goal'
+            const label = (filterBy === 'goal'
               ? GOAL_LABELS[key as TransactionGoal]
-              : SOURCE_LABELS[key as TransactionSource];
+              : SOURCE_LABELS[key as TransactionSource]) ?? key;
             const icon = filterBy === 'goal'
               ? GOAL_ICONS[key as TransactionGoal]
               : SOURCE_ICONS[key as TransactionSource];

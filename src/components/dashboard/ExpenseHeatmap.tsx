@@ -74,7 +74,7 @@ export function ExpenseHeatmap({ transactions, month, year }: ExpenseHeatmapProp
       {/* Header */}
       <div className="flex items-center justify-between gap-2 px-3 pt-3 pb-2">
         <p className="text-overline">Heatmap chi tiêu</p>
-        <p className="text-[10px] font-medium" style={{ color: 'var(--muted-foreground)' }}>
+        <p className="text-[14px] font-medium" style={{ color: 'var(--muted-foreground)' }}>
           {activeDays > 0 ? `${activeDays} ngày · cao nhất ${formatVNDShort(maxAmount)}` : 'Chưa có dữ liệu'}
         </p>
       </div>
@@ -84,7 +84,7 @@ export function ExpenseHeatmap({ transactions, month, year }: ExpenseHeatmapProp
         {WEEKDAY_LABELS.map(label => (
           <div
             key={label}
-            className="text-center text-[10px] font-semibold uppercase tracking-wide"
+            className="text-center text-[14px] font-semibold uppercase tracking-wide"
             style={{ color: 'var(--muted-foreground)' }}
           >
             {label}
@@ -103,7 +103,7 @@ export function ExpenseHeatmap({ transactions, month, year }: ExpenseHeatmapProp
             <div
               key={i}
               title={`Ngày ${c.day}: ${c.amount > 0 ? formatVND(c.amount) : 'Không chi tiêu'}`}
-              className="rounded-md aspect-square flex items-center justify-center text-[10px] transition-colors"
+              className="rounded-md aspect-square flex items-center justify-center text-[14px] transition-colors"
               style={{
                 background: SHADE_COLORS[c.level],
                 color: isDark ? '#fff' : 'var(--muted-foreground)',
@@ -118,17 +118,17 @@ export function ExpenseHeatmap({ transactions, month, year }: ExpenseHeatmapProp
 
       {/* Legend */}
       <div className="flex items-center justify-between gap-2 px-3 py-2.5 mt-1">
-        <p className="text-[10px]" style={{ color: 'var(--muted-foreground)' }}>
+        <p className="text-[14px]" style={{ color: 'var(--muted-foreground)' }}>
           Tổng: <span className="font-semibold" style={{ color: 'var(--foreground)' }}>{formatVND(totalAmount)}</span>
         </p>
         <div className="flex items-center gap-1">
-          <span className="text-[10px]" style={{ color: 'var(--muted-foreground)' }}>Ít</span>
+          <span className="text-[14px]" style={{ color: 'var(--muted-foreground)' }}>Ít</span>
           <div className="flex gap-0.5">
             {SHADE_COLORS.map((c, i) => (
               <div key={i} className="w-3 h-3 rounded-sm" style={{ background: c }} />
             ))}
           </div>
-          <span className="text-[10px]" style={{ color: 'var(--muted-foreground)' }}>Nhiều</span>
+          <span className="text-[14px]" style={{ color: 'var(--muted-foreground)' }}>Nhiều</span>
         </div>
       </div>
     </div>

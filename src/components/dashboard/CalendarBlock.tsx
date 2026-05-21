@@ -71,7 +71,7 @@ export function CalendarBlock({ transactions, debts, month, year }: CalendarBloc
       {/* Header */}
       <div className="flex items-center justify-between gap-2 px-3 pt-3 pb-2">
         <p className="text-overline">Lịch hoạt động</p>
-        <div className="flex items-center gap-2.5 text-[10px] font-medium" style={{ color: 'var(--muted-foreground)' }}>
+        <div className="flex items-center gap-2.5 text-[14px] font-medium" style={{ color: 'var(--muted-foreground)' }}>
           <span className="flex items-center gap-1">
             <span style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--income)' }} /> Thu
           </span>
@@ -89,7 +89,7 @@ export function CalendarBlock({ transactions, debts, month, year }: CalendarBloc
         {WEEKDAY_LABELS.map(label => (
           <div
             key={label}
-            className="text-center text-[10px] font-semibold uppercase tracking-wide"
+            className="text-center text-[14px] font-semibold uppercase tracking-wide"
             style={{ color: 'var(--muted-foreground)' }}
           >
             {label}

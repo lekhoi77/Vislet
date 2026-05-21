@@ -50,7 +50,7 @@ export function ProfileSwitcher({ onAddAccount }: ProfileSwitcherProps) {
             style={{
               background: current.avatarColor,
               color: '#fff',
-              fontSize: 12,
+              fontSize: 14,
               fontWeight: 700,
             }}
           >
@@ -73,7 +73,7 @@ export function ProfileSwitcher({ onAddAccount }: ProfileSwitcherProps) {
         {user?.email && (
           <>
             <div className="flex flex-col gap-0.5 px-3 py-2">
-              <span className="text-[10px] font-normal uppercase tracking-wide" style={{ color: 'var(--muted-foreground)' }}>
+              <span className="text-[14px] font-normal uppercase tracking-wide" style={{ color: 'var(--muted-foreground)' }}>
                 Tài khoản
               </span>
               <span className="text-sm font-medium truncate" style={{ color: 'var(--foreground)' }}>

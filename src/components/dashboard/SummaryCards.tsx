@@ -139,18 +139,18 @@ export function SummaryCards({ transactions, month, year, isLoading }: SummaryCa
           <div className="flex flex-col gap-0.5 p-3 rounded-2xl" style={card()}>
             <div className="flex items-center gap-1">
               <div style={{ width: 5, height: 5, borderRadius: '50%', background: 'var(--income)', flexShrink: 0 }} />
-              <span className="text-[10px] font-semibold uppercase tracking-wide truncate" style={{ color: 'var(--muted-foreground)' }}>Thu</span>
+              <span className="text-[14px] font-semibold uppercase tracking-wide truncate" style={{ color: 'var(--muted-foreground)' }}>Thu</span>
             </div>
             <p className="text-sm font-bold amount" style={{ color: 'var(--income)', lineHeight: 1.2 }}>{formatVND(income)}</p>
-            <p className="text-[10px]" style={{ color: 'var(--muted-foreground)' }}>{incomeCount} GD</p>
+            <p className="text-[14px]" style={{ color: 'var(--muted-foreground)' }}>{incomeCount} GD</p>
           </div>
           <div className="flex flex-col gap-0.5 p-3 rounded-2xl" style={card()}>
             <div className="flex items-center gap-1">
               <div style={{ width: 5, height: 5, borderRadius: '50%', background: 'var(--expense)', flexShrink: 0 }} />
-              <span className="text-[10px] font-semibold uppercase tracking-wide truncate" style={{ color: 'var(--muted-foreground)' }}>Chi</span>
+              <span className="text-[14px] font-semibold uppercase tracking-wide truncate" style={{ color: 'var(--muted-foreground)' }}>Chi</span>
             </div>
             <p className="text-sm font-bold amount" style={{ color: 'var(--expense)', lineHeight: 1.2 }}>{formatVND(expense)}</p>
-            <p className="text-[10px]" style={{ color: 'var(--muted-foreground)' }}>{expenseCount} GD</p>
+            <p className="text-[14px]" style={{ color: 'var(--muted-foreground)' }}>{expenseCount} GD</p>
           </div>
         </div>
       </div>

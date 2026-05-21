@@ -49,7 +49,7 @@ export function OnboardingScreen({ onDone }: OnboardingScreenProps) {
         style={{ background: 'var(--card)', boxShadow: 'var(--shadow-md)', border: '1px solid var(--border)' }}
       >
         <div className="flex flex-col gap-2 text-left">
-          <Label style={{ color: 'var(--muted-foreground)', fontSize: 12, fontWeight: 500, letterSpacing: '0.03em', textTransform: 'uppercase' }}>
+          <Label style={{ color: 'var(--muted-foreground)', fontSize: 14, fontWeight: 500, letterSpacing: '0.03em', textTransform: 'uppercase' }}>
             Tên của bạn là gì?
           </Label>
           <Input
