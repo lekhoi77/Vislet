@@ -3,7 +3,8 @@
 import { Transaction } from '@/lib/types';
 import { formatVND } from '@/lib/format';
 import { formatDate } from '@/lib/format';
-import { SOURCE_LABELS } from '@/lib/constants';
+import { resolveSourceLabel } from '@/lib/constants';
+import { useAppStore } from '@/store/app-store';
 import { Inbox, TrendingUp, TrendingDown } from 'lucide-react';
 
 interface RecentTransactionsProps {
@@ -15,6 +16,7 @@ interface RecentTransactionsProps {
 }
 
 export function RecentTransactions({ transactions, month, year, onViewAll, onEdit }: RecentTransactionsProps) {
+  const { customSources } = useAppStore();
   const filtered = transactions
     .filter(tx => {
       const d = new Date(tx.date);
@@ -56,7 +58,7 @@ export function RecentTransactions({ transactions, month, year, onViewAll, onEdi
             <div className="flex-1 min-w-0">
               <p className="text-sm font-medium truncate" style={{ color: 'var(--foreground)' }}>{tx.title}</p>
               <p className="text-sm" style={{ color: 'var(--muted-foreground)' }}>
-                {SOURCE_LABELS[tx.source]} · {formatDate(tx.date)}
+                {resolveSourceLabel(tx.source, customSources)} · {formatDate(tx.date)}
               </p>
             </div>
             <span

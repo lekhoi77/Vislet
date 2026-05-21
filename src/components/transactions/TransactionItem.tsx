@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { Transaction } from '@/lib/types';
 import { formatVND, formatDate } from '@/lib/format';
-import { SOURCE_LABELS, GOAL_LABELS } from '@/lib/constants';
+import { resolveSourceLabel, resolveGoalLabel } from '@/lib/constants';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
@@ -32,12 +32,15 @@ interface TransactionItemProps {
 }
 
 export function TransactionItem({ tx, onEdit }: TransactionItemProps) {
-  const { deleteTransaction } = useAppStore();
+  const { deleteTransaction, customSources, customBudgets } = useAppStore();
   const [showDetail, setShowDetail] = useState(false);
   const [showDelete, setShowDelete] = useState(false);
 
   const isIncome = tx.type === 'income';
   const amountStr = (isIncome ? '+' : '-') + formatVND(tx.amount);
+  const sourceLabel = resolveSourceLabel(tx.source, customSources);
+  const goalLabel = resolveGoalLabel(tx.goal, customBudgets);
+  const hasGoal = tx.goal && tx.goal !== 'none';
 
   const handleDelete = () => {
     deleteTransaction(tx.id);
@@ -93,15 +96,15 @@ export function TransactionItem({ tx, onEdit }: TransactionItemProps) {
               className="text-[11px] px-1.5 py-0 h-auto font-medium border-0"
               style={{ background: 'var(--muted)', color: 'var(--muted-foreground)' }}
             >
-              {SOURCE_LABELS[tx.source]}
+              {sourceLabel}
             </Badge>
-            {tx.goal !== 'none' && (
+            {hasGoal && (
               <Badge
                 variant="secondary"
                 className="text-[11px] px-1.5 py-0 h-auto font-medium border-0"
                 style={{ background: 'var(--muted)', color: 'var(--muted-foreground)' }}
               >
-                {GOAL_LABELS[tx.goal]}
+                {goalLabel}
               </Badge>
             )}
           </div>
@@ -143,12 +146,12 @@ export function TransactionItem({ tx, onEdit }: TransactionItemProps) {
             </div>
             <div className="flex items-center justify-between">
               <span className="text-sm" style={{ color: 'var(--muted-foreground)' }}>Nguồn tiền</span>
-              <span className="text-sm font-medium" style={{ color: 'var(--foreground)' }}>{SOURCE_LABELS[tx.source]}</span>
+              <span className="text-sm font-medium" style={{ color: 'var(--foreground)' }}>{sourceLabel}</span>
             </div>
-            {tx.goal !== 'none' && (
+            {hasGoal && (
               <div className="flex items-center justify-between">
                 <span className="text-sm" style={{ color: 'var(--muted-foreground)' }}>Mục tiêu</span>
-                <span className="text-sm font-medium" style={{ color: 'var(--foreground)' }}>{GOAL_LABELS[tx.goal]}</span>
+                <span className="text-sm font-medium" style={{ color: 'var(--foreground)' }}>{goalLabel}</span>
               </div>
             )}
             <div className="flex items-center justify-between">

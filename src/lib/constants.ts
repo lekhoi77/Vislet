@@ -1,5 +1,29 @@
+import type { CustomSource, CustomBudget } from './types';
+
 export const BUILT_IN_SOURCES = ['bank', 'cash', 'momo'] as const;
 export const BUILT_IN_GOALS = ['none', 'saving', 'travel', 'soon'] as const;
+
+// ─── Label resolvers (hỗ trợ cả built-in và custom) ─────────
+
+export function resolveSourceLabel(sourceId: string, customSources: CustomSource[] = []): string {
+  return SOURCE_LABELS[sourceId]
+    ?? customSources.find(s => s.id === sourceId)?.label
+    ?? sourceId;
+}
+
+export function resolveGoalLabel(goalId: string, customBudgets: CustomBudget[] = []): string {
+  return GOAL_LABELS[goalId]
+    ?? customBudgets.find(b => b.id === goalId)?.label
+    ?? goalId;
+}
+
+export function isBuiltInGoal(goalId: string): boolean {
+  return (BUILT_IN_GOALS as readonly string[]).includes(goalId);
+}
+
+export function isBuiltInSource(sourceId: string): boolean {
+  return (BUILT_IN_SOURCES as readonly string[]).includes(sourceId);
+}
 
 export const BUDGET_ICONS = [
   'PiggyBank','ShoppingCart','Coffee','Car','Home','Heart',

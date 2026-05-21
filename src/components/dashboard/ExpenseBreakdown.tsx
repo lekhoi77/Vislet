@@ -3,8 +3,10 @@
 import { useState } from 'react';
 import { Transaction, TransactionGoal, TransactionSource } from '@/lib/types';
 import { formatVND } from '@/lib/format';
-import { GOAL_LABELS, SOURCE_LABELS } from '@/lib/constants';
-import { Building2, Wallet, Smartphone, PiggyBank, Plane, Clock, Tag, ChevronDown } from 'lucide-react';
+import { resolveGoalLabel, resolveSourceLabel } from '@/lib/constants';
+import { useAppStore } from '@/store/app-store';
+import { BudgetIcon } from '@/lib/icons';
+import { Building2, Wallet, Smartphone, PiggyBank, Plane, Clock, Tag, CircleDot, ChevronDown } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 type FilterBy = 'goal' | 'source';
@@ -30,6 +32,7 @@ const SOURCE_ICONS: Record<TransactionSource, React.ReactNode> = {
 };
 
 export function ExpenseBreakdown({ transactions, month, year }: ExpenseBreakdownProps) {
+  const { customSources, customBudgets } = useAppStore();
   const [filterBy, setFilterBy] = useState<FilterBy>('goal');
   const [sortBy, setSortBy] = useState<SortBy>('amount');
 
@@ -111,12 +114,14 @@ export function ExpenseBreakdown({ transactions, month, year }: ExpenseBreakdown
       ) : (
         <div className="flex flex-col">
           {rows.map(([key, g], i) => {
-            const label = (filterBy === 'goal'
-              ? GOAL_LABELS[key as TransactionGoal]
-              : SOURCE_LABELS[key as TransactionSource]) ?? key;
+            const label = filterBy === 'goal'
+              ? resolveGoalLabel(key, customBudgets)
+              : resolveSourceLabel(key, customSources);
+            const customBudget = customBudgets.find(b => b.id === key);
+            const customSource = customSources.find(s => s.id === key);
             const icon = filterBy === 'goal'
-              ? GOAL_ICONS[key as TransactionGoal]
-              : SOURCE_ICONS[key as TransactionSource];
+              ? (GOAL_ICONS[key as TransactionGoal] ?? (customBudget ? <BudgetIcon name={customBudget.icon} size={14} /> : <Tag size={14} />))
+              : (SOURCE_ICONS[key as TransactionSource] ?? (customSource ? <CircleDot size={14} /> : <CircleDot size={14} />));
             const pct = total > 0 ? (g.amount / total) * 100 : 0;
 
             return (

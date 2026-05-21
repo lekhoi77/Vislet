@@ -41,13 +41,14 @@ export function GoalBlocks({ transactions, title, onAdd, addLabel = 'Thêm mục
     })),
   ];
 
-  const getBalance = (goalId: string) => {
-    const inc = transactions.filter(t => t.goal === goalId && t.type === 'income').reduce((s, t) => s + t.amount, 0);
-    const exp = transactions.filter(t => t.goal === goalId && t.type === 'expense').reduce((s, t) => s + t.amount, 0);
-    return Math.max(0, inc - exp);
+  // Mỗi goal hiển thị TỔNG CHI TIÊU đã gắn vào (vì form chỉ gán goal cho expense)
+  const getSpent = (goalId: string) => {
+    return transactions
+      .filter(t => t.goal === goalId && t.type === 'expense')
+      .reduce((s, t) => s + t.amount, 0);
   };
 
-  const balances = allGoals.map(g => ({ ...g, balance: getBalance(g.id) }));
+  const balances = allGoals.map(g => ({ ...g, balance: getSpent(g.id) }));
   const total = balances.reduce((s, g) => s + g.balance, 0);
 
   const chartData = balances
