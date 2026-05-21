@@ -127,7 +127,7 @@ export function TransactionForm({ open, type, editingTx, onClose }: TransactionF
     return Object.keys(e).length === 0;
   };
 
-  const handleSubmit = useCallback(() => {
+  const handleSubmit = useCallback(async () => {
     if (!validate()) return;
     const txData = {
       type,
@@ -138,14 +138,18 @@ export function TransactionForm({ open, type, editingTx, onClose }: TransactionF
       note: note.trim(),
       date: date ? new Date(date).toISOString() : new Date().toISOString(),
     };
-    if (editingTx) {
-      updateTransaction(editingTx.id, txData);
-      toast.success('Đã cập nhật giao dịch');
-    } else {
-      addTransaction(txData);
-      toast.success(type === 'income' ? 'Đã lưu thu nhập' : 'Đã lưu chi tiêu');
+    try {
+      if (editingTx) {
+        await updateTransaction(editingTx.id, txData);
+        toast.success('Đã cập nhật giao dịch');
+      } else {
+        await addTransaction(txData);
+        toast.success(type === 'income' ? 'Đã lưu thu nhập' : 'Đã lưu chi tiêu');
+      }
+      onClose();
+    } catch (err) {
+      toast.error(`Lỗi: ${(err as Error).message ?? 'Không thể lưu giao dịch'}`);
     }
-    onClose();
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [type, title, amount, source, goal, note, date, editingTx, onClose]);
 
@@ -208,7 +212,7 @@ export function TransactionForm({ open, type, editingTx, onClose }: TransactionF
           <div className="flex flex-col gap-5">
             {/* Title */}
             <div className="flex flex-col gap-2">
-              <Label className="text-xs font-medium tracking-wide uppercase" style={{ color: 'var(--muted-foreground)' }}>
+              <Label className="text-sm font-medium tracking-wide uppercase" style={{ color: 'var(--muted-foreground)' }}>
                 Nội dung *
               </Label>
               <Input
@@ -220,7 +224,7 @@ export function TransactionForm({ open, type, editingTx, onClose }: TransactionF
                 className={errors.title ? 'border-[var(--expense)]' : ''}
               />
               {errors.title && (
-                <p className="text-xs" style={{ color: 'var(--expense)' }}>{errors.title}</p>
+                <p className="text-sm" style={{ color: 'var(--expense)' }}>{errors.title}</p>
               )}
             </div>
 
@@ -229,7 +233,7 @@ export function TransactionForm({ open, type, editingTx, onClose }: TransactionF
 
             {/* Date */}
             <div className="flex flex-col gap-2">
-              <Label htmlFor="tx-date" className="text-xs font-medium tracking-wide uppercase" style={{ color: 'var(--muted-foreground)' }}>
+              <Label htmlFor="tx-date" className="text-sm font-medium tracking-wide uppercase" style={{ color: 'var(--muted-foreground)' }}>
                 Ngày
               </Label>
               <Input
@@ -243,13 +247,13 @@ export function TransactionForm({ open, type, editingTx, onClose }: TransactionF
 
             {/* Source */}
             <div className="flex flex-col gap-2">
-              <Label className="text-xs font-medium tracking-wide uppercase" style={{ color: 'var(--muted-foreground)' }}>
+              <Label className="text-sm font-medium tracking-wide uppercase" style={{ color: 'var(--muted-foreground)' }}>
                 Nguồn tiền *
               </Label>
               <SelectGroup options={SOURCES} value={source} onChange={setSource} />
               {sourcePreview && (
                 <div
-                  className="flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-medium"
+                  className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium"
                   style={{ background: 'var(--muted)', color: 'var(--muted-foreground)' }}
                 >
                   <span>{SOURCES.find(s => s.value === source)?.label ?? source}</span>
@@ -265,7 +269,7 @@ export function TransactionForm({ open, type, editingTx, onClose }: TransactionF
             {/* Goal - expense only */}
             {!isIncome && (
               <div className="flex flex-col gap-2">
-                <Label className="text-xs font-medium tracking-wide uppercase" style={{ color: 'var(--muted-foreground)' }}>
+                <Label className="text-sm font-medium tracking-wide uppercase" style={{ color: 'var(--muted-foreground)' }}>
                   Mục tiêu
                 </Label>
                 <SelectGroup options={GOALS} value={goal} onChange={setGoal} />
@@ -274,7 +278,7 @@ export function TransactionForm({ open, type, editingTx, onClose }: TransactionF
 
             {/* Note */}
             <div className="flex flex-col gap-2">
-              <Label className="text-xs font-medium tracking-wide uppercase" style={{ color: 'var(--muted-foreground)' }}>
+              <Label className="text-sm font-medium tracking-wide uppercase" style={{ color: 'var(--muted-foreground)' }}>
                 Ghi chú (tuỳ chọn)
               </Label>
               <Textarea
@@ -287,7 +291,7 @@ export function TransactionForm({ open, type, editingTx, onClose }: TransactionF
                 className={errors.note ? 'border-[var(--expense)]' : ''}
               />
               {errors.note && (
-                <p className="text-xs" style={{ color: 'var(--expense)' }}>{errors.note}</p>
+                <p className="text-sm" style={{ color: 'var(--expense)' }}>{errors.note}</p>
               )}
             </div>
           </div>

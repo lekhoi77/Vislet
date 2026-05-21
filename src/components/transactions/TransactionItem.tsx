@@ -85,7 +85,7 @@ export function TransactionItem({ tx, onEdit }: TransactionItemProps) {
             </p>
           </div>
           <div className="flex items-center gap-1.5 mt-1 flex-wrap">
-            <span className="text-xs" style={{ color: 'var(--muted-foreground)' }}>
+            <span className="text-sm" style={{ color: 'var(--muted-foreground)' }}>
               {formatDate(tx.date)}
             </span>
             <Badge
@@ -108,7 +108,7 @@ export function TransactionItem({ tx, onEdit }: TransactionItemProps) {
           {tx.note && (
             <div className="flex items-center gap-1 mt-1">
               <FileText size={11} style={{ color: 'var(--muted-foreground)', flexShrink: 0 }} />
-              <p className="text-xs truncate" style={{ color: 'var(--muted-foreground)' }}>
+              <p className="text-sm truncate" style={{ color: 'var(--muted-foreground)' }}>
                 {tx.note}
               </p>
             </div>

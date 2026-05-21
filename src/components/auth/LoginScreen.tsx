@@ -107,6 +107,11 @@ export function LoginScreen() {
               placeholder="ten@email.com"
               autoFocus
               autoComplete="email"
+              lang="en"
+              autoCorrect="off"
+              spellCheck={false}
+              style={{ imeMode: 'disabled' } as React.CSSProperties}
+              onKeyDown={e => e.key === 'Enter' && handleSubmit()}
             />
           </div>
 
@@ -122,6 +127,10 @@ export function LoginScreen() {
                 placeholder="••••••••"
                 autoComplete={mode === 'login' ? 'current-password' : 'new-password'}
                 onKeyDown={e => e.key === 'Enter' && handleSubmit()}
+                lang="en"
+                autoCorrect="off"
+                spellCheck={false}
+                style={{ imeMode: 'disabled' } as React.CSSProperties}
                 className="pr-9"
               />
               <button
@@ -137,7 +146,7 @@ export function LoginScreen() {
           </div>
 
           {error && (
-            <p className="text-xs" style={{ color: 'var(--expense)' }}>{error}</p>
+            <p className="text-sm" style={{ color: 'var(--expense)' }}>{error}</p>
           )}
         </div>
 
@@ -150,7 +159,7 @@ export function LoginScreen() {
           {loading ? 'Đang xử lý...' : mode === 'login' ? 'Đăng nhập →' : 'Tạo tài khoản →'}
         </Button>
 
-        <p className="text-xs text-center" style={{ color: 'var(--muted-foreground)' }}>
+        <p className="text-sm text-center" style={{ color: 'var(--muted-foreground)' }}>
           {mode === 'login' ? (
             <>
               Chưa có tài khoản?{' '}

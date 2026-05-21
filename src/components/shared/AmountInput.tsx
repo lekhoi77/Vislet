@@ -26,7 +26,7 @@ export function AmountInput({ value, onChange, type = 'income', error, label = '
 
   return (
     <div className="flex flex-col gap-2">
-      <Label className="text-xs font-medium tracking-wide uppercase" style={{ color: 'var(--muted-foreground)' }}>
+      <Label className="text-sm font-medium tracking-wide uppercase" style={{ color: 'var(--muted-foreground)' }}>
         {label}
       </Label>
       <div className="relative">
@@ -49,12 +49,12 @@ export function AmountInput({ value, onChange, type = 'income', error, label = '
         </span>
       </div>
       {value > 0 && (
-        <p className="text-xs font-medium amount" style={{ color: previewColor }}>
+        <p className="text-sm font-medium amount" style={{ color: previewColor }}>
           {formatVND(value)}
         </p>
       )}
       {error && (
-        <p className="text-xs" style={{ color: 'var(--expense)' }}>{error}</p>
+        <p className="text-sm" style={{ color: 'var(--expense)' }}>{error}</p>
       )}
     </div>
   );

@@ -64,7 +64,7 @@ export function OnboardingScreen({ onDone }: OnboardingScreenProps) {
             className={error ? 'border-[var(--expense)]' : ''}
             autoFocus
           />
-          {error && <p className="text-xs" style={{ color: 'var(--expense)' }}>{error}</p>}
+          {error && <p className="text-sm" style={{ color: 'var(--expense)' }}>{error}</p>}
         </div>
 
         <Button

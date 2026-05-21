@@ -1,3 +1,5 @@
+import { formatLunarDayMonth } from '@/lib/lunar';
+
 export function formatVND(amount: number): string {
   return new Intl.NumberFormat('vi-VN').format(amount) + ' ₫';
 }
@@ -24,6 +26,16 @@ export function formatDate(isoString: string): string {
 
 export function formatMonthYear(month: number, year: number): string {
   return `Tháng ${month}, ${year}`;
+}
+
+export function formatCurrentDateTime(date: Date = new Date()): string {
+  const hours = String(date.getHours()).padStart(2, '0');
+  const minutes = String(date.getMinutes()).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const year = date.getFullYear();
+  const lunar = formatLunarDayMonth(date);
+  return `${hours}:${minutes}, ${day}/${month}/${year} · ${lunar} âm`;
 }
 
 export function parseAmount(raw: string): number {

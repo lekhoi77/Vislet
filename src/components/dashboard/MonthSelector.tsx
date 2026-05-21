@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { ChevronLeft, ChevronRight, CalendarCheck } from 'lucide-react';
 import { Popover } from '@base-ui/react/popover';
 import { cn } from '@/lib/utils';
 
@@ -13,13 +13,16 @@ interface MonthSelectorProps {
   onPrev: () => void;
   onNext: () => void;
   onSelect?: (month: number, year: number) => void;
+  onToday?: () => void;
 }
 
-export function MonthSelector({ month, year, onPrev, onNext, onSelect }: MonthSelectorProps) {
+export function MonthSelector({ month, year, onPrev, onNext, onSelect, onToday }: MonthSelectorProps) {
   const [pickerYear, setPickerYear] = useState(year);
+  const now = new Date();
+  const isCurrentMonth = month === now.getMonth() + 1 && year === now.getFullYear();
 
   return (
-    <div className="flex items-center gap-3">
+    <div className="flex items-center gap-1">
       <button
         onClick={onPrev}
         className="flex items-center justify-center w-8 h-8 rounded-full hover:bg-[var(--muted)] transition-colors"
@@ -75,7 +78,7 @@ export function MonthSelector({ month, year, onPrev, onNext, onSelect }: MonthSe
                         <button
                           onClick={() => onSelect?.(m, pickerYear)}
                           className={cn(
-                            'h-8 rounded-lg text-xs font-medium transition-colors',
+                            'h-8 rounded-lg text-sm font-medium transition-colors',
                             isActive
                               ? 'text-[var(--primary-foreground)]'
                               : 'hover:bg-[var(--muted)] text-[var(--foreground)]'
@@ -101,6 +104,17 @@ export function MonthSelector({ month, year, onPrev, onNext, onSelect }: MonthSe
       >
         <ChevronRight size={18} style={{ color: 'var(--muted-foreground)' }} />
       </button>
+
+      {!isCurrentMonth && onToday && (
+        <button
+          onClick={onToday}
+          className="flex items-center justify-center w-7 h-7 rounded-full hover:bg-[var(--muted)] transition-colors ml-1"
+          aria-label="Tháng hiện tại"
+          title="Về tháng hiện tại"
+        >
+          <CalendarCheck size={15} style={{ color: 'var(--primary)' }} />
+        </button>
+      )}
     </div>
   );
 }

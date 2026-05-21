@@ -55,7 +55,7 @@ export function RecentTransactions({ transactions, month, year, onViewAll, onEdi
             </div>
             <div className="flex-1 min-w-0">
               <p className="text-sm font-medium truncate" style={{ color: 'var(--foreground)' }}>{tx.title}</p>
-              <p className="text-xs" style={{ color: 'var(--muted-foreground)' }}>
+              <p className="text-sm" style={{ color: 'var(--muted-foreground)' }}>
                 {SOURCE_LABELS[tx.source]} · {formatDate(tx.date)}
               </p>
             </div>
@@ -70,7 +70,7 @@ export function RecentTransactions({ transactions, month, year, onViewAll, onEdi
       </div>
       <button
         onClick={onViewAll}
-        className="mt-2 text-xs font-medium transition-colors hover:opacity-70"
+        className="mt-2 text-sm font-medium transition-colors hover:opacity-70"
         style={{ color: 'var(--primary)' }}
       >
         Xem tất cả →

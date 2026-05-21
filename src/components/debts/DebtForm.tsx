@@ -108,7 +108,7 @@ export function DebtForm({ open, onClose, editingDebt }: DebtFormProps) {
         <div className="flex flex-col gap-5">
           {/* Type */}
           <div className="flex flex-col gap-2">
-            <Label className="text-xs font-medium tracking-wide uppercase" style={{ color: 'var(--muted-foreground)' }}>
+            <Label className="text-sm font-medium tracking-wide uppercase" style={{ color: 'var(--muted-foreground)' }}>
               Loại *
             </Label>
             <div className="flex gap-2">
@@ -136,7 +136,7 @@ export function DebtForm({ open, onClose, editingDebt }: DebtFormProps) {
 
           {/* Person */}
           <div className="flex flex-col gap-2">
-            <Label className="text-xs font-medium tracking-wide uppercase" style={{ color: 'var(--muted-foreground)' }}>
+            <Label className="text-sm font-medium tracking-wide uppercase" style={{ color: 'var(--muted-foreground)' }}>
               Tên người *
             </Label>
             <Input
@@ -146,7 +146,7 @@ export function DebtForm({ open, onClose, editingDebt }: DebtFormProps) {
               placeholder="VD: Minh, Lan..."
               className={errors.person ? 'border-[var(--expense)]' : ''}
             />
-            {errors.person && <p className="text-xs" style={{ color: 'var(--expense)' }}>{errors.person}</p>}
+            {errors.person && <p className="text-sm" style={{ color: 'var(--expense)' }}>{errors.person}</p>}
           </div>
 
           {/* Amount */}
@@ -159,7 +159,7 @@ export function DebtForm({ open, onClose, editingDebt }: DebtFormProps) {
 
           {/* Due date */}
           <div className="flex flex-col gap-2">
-            <Label className="text-xs font-medium tracking-wide uppercase" style={{ color: 'var(--muted-foreground)' }}>
+            <Label className="text-sm font-medium tracking-wide uppercase" style={{ color: 'var(--muted-foreground)' }}>
               Ngày hẹn trả (tuỳ chọn)
             </Label>
             <div className="relative">
@@ -176,7 +176,7 @@ export function DebtForm({ open, onClose, editingDebt }: DebtFormProps) {
 
           {/* Note */}
           <div className="flex flex-col gap-2">
-            <Label className="text-xs font-medium tracking-wide uppercase" style={{ color: 'var(--muted-foreground)' }}>
+            <Label className="text-sm font-medium tracking-wide uppercase" style={{ color: 'var(--muted-foreground)' }}>
               Ghi chú (tuỳ chọn)
             </Label>
             <Textarea

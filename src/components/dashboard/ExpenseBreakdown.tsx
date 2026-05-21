@@ -67,7 +67,7 @@ export function ExpenseBreakdown({ transactions, month, year }: ExpenseBreakdown
     >
       {/* Controls */}
       <div className="flex items-center justify-between px-4 py-3" style={{ borderBottom: '1px solid var(--border)' }}>
-        <p className="text-xs font-semibold uppercase tracking-wide" style={{ color: 'var(--muted-foreground)' }}>
+        <p className="text-sm font-semibold uppercase tracking-wide" style={{ color: 'var(--muted-foreground)' }}>
           Chi tiêu theo {filterBy === 'goal' ? 'mục tiêu' : 'nguồn'}
         </p>
         <div className="flex items-center gap-2">
@@ -77,7 +77,7 @@ export function ExpenseBreakdown({ transactions, month, year }: ExpenseBreakdown
               <button
                 key={f}
                 onClick={() => setFilterBy(f)}
-                className="px-2.5 py-1 text-xs font-medium transition-colors"
+                className="px-2.5 py-1 text-sm font-medium transition-colors"
                 style={{
                   background: filterBy === f ? 'var(--primary)' : 'transparent',
                   color: filterBy === f ? 'var(--primary-foreground)' : 'var(--muted-foreground)',
@@ -90,7 +90,7 @@ export function ExpenseBreakdown({ transactions, month, year }: ExpenseBreakdown
           {/* Sort toggle */}
           <button
             onClick={() => setSortBy(s => s === 'amount' ? 'count' : 'amount')}
-            className="flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-medium transition-colors"
+            className="flex items-center gap-1 px-2.5 py-1 rounded-lg text-sm font-medium transition-colors"
             style={{ border: '1px solid var(--border)', color: 'var(--muted-foreground)' }}
           >
             {sortBy === 'amount' ? 'Số tiền' : 'Số lần'}
@@ -124,13 +124,13 @@ export function ExpenseBreakdown({ transactions, month, year }: ExpenseBreakdown
                   <div className="flex items-center gap-2" style={{ color: 'var(--muted-foreground)' }}>
                     {icon}
                     <span className="text-sm font-medium" style={{ color: 'var(--foreground)' }}>{label}</span>
-                    <span className="text-xs" style={{ color: 'var(--muted-foreground)' }}>{g.count} lần</span>
+                    <span className="text-sm" style={{ color: 'var(--muted-foreground)' }}>{g.count} lần</span>
                   </div>
                   <div className="text-right">
                     <span className="text-sm font-semibold amount" style={{ color: 'var(--expense)' }}>
                       {formatVND(g.amount)}
                     </span>
-                    <span className="text-xs ml-1.5" style={{ color: 'var(--muted-foreground)' }}>
+                    <span className="text-sm ml-1.5" style={{ color: 'var(--muted-foreground)' }}>
                       {pct.toFixed(0)}%
                     </span>
                   </div>

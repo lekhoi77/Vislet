@@ -12,12 +12,18 @@ import {
 } from '@/lib/supabase';
 
 // localStorage chỉ lưu currentProfileId (client-side preference)
-const CURRENT_KEY = 'viapp_current';
-function getStoredProfileId(): string | null {
-  try { return localStorage.getItem(CURRENT_KEY); } catch { return null; }
+// Key theo user để tránh cross-user bleed; fallback key cũ để tương thích
+const CURRENT_KEY_PREFIX = 'viapp_current_';
+const CURRENT_KEY_LEGACY = 'viapp_current';
+
+function getStoredProfileId(userId: string): string | null {
+  try {
+    return localStorage.getItem(CURRENT_KEY_PREFIX + userId)
+        ?? localStorage.getItem(CURRENT_KEY_LEGACY);
+  } catch { return null; }
 }
-function setStoredProfileId(id: string): void {
-  try { localStorage.setItem(CURRENT_KEY, id); } catch { /* noop */ }
+function setStoredProfileId(userId: string, profileId: string): void {
+  try { localStorage.setItem(CURRENT_KEY_PREFIX + userId, profileId); } catch { /* noop */ }
 }
 
 interface AppState {
@@ -67,14 +73,16 @@ async function fetchProfileData(profileId: string) {
       .eq('profile_id', profileId)
       .order('created_at', { ascending: false }),
     supabase
-      .from('custom_sources')
+      .from('sources')
       .select('*')
       .eq('profile_id', profileId)
+      .eq('is_builtin', false)
       .order('created_at', { ascending: true }),
     supabase
-      .from('custom_budgets')
+      .from('goals')
       .select('*')
       .eq('profile_id', profileId)
+      .eq('is_builtin', false)
       .order('created_at', { ascending: true }),
   ]);
 
@@ -102,9 +110,16 @@ export const useAppStore = create<AppState>((set, get) => ({
   initApp: async () => {
     set({ isLoading: true });
 
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+      set({ profiles: [], currentProfileId: null, isLoaded: true, isLoading: false });
+      return;
+    }
+
     const { data: rows, error } = await supabase
       .from('profiles')
       .select('*')
+      .eq('user_id', user.id)
       .order('created_at', { ascending: true });
 
     if (error || !rows || rows.length === 0) {
@@ -113,7 +128,7 @@ export const useAppStore = create<AppState>((set, get) => ({
     }
 
     const profiles = rows.map(toProfile);
-    const storedId = getStoredProfileId();
+    const storedId = getStoredProfileId(user.id);
     const activeId = (storedId && profiles.find(p => p.id === storedId))
       ? storedId
       : profiles[0].id;
@@ -124,12 +139,16 @@ export const useAppStore = create<AppState>((set, get) => ({
 
   // ── Profiles ────────────────────────────────────────────
   createProfile: async (name: string) => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+
     const { profiles } = get();
     const colorIndex = profiles.length % AVATAR_COLORS.length;
     const id = uuidv4();
 
     const { error } = await supabase.from('profiles').insert({
       id,
+      user_id: user.id,
       name: name.trim(),
       avatar_color: AVATAR_COLORS[colorIndex],
       initial: name.trim().charAt(0).toUpperCase(),
@@ -145,7 +164,7 @@ export const useAppStore = create<AppState>((set, get) => ({
       createdAt: new Date().toISOString(),
     };
 
-    setStoredProfileId(id);
+    setStoredProfileId(user.id, id);
     set({
       profiles: [...profiles, newProfile],
       currentProfileId: id,
@@ -157,9 +176,13 @@ export const useAppStore = create<AppState>((set, get) => ({
   },
 
   switchProfile: async (id: string) => {
+    const { profiles } = get();
+    if (!profiles.find(p => p.id === id)) return;
+
     set({ isLoading: true });
+    const { data: { user } } = await supabase.auth.getUser();
     const profileData = await fetchProfileData(id);
-    setStoredProfileId(id);
+    if (user) setStoredProfileId(user.id, id);
     set({ currentProfileId: id, ...profileData, isLoading: false });
   },
 
@@ -167,6 +190,7 @@ export const useAppStore = create<AppState>((set, get) => ({
     const { profiles, currentProfileId } = get();
     if (profiles.length <= 1) return;
 
+    const { data: { user } } = await supabase.auth.getUser();
     const { error } = await supabase.from('profiles').delete().eq('id', id);
     if (error) { console.error('deleteProfile:', error); return; }
 
@@ -175,7 +199,7 @@ export const useAppStore = create<AppState>((set, get) => ({
     if (currentProfileId === id) {
       const nextId = newProfiles[0].id;
       const profileData = await fetchProfileData(nextId);
-      setStoredProfileId(nextId);
+      if (user) setStoredProfileId(user.id, nextId);
       set({ profiles: newProfiles, currentProfileId: nextId, ...profileData });
     } else {
       set({ profiles: newProfiles });
@@ -198,9 +222,12 @@ export const useAppStore = create<AppState>((set, get) => ({
       goal: txData.goal,
       note: txData.note ?? '',
       date: txData.date,
-    });
+    }).select();
 
-    if (error) { console.error('addTransaction:', error); return; }
+    if (error) {
+      console.error('addTransaction error:', JSON.stringify(error), 'profile:', currentProfileId);
+      throw new Error(error.message || error.details || JSON.stringify(error) || 'Lỗi không xác định');
+    }
 
     const newTx: Transaction = { ...txData, id, createdAt: new Date().toISOString() };
     set({ transactions: [newTx, ...transactions] });
@@ -314,11 +341,12 @@ export const useAppStore = create<AppState>((set, get) => ({
     if (!currentProfileId) return;
 
     const id = uuidv4();
-    const { error } = await supabase.from('custom_sources').insert({
+    const { error } = await supabase.from('sources').insert({
       id,
       profile_id: currentProfileId,
       label: label.trim(),
       icon,
+      is_builtin: false,
     });
 
     if (error) { console.error('addCustomSource:', error); return; }
@@ -331,7 +359,7 @@ export const useAppStore = create<AppState>((set, get) => ({
     const { currentProfileId, customSources } = get();
     if (!currentProfileId) return;
 
-    const { error } = await supabase.from('custom_sources').delete().eq('id', id);
+    const { error } = await supabase.from('sources').delete().eq('id', id);
     if (error) { console.error('removeCustomSource:', error); return; }
 
     set({ customSources: customSources.filter(s => s.id !== id) });
@@ -340,17 +368,21 @@ export const useAppStore = create<AppState>((set, get) => ({
   // ── Custom Budgets ──────────────────────────────────────
   addCustomBudget: async (label, icon) => {
     const { currentProfileId, customBudgets } = get();
-    if (!currentProfileId) return;
+    console.log('[addCustomBudget] currentProfileId=', currentProfileId, 'label=', label);
+    if (!currentProfileId) throw new Error('Chưa có profile (currentProfileId=null)');
 
     const id = uuidv4();
-    const { error } = await supabase.from('custom_budgets').insert({
+    const { data, error } = await supabase.from('goals').insert({
       id,
       profile_id: currentProfileId,
       label: label.trim(),
       icon,
-    });
+      is_builtin: false,
+      sort_order: customBudgets.length,
+    }).select();
 
-    if (error) { console.error('addCustomBudget:', error); return; }
+    console.log('[addCustomBudget] insert result:', { data, error });
+    if (error) { console.error('addCustomBudget:', error); throw error; }
 
     const budget: CustomBudget = { id, label: label.trim(), icon, createdAt: new Date().toISOString() };
     set({ customBudgets: [...customBudgets, budget] });
@@ -360,7 +392,7 @@ export const useAppStore = create<AppState>((set, get) => ({
     const { currentProfileId, customBudgets } = get();
     if (!currentProfileId) return;
 
-    const { error } = await supabase.from('custom_budgets').delete().eq('id', id);
+    const { error } = await supabase.from('goals').delete().eq('id', id);
     if (error) { console.error('removeCustomBudget:', error); return; }
 
     set({ customBudgets: customBudgets.filter(b => b.id !== id) });

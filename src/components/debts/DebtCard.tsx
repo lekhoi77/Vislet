@@ -67,7 +67,7 @@ export function DebtCard({ debt, onEdit }: DebtCardProps) {
             </span>
           </div>
           <Badge
-            className="text-[11px] px-2 py-0.5 h-auto font-medium border-0"
+            className="text-sm px-2 py-0.5 h-auto font-medium border-0"
             style={{
               background: isOwe ? 'hsl(0, 65%, 96%)' : 'var(--primary-soft)',
               color: isOwe ? 'var(--expense)' : 'var(--income)',
@@ -89,21 +89,21 @@ export function DebtCard({ debt, onEdit }: DebtCardProps) {
         {debt.note && (
           <div className="flex items-center gap-1.5">
             <FileText size={13} style={{ color: 'var(--muted-foreground)', flexShrink: 0 }} />
-            <p className="text-xs truncate" style={{ color: 'var(--muted-foreground)' }}>{debt.note}</p>
+            <p className="text-sm truncate" style={{ color: 'var(--muted-foreground)' }}>{debt.note}</p>
           </div>
         )}
 
         {/* Due date */}
         <div className="flex items-center gap-1.5">
           <Calendar size={13} style={{ color: 'var(--muted-foreground)', flexShrink: 0 }} />
-          <p className="text-xs" style={{ color: 'var(--muted-foreground)' }}>
+          <p className="text-sm" style={{ color: 'var(--muted-foreground)' }}>
             {debt.dueDate ? `Hạn: ${formatDate(debt.dueDate)}` : 'Chưa có hạn'}
           </p>
         </div>
 
         {/* Settled at */}
         {debt.settled && debt.settledAt && (
-          <p className="text-xs" style={{ color: 'var(--income)' }}>
+          <p className="text-sm" style={{ color: 'var(--income)' }}>
             ✓ Đã xử lý lúc {formatDate(debt.settledAt)}
           </p>
         )}
@@ -113,7 +113,7 @@ export function DebtCard({ debt, onEdit }: DebtCardProps) {
           {!debt.settled && (
             <Button
               size="sm"
-              className="flex-1 h-9 gap-1.5 text-xs rounded-lg"
+              className="flex-1 h-9 gap-1.5 text-sm rounded-lg"
               style={{ background: 'var(--primary)', color: '#fff' }}
               onClick={() => setShowSettle(true)}
             >

@@ -9,18 +9,35 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { useAppStore } from '@/store/app-store';
-import { ChevronDown, Check, Plus } from 'lucide-react';
+import { useAuthStore } from '@/store/auth-store';
+import { ChevronDown, Check, Plus, LogOut } from 'lucide-react';
 import { MAX_PROFILES } from '@/lib/constants';
+import { toast } from 'sonner';
 
 interface ProfileSwitcherProps {
-  onAddProfile: () => void;
+  onAddAccount: () => void;
 }
 
-export function ProfileSwitcher({ onAddProfile }: ProfileSwitcherProps) {
+export function ProfileSwitcher({ onAddAccount }: ProfileSwitcherProps) {
   const { profiles, currentProfileId, switchProfile } = useAppStore();
+  const { user, signOut } = useAuthStore();
   const current = profiles.find(p => p.id === currentProfileId);
 
   if (!current) return null;
+
+  const handleSignOut = async () => {
+    useAppStore.setState({
+      profiles: [],
+      currentProfileId: null,
+      transactions: [],
+      debts: [],
+      customSources: [],
+      customBudgets: [],
+      isLoaded: false,
+    });
+    await signOut();
+    toast.success('Đã đăng xuất');
+  };
 
   return (
     <DropdownMenu>
@@ -50,9 +67,22 @@ export function ProfileSwitcher({ onAddProfile }: ProfileSwitcherProps) {
       </DropdownMenuTrigger>
       <DropdownMenuContent
         align="end"
-        className="w-52 rounded-xl"
+        className="w-60 rounded-xl"
         style={{ boxShadow: 'var(--shadow-lg)' }}
       >
+        {user?.email && (
+          <>
+            <div className="flex flex-col gap-0.5 px-3 py-2">
+              <span className="text-[10px] font-normal uppercase tracking-wide" style={{ color: 'var(--muted-foreground)' }}>
+                Tài khoản
+              </span>
+              <span className="text-sm font-medium truncate" style={{ color: 'var(--foreground)' }}>
+                {user.email}
+              </span>
+            </div>
+            <DropdownMenuSeparator />
+          </>
+        )}
         {profiles.map(profile => (
           <DropdownMenuItem
             key={profile.id}
@@ -77,20 +107,26 @@ export function ProfileSwitcher({ onAddProfile }: ProfileSwitcherProps) {
             )}
           </DropdownMenuItem>
         ))}
-        {profiles.length < MAX_PROFILES && (
-          <>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem
-              onClick={onAddProfile}
-              className="flex items-center gap-2 cursor-pointer"
-            >
-              <Plus size={14} style={{ color: 'var(--muted-foreground)' }} />
-              <span className="text-sm" style={{ color: 'var(--muted-foreground)' }}>
-                Thêm người dùng
-              </span>
-            </DropdownMenuItem>
-          </>
-        )}
+        <DropdownMenuSeparator />
+        <DropdownMenuItem
+          onClick={onAddAccount}
+          className="flex items-center gap-2 cursor-pointer"
+        >
+          <Plus size={14} style={{ color: 'var(--muted-foreground)' }} />
+          <span className="text-sm" style={{ color: 'var(--muted-foreground)' }}>
+            Thêm người dùng
+          </span>
+        </DropdownMenuItem>
+        <DropdownMenuSeparator />
+        <DropdownMenuItem
+          onClick={handleSignOut}
+          className="flex items-center gap-2 cursor-pointer"
+        >
+          <LogOut size={14} style={{ color: 'var(--expense)' }} />
+          <span className="text-sm" style={{ color: 'var(--expense)' }}>
+            Đăng xuất
+          </span>
+        </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
   );

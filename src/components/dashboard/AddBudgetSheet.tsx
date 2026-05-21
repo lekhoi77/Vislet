@@ -21,12 +21,16 @@ export function AddBudgetSheet({ open, onClose }: AddBudgetSheetProps) {
   const [label, setLabel] = useState('');
   const [icon, setIcon] = useState('ShoppingCart');
 
-  const handleAdd = () => {
+  const handleAdd = async () => {
     if (!label.trim()) return;
-    addCustomBudget(label, icon);
-    setLabel('');
-    setIcon('ShoppingCart');
-    toast.success('Đã thêm mục tiêu');
+    try {
+      await addCustomBudget(label, icon);
+      setLabel('');
+      setIcon('ShoppingCart');
+      toast.success('Đã thêm mục tiêu');
+    } catch (err) {
+      toast.error(`Lỗi: ${(err as { message?: string })?.message ?? 'Không thể thêm'}`);
+    }
   };
 
   return (
@@ -44,7 +48,7 @@ export function AddBudgetSheet({ open, onClose }: AddBudgetSheetProps) {
         <div className="flex-1 overflow-y-auto px-5 py-4 flex flex-col gap-5">
           {/* Name */}
           <div className="flex flex-col gap-2">
-            <Label className="text-xs font-medium tracking-wide uppercase" style={{ color: 'var(--muted-foreground)' }}>
+            <Label className="text-sm font-medium tracking-wide uppercase" style={{ color: 'var(--muted-foreground)' }}>
               Tên mục tiêu
             </Label>
             <Input
@@ -52,12 +56,14 @@ export function AddBudgetSheet({ open, onClose }: AddBudgetSheetProps) {
               onChange={e => setLabel(e.target.value)}
               placeholder="VD: Ăn uống, Giải trí..."
               maxLength={30}
+              onKeyDown={e => e.key === 'Enter' && handleAdd()}
+              autoFocus
             />
           </div>
 
           {/* Icon picker */}
           <div className="flex flex-col gap-2">
-            <Label className="text-xs font-medium tracking-wide uppercase" style={{ color: 'var(--muted-foreground)' }}>
+            <Label className="text-sm font-medium tracking-wide uppercase" style={{ color: 'var(--muted-foreground)' }}>
               Chọn icon
             </Label>
             <div className="grid grid-cols-6 gap-2">
@@ -95,7 +101,7 @@ export function AddBudgetSheet({ open, onClose }: AddBudgetSheetProps) {
           {/* Existing custom budgets */}
           {customBudgets.length > 0 && (
             <div className="flex flex-col gap-2">
-              <Label className="text-xs font-medium tracking-wide uppercase" style={{ color: 'var(--muted-foreground)' }}>
+              <Label className="text-sm font-medium tracking-wide uppercase" style={{ color: 'var(--muted-foreground)' }}>
                 Mục tiêu đã thêm
               </Label>
               <div className="rounded-xl overflow-hidden" style={{ border: '1px solid var(--border)' }}>

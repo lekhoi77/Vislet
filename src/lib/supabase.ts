@@ -9,6 +9,7 @@ export const supabase = createClient(supabaseUrl, supabaseKey);
 
 export interface ProfileRow {
   id: string;
+  user_id: string;
   name: string;
   avatar_color: string;
   initial: string;

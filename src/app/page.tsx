@@ -1,12 +1,13 @@
 'use client';
 
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import { useAppStore } from '@/store/app-store';
+import { useAuthStore } from '@/store/auth-store';
+import { LoginScreen } from '@/components/auth/LoginScreen';
 import { Header } from '@/components/layout/Header';
 import { TabNav } from '@/components/layout/TabNav';
 import { FAB } from '@/components/layout/FAB';
 import { OnboardingScreen } from '@/components/profile/OnboardingScreen';
-import { AddProfileSheet } from '@/components/profile/AddProfileSheet';
 import { TransactionForm } from '@/components/transactions/TransactionForm';
 import { TransactionList } from '@/components/transactions/TransactionList';
 import { DebtForm } from '@/components/debts/DebtForm';
@@ -19,6 +20,8 @@ import { RecentTransactions } from '@/components/dashboard/RecentTransactions';
 import { MonthSelector } from '@/components/dashboard/MonthSelector';
 import { GoalOverview } from '@/components/goals/GoalOverview';
 import { ExpenseBreakdown } from '@/components/dashboard/ExpenseBreakdown';
+import { CalendarBlock } from '@/components/dashboard/CalendarBlock';
+import { ExpenseHeatmap } from '@/components/dashboard/ExpenseHeatmap';
 import { AddSourceSheet } from '@/components/dashboard/AddSourceSheet';
 import { AddBudgetSheet } from '@/components/dashboard/AddBudgetSheet';
 import { Transaction, Debt, TransactionType } from '@/lib/types';
@@ -33,10 +36,12 @@ type DebtFilter = 'open' | 'settled';
 
 export default function HomePage() {
   const { initApp, isLoaded, profiles, transactions, debts } = useAppStore();
+  const { user, isAuthLoading, initAuth } = useAuthStore();
 
   const [activeTab, setActiveTab] = useState<ActiveTab>('overview');
   const [showOnboarding, setShowOnboarding] = useState(false);
-  const [showAddProfile, setShowAddProfile] = useState(false);
+  const [showLoginOverlay, setShowLoginOverlay] = useState(false);
+  const prevUserIdRef = useRef<string | null>(null);
 
   // Transaction form state
   const [txFormOpen, setTxFormOpen] = useState(false);
@@ -66,8 +71,20 @@ export default function HomePage() {
   const [isFirstTime, setIsFirstTime] = useState(false);
 
   useEffect(() => {
-    initApp();
-  }, [initApp]);
+    initAuth();
+  }, [initAuth]);
+
+  useEffect(() => {
+    if (user) {
+      // Nếu account vừa đổi (login tài khoản khác) thì đóng overlay
+      if (prevUserIdRef.current && prevUserIdRef.current !== user.id) {
+        setShowLoginOverlay(false);
+        useAppStore.setState({ profiles: [], currentProfileId: null, transactions: [], debts: [], customSources: [], customBudgets: [], isLoaded: false });
+      }
+      prevUserIdRef.current = user.id;
+      initApp();
+    }
+  }, [user, initApp]);
 
   useEffect(() => {
     if (isLoaded) {
@@ -131,6 +148,14 @@ export default function HomePage() {
     window.scrollTo({ top: 0 });
   }, []);
 
+  const handleToday = useCallback(() => {
+    const n = new Date();
+    setMonth(n.getMonth() + 1);
+    setYear(n.getFullYear());
+    setContentKey(k => k + 1);
+    window.scrollTo({ top: 0 });
+  }, []);
+
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
       if (!e.ctrlKey || !e.altKey) return;
@@ -164,7 +189,7 @@ export default function HomePage() {
     return d.getMonth() + 1 === month && d.getFullYear() === year;
   });
 
-  if (!isLoaded) {
+  if (isAuthLoading || (user && !isLoaded)) {
     return (
       <div className="app-container flex items-center justify-center min-h-dvh">
         <div className="flex flex-col items-center gap-4">
@@ -177,6 +202,10 @@ export default function HomePage() {
         </div>
       </div>
     );
+  }
+
+  if (!user) {
+    return <LoginScreen />;
   }
 
   if (showOnboarding) {
@@ -196,40 +225,45 @@ export default function HomePage() {
 
   return (
     <div className="app-container">
-      <Header onAddProfile={() => setShowAddProfile(true)} />
+      <Header onAddAccount={() => setShowLoginOverlay(true)} />
 
-      <div className="md:flex" style={{ minHeight: 'calc(100dvh - 56px)' }}>
-        {/* Desktop sidebar */}
+      <div className="md:flex md:pb-4" style={{ minHeight: 'calc(100dvh - 56px)' }}>
+        {/* Desktop floating sidebar */}
         <aside
-          className="hidden md:flex flex-col w-56 shrink-0 sticky overflow-y-auto"
+          className="hidden md:flex flex-col w-56 shrink-0 fixed overflow-y-auto rounded-2xl"
           style={{
-            top: 56,
-            height: 'calc(100dvh - 56px)',
-            background: 'var(--background)',
-            borderRight: '1px solid var(--border)',
+            top: 64,
+            left: 16,
+            height: 'calc(100dvh - 72px)',
+            background: 'var(--card)',
+            border: '1px solid var(--border-subtle)',
+            boxShadow: 'var(--shadow-float)',
           }}
         >
           <nav className="flex flex-col gap-1 p-3 flex-1">
-            {DESKTOP_TABS.map(({ value, label, icon: Icon }) => (
-              <button
-                key={value}
-                onClick={() => handleTabChange(value)}
-                className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-colors w-full text-left"
-                style={{
-                  background: activeTab === value ? 'var(--accent)' : 'transparent',
-                  color: activeTab === value ? 'var(--accent-foreground)' : 'var(--muted-foreground)',
-                }}
-              >
-                <Icon size={18} />
-                {label}
-              </button>
-            ))}
+            {DESKTOP_TABS.map(({ value, label, icon: Icon }) => {
+              const isActive = activeTab === value;
+              return (
+                <button
+                  key={value}
+                  onClick={() => handleTabChange(value)}
+                  className="sidebar-nav-item flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium w-full text-left"
+                  style={{
+                    background: isActive ? 'var(--primary-soft)' : 'transparent',
+                    color: isActive ? 'var(--accent-foreground)' : 'var(--muted-foreground)',
+                  }}
+                >
+                  <Icon size={18} style={{ color: isActive ? 'var(--primary)' : undefined }} />
+                  {label}
+                </button>
+              );
+            })}
           </nav>
-          <div className="p-3 flex flex-col gap-2" style={{ borderTop: '1px solid var(--border)' }}>
+          <div className="p-3 flex flex-col gap-2" style={{ borderTop: '1px solid var(--border-subtle)' }}>
             {activeTab === 'debts' ? (
               <button
                 onClick={() => { setEditingDebt(null); setDebtFormOpen(true); }}
-                className="flex items-center gap-2 h-10 px-4 rounded-xl font-semibold text-sm w-full justify-center transition-all hover:opacity-90 active:scale-95"
+                className="flex items-center gap-2 h-10 md:h-12 px-4 rounded-xl font-semibold text-sm w-full justify-center transition-all hover:opacity-90 active:scale-95"
                 style={{ background: 'var(--primary)', color: 'var(--primary-foreground)' }}
               >
                 <Plus size={15} /> Ghi nợ
@@ -239,12 +273,12 @@ export default function HomePage() {
                 <div className="relative group">
                   <button
                     onClick={handleOpenIncomForm}
-                    className="flex items-center gap-2 h-10 px-4 rounded-xl font-semibold text-sm w-full justify-center transition-all hover:bg-[var(--primary-soft)] active:scale-95"
+                    className="flex items-center gap-2 h-10 md:h-12 px-4 rounded-xl font-semibold text-sm w-full justify-center transition-all hover:bg-[var(--primary-soft)] active:scale-95"
                     style={{ border: '1.5px solid var(--primary)', color: 'var(--primary)', background: 'transparent' }}
                   >
                     <Plus size={15} /> Thu nhập
                   </button>
-                  <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5 px-2 py-1 rounded-md text-xs font-medium opacity-0 group-hover:opacity-100 pointer-events-none whitespace-nowrap transition-opacity duration-150 z-50"
+                  <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5 px-2 py-1 rounded-md text-sm font-medium opacity-0 group-hover:opacity-100 pointer-events-none whitespace-nowrap transition-opacity duration-150 z-50"
                     style={{ background: '#1a1a1a', color: '#fff' }}>
                     Ctrl+Alt+T
                   </div>
@@ -252,12 +286,12 @@ export default function HomePage() {
                 <div className="relative group">
                   <button
                     onClick={handleOpenExpenseForm}
-                    className="flex items-center gap-2 h-10 px-4 rounded-xl font-semibold text-sm w-full justify-center transition-all hover:bg-[var(--muted)] active:scale-95"
-                    style={{ border: '1.5px solid var(--border)', color: 'var(--foreground)', background: 'transparent' }}
+                    className="flex items-center gap-2 h-10 md:h-12 px-4 rounded-xl font-semibold text-sm w-full justify-center transition-all hover:bg-[var(--orange-soft)] active:scale-95"
+                    style={{ border: '1.5px solid var(--orange)', color: 'var(--orange)', background: 'transparent' }}
                   >
                     <Plus size={15} /> Chi tiêu
                   </button>
-                  <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5 px-2 py-1 rounded-md text-xs font-medium opacity-0 group-hover:opacity-100 pointer-events-none whitespace-nowrap transition-opacity duration-150 z-50"
+                  <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5 px-2 py-1 rounded-md text-sm font-medium opacity-0 group-hover:opacity-100 pointer-events-none whitespace-nowrap transition-opacity duration-150 z-50"
                     style={{ background: '#1a1a1a', color: '#fff' }}>
                     Ctrl+Alt+E
                   </div>
@@ -267,8 +301,8 @@ export default function HomePage() {
           </div>
         </aside>
 
-        {/* Content area */}
-        <div className="flex-1 min-w-0">
+        {/* Content area — offset for fixed sidebar on desktop */}
+        <div className="flex-1 min-w-0 md:pl-[240px] md:pr-4">
           <TabNav value={activeTab} onChange={handleTabChange} />
 
           <main className="pb-[120px] md:pb-10">
@@ -276,40 +310,30 @@ export default function HomePage() {
         {activeTab === 'overview' && (
           <div key={`overview-${contentKey}`} className="page-appear flex flex-col gap-6 p-5 pt-5">
             <div className="flex items-center">
-              <MonthSelector month={month} year={year} onPrev={handlePrevMonth} onNext={handleNextMonth} onSelect={handleSelectMonth} />
+              <MonthSelector month={month} year={year} onPrev={handlePrevMonth} onNext={handleNextMonth} onSelect={handleSelectMonth} onToday={handleToday} />
             </div>
             <SummaryCards transactions={transactions} month={month} year={year} />
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="flex flex-col">
-                <div className="flex items-center justify-between mb-3">
-                  <p className="text-overline">Nguồn tiền</p>
-                  <button
-                    onClick={() => setShowAddSource(true)}
-                    className="flex items-center gap-1 text-xs font-medium px-2 py-1 rounded-lg hover:bg-[var(--muted)] transition-colors"
-                    style={{ color: 'var(--primary)' }}
-                  >
-                    <Plus size={12} /> Thêm
-                  </button>
-                </div>
-                <div className="md:h-[280px]">
-                  <SourceBlocks transactions={transactions} />
-                </div>
+              <div className="flex flex-col md:h-[280px]">
+                <SourceBlocks
+                  transactions={transactions}
+                  title="Nguồn tiền"
+                  onAdd={() => setShowAddSource(true)}
+                  addLabel="Thêm nguồn tiền"
+                />
               </div>
-              <div className="flex flex-col">
-                <div className="flex items-center justify-between mb-3">
-                  <p className="text-overline">Mục tiêu</p>
-                  <button
-                    onClick={() => setShowAddBudget(true)}
-                    className="flex items-center gap-1 text-xs font-medium px-2 py-1 rounded-lg hover:bg-[var(--muted)] transition-colors"
-                    style={{ color: 'var(--primary)' }}
-                  >
-                    <Plus size={12} /> Thêm
-                  </button>
-                </div>
-                <div className="md:h-[280px]">
-                  <GoalBlocks transactions={transactions} />
-                </div>
+              <div className="flex flex-col md:h-[280px]">
+                <GoalBlocks
+                  transactions={transactions}
+                  title="Mục tiêu"
+                  onAdd={() => setShowAddBudget(true)}
+                  addLabel="Thêm mục tiêu"
+                />
               </div>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <CalendarBlock transactions={transactions} debts={debts} month={month} year={year} />
+              <ExpenseHeatmap transactions={transactions} month={month} year={year} />
             </div>
             <div>
               <p className="text-overline mb-3">Chi tiêu theo danh mục</p>
@@ -333,7 +357,7 @@ export default function HomePage() {
           <div key={`tx-${contentKey}`} className="page-appear flex flex-col gap-5 pt-5">
             <div className="flex items-center justify-between px-5">
               <p className="text-overline">Lịch sử giao dịch</p>
-              <MonthSelector month={month} year={year} onPrev={handlePrevMonth} onNext={handleNextMonth} onSelect={handleSelectMonth} />
+              <MonthSelector month={month} year={year} onPrev={handlePrevMonth} onNext={handleNextMonth} onSelect={handleSelectMonth} onToday={handleToday} />
             </div>
             <div
               className="mx-5 rounded-2xl overflow-hidden"
@@ -408,7 +432,19 @@ export default function HomePage() {
       </div>
 
       {/* Sheets & Dialogs */}
-      <AddProfileSheet open={showAddProfile} onClose={() => setShowAddProfile(false)} />
+      {/* Login overlay khi "Thêm người dùng" */}
+      {showLoginOverlay && (
+        <div className="fixed inset-0 z-[100]">
+          <LoginScreen />
+          <button
+            onClick={() => setShowLoginOverlay(false)}
+            className="fixed top-4 right-5 text-sm font-medium px-3 py-1.5 rounded-xl z-[101] hover:bg-[var(--muted)] transition-colors"
+            style={{ color: 'var(--muted-foreground)' }}
+          >
+            Huỷ
+          </button>
+        </div>
+      )}
       <TransactionForm
         open={txFormOpen}
         type={txFormType}

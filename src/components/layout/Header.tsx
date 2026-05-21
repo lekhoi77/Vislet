@@ -3,18 +3,18 @@
 import { ProfileSwitcher } from '@/components/profile/ProfileSwitcher';
 
 interface HeaderProps {
-  onAddProfile: () => void;
+  onAddAccount: () => void;
 }
 
-export function Header({ onAddProfile }: HeaderProps) {
+export function Header({ onAddAccount }: HeaderProps) {
   return (
     <header
       className="sticky top-0 z-50 flex items-center justify-between"
       style={{
         height: 56,
         padding: '0 20px',
-        background: 'var(--background)',
-        borderBottom: '1px solid var(--border)',
+        background: 'var(--card)',
+        borderBottom: '1px solid var(--border-subtle)',
       }}
     >
       <img
@@ -23,7 +23,7 @@ export function Header({ onAddProfile }: HeaderProps) {
         height={48}
         style={{ height: 48, width: 'auto' }}
       />
-      <ProfileSwitcher onAddProfile={onAddProfile} />
+      <ProfileSwitcher onAddAccount={onAddAccount} />
     </header>
   );
 }

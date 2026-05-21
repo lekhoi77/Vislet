@@ -30,7 +30,7 @@ export function DebtStats({ debts }: DebtStatsProps) {
             boxShadow: 'var(--shadow-card)',
           }}
         >
-          <p className="text-xs" style={{ color: 'var(--muted-foreground)' }}>{s.label}</p>
+          <p className="text-sm" style={{ color: 'var(--muted-foreground)' }}>{s.label}</p>
           <p className="text-sm font-bold amount" style={{ color: s.color }}>
             {formatVND(s.value)}
           </p>

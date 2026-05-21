@@ -39,38 +39,35 @@ export function AddProfileSheet({ open, onClose }: AddProfileSheetProps) {
       <SheetContent
         side="bottom"
         className="rounded-t-2xl"
-        style={{ padding: '24px 20px 48px', background: 'var(--background)' }}
+        style={{ padding: '16px 20px 36px', background: 'var(--background)' }}
       >
-        <div className="mx-auto w-10 h-1 rounded-full bg-[var(--border)] mb-5" />
-        <SheetHeader className="mb-6">
-          <SheetTitle className="text-lg font-semibold text-left" style={{ color: 'var(--foreground)' }}>
-            Thêm người dùng mới
+        <div className="mx-auto w-8 h-1 rounded-full bg-[var(--border)] mb-4" />
+        <SheetHeader className="mb-4">
+          <SheetTitle className="text-sm font-semibold text-left" style={{ color: 'var(--foreground)' }}>
+            Thêm người dùng
           </SheetTitle>
         </SheetHeader>
 
-        <div className="flex flex-col gap-4">
-          <div className="flex flex-col gap-2">
-            <Label className="text-xs font-medium tracking-wide uppercase" style={{ color: 'var(--muted-foreground)' }}>
-              Tên *
-            </Label>
+        <div className="flex gap-2">
+          <div className="flex flex-col gap-1 flex-1">
             <Input
               id="add-profile-name"
               value={name}
               onChange={e => { setName(e.target.value); setError(''); }}
-              placeholder="Nhập tên người dùng..."
+              placeholder="Tên người dùng..."
               onKeyDown={e => e.key === 'Enter' && handleAdd()}
               className={error ? 'border-[var(--expense)]' : ''}
               autoFocus
             />
-            {error && <p className="text-xs" style={{ color: 'var(--expense)' }}>{error}</p>}
+            {error && <p className="text-sm" style={{ color: 'var(--expense)' }}>{error}</p>}
           </div>
           <Button
             id="add-profile-submit"
             onClick={handleAdd}
-            className="w-full h-12 rounded-xl text-sm font-semibold"
+            className="h-10 px-4 rounded-xl text-sm font-semibold shrink-0"
             style={{ background: 'var(--primary)', color: 'var(--primary-foreground)' }}
           >
-            Thêm người dùng
+            Thêm
           </Button>
         </div>
       </SheetContent>

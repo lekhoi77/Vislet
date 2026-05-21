@@ -1,7 +1,8 @@
 'use client';
 
+import { useEffect, useState } from 'react';
 import { Transaction } from '@/lib/types';
-import { formatVND, formatVNDShort } from '@/lib/format';
+import { formatCurrentDateTime, formatVND, formatVNDShort } from '@/lib/format';
 import { useAppStore } from '@/store/app-store';
 import { SummaryCardSkeleton } from './SummaryCardSkeleton';
 
@@ -21,6 +22,23 @@ function card(extra?: React.CSSProperties): React.CSSProperties {
   };
 }
 
+function LiveDateTime() {
+  const [now, setNow] = useState(() => new Date());
+
+  useEffect(() => {
+    const tick = () => setNow(new Date());
+    tick();
+    const id = setInterval(tick, 60_000);
+    return () => clearInterval(id);
+  }, []);
+
+  return (
+    <p className="text-sm" style={{ color: 'var(--muted-foreground)' }}>
+      {formatCurrentDateTime(now)}
+    </p>
+  );
+}
+
 function DeltaRow({ label, delta, isExpense }: { label: string; delta: number; isExpense: boolean }) {
   const isZero = delta === 0;
   const isUp = delta > 0;
@@ -32,8 +50,8 @@ function DeltaRow({ label, delta, isExpense }: { label: string; delta: number; i
   }
   return (
     <div className="flex items-center justify-between gap-2">
-      <span className="text-xs leading-tight" style={{ color: 'var(--muted-foreground)' }}>{label}</span>
-      <span className="text-xs font-semibold shrink-0" style={{ color }}>
+      <span className="text-sm leading-tight" style={{ color: 'var(--muted-foreground)' }}>{label}</span>
+      <span className="text-sm font-semibold shrink-0" style={{ color }}>
         {isZero ? '—' : `${isUp ? '↑' : '↓'} ${formatVNDShort(Math.abs(delta))}`}
       </span>
     </div>
@@ -89,7 +107,7 @@ export function SummaryCards({ transactions, month, year, isLoading }: SummaryCa
       {/* ── Left: greeting + today delta ── */}
       <div className="flex flex-col justify-between p-4 rounded-2xl" style={card({ minHeight: 148 })}>
         <div>
-          <p className="text-xs" style={{ color: 'var(--muted-foreground)' }}>Tháng {month}/{year}</p>
+          <LiveDateTime />
           <p className="text-base font-bold leading-snug mt-0.5" style={{ color: 'var(--foreground)' }}>
             {profile?.name ? `Xin chào, ${profile.name}` : 'Xin chào'}
           </p>

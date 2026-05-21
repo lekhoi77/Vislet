@@ -97,17 +97,17 @@ export function GoalOverview({ transactions, month, year }: GoalOverviewProps) {
       <div className="grid grid-cols-2 gap-3">
         <div className="flex flex-col gap-0.5 p-4 rounded-2xl"
           style={{ background: 'var(--card)', border: '1px solid var(--border)', boxShadow: 'var(--shadow-card)' }}>
-          <span className="text-[10px] font-semibold uppercase tracking-wide" style={{ color: 'var(--muted-foreground)' }}>Tổng chi</span>
+          <span className="text-sm font-semibold uppercase tracking-wide" style={{ color: 'var(--muted-foreground)' }}>Tổng chi</span>
           <p className="text-lg font-bold amount" style={{ color: 'var(--expense)' }}>{formatVND(totalExpense)}</p>
-          <p className="text-xs" style={{ color: 'var(--muted-foreground)' }}>{expenses.length} giao dịch</p>
+          <p className="text-sm" style={{ color: 'var(--muted-foreground)' }}>{expenses.length} giao dịch</p>
         </div>
         <div className="flex flex-col gap-0.5 p-4 rounded-2xl"
           style={{ background: 'var(--card)', border: '1px solid var(--border)', boxShadow: 'var(--shadow-card)' }}>
-          <span className="text-[10px] font-semibold uppercase tracking-wide" style={{ color: 'var(--muted-foreground)' }}>Danh mục lớn nhất</span>
+          <span className="text-sm font-semibold uppercase tracking-wide" style={{ color: 'var(--muted-foreground)' }}>Danh mục lớn nhất</span>
           {groups[0] ? (
             <>
               <p className="text-sm font-bold leading-snug" style={{ color: 'var(--foreground)' }}>{groups[0].label}</p>
-              <p className="text-xs" style={{ color: 'var(--muted-foreground)' }}>{groups[0].pct.toFixed(0)}% tổng chi</p>
+              <p className="text-sm" style={{ color: 'var(--muted-foreground)' }}>{groups[0].pct.toFixed(0)}% tổng chi</p>
             </>
           ) : (
             <p className="text-sm" style={{ color: 'var(--muted-foreground)' }}>—</p>
@@ -132,7 +132,7 @@ export function GoalOverview({ transactions, month, year }: GoalOverviewProps) {
             {groups.map(g => (
               <div key={g.id} className="flex items-center gap-1.5">
                 <div className="w-2 h-2 rounded-full shrink-0" style={{ background: g.color }} />
-                <span className="text-xs" style={{ color: 'var(--muted-foreground)' }}>{g.label}</span>
+                <span className="text-sm" style={{ color: 'var(--muted-foreground)' }}>{g.label}</span>
               </div>
             ))}
           </div>
@@ -159,12 +159,12 @@ export function GoalOverview({ transactions, month, year }: GoalOverviewProps) {
                     </div>
                     <div className="min-w-0">
                       <p className="text-sm font-semibold truncate" style={{ color: 'var(--foreground)' }}>{g.label}</p>
-                      <p className="text-xs" style={{ color: 'var(--muted-foreground)' }}>{g.count} GD</p>
+                      <p className="text-sm" style={{ color: 'var(--muted-foreground)' }}>{g.count} GD</p>
                     </div>
                   </div>
                   <div className="text-right shrink-0">
                     <p className="text-sm font-bold amount" style={{ color: 'var(--expense)' }}>{formatVNDShort(g.amount)}</p>
-                    <p className="text-xs font-medium" style={{ color: 'var(--muted-foreground)' }}>{g.pct.toFixed(0)}%</p>
+                    <p className="text-sm font-medium" style={{ color: 'var(--muted-foreground)' }}>{g.pct.toFixed(0)}%</p>
                   </div>
                 </div>
                 <div className="w-full h-1.5 rounded-full" style={{ background: 'var(--muted)' }}>
@@ -198,7 +198,7 @@ export function GoalOverview({ transactions, month, year }: GoalOverviewProps) {
                   </div>
                   <div>
                     <p className="text-sm font-semibold" style={{ color: 'var(--foreground)' }}>{g.label}</p>
-                    <p className="text-xs" style={{ color: 'var(--muted-foreground)' }}>{g.count} GD</p>
+                    <p className="text-sm" style={{ color: 'var(--muted-foreground)' }}>{g.count} GD</p>
                   </div>
                 </div>
                 <p className="text-sm font-bold amount" style={{ color: 'var(--income)' }}>{formatVNDShort(g.amount)}</p>

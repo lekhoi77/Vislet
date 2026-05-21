@@ -41,9 +41,16 @@
   --primary-soft:       hsl(145, 40%, 95%);
   --primary-muted:      hsl(145, 30%, 85%);
 
+  /* ─── ACCENT (Pastel Orange) ─── */
+  --orange:             hsl(24, 90%, 58%);
+  --orange-foreground:  hsl(0, 0%, 100%);
+  --orange-soft:        hsl(28, 95%, 94%);
+  --orange-muted:       hsl(26, 75%, 82%);
+
   /* ─── BACKGROUND ─── */
   --background:         hsl(0, 0%, 100%);
   --background-subtle:  hsl(150, 10%, 97.5%);
+  --page-bg:            hsl(145, 35%, 96%);
 
   /* ─── SURFACE ─── */
   --card:               hsl(0, 0%, 100%);
@@ -85,10 +92,11 @@
   --space-10: 64px;
 
   /* ─── SHADOW ─── */
-  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.04);
-  --shadow-md: 0 2px 8px rgba(0, 0, 0, 0.06);
-  --shadow-lg: 0 4px 16px rgba(0, 0, 0, 0.08);
-  --shadow-card: 0 1px 3px rgba(0, 0, 0, 0.04), 0 0 0 1px rgba(0, 0, 0, 0.02);
+  --shadow-sm: 0 1px 2px rgba(16, 24, 40, 0.04);
+  --shadow-md: 0 4px 12px rgba(16, 24, 40, 0.06);
+  --shadow-lg: 0 8px 24px rgba(16, 24, 40, 0.08);
+  --shadow-card: 0 1px 2px rgba(16, 24, 40, 0.04), 0 4px 12px rgba(16, 24, 40, 0.05);
+  --shadow-float: 0 2px 6px rgba(16, 24, 40, 0.05), 0 12px 28px rgba(16, 24, 40, 0.08);
 
   /* ─── ANIMATION TIMING ─── */
   --duration-fast:   150ms;
@@ -126,8 +134,7 @@
   }
   body {
     font-family: 'Lexend', sans-serif;
-    background: linear-gradient(160deg, hsl(200, 70%, 96%) 0%, hsl(190, 40%, 98%) 35%, hsl(0, 0%, 100%) 65%);
-    background-attachment: fixed;
+    background: var(--page-bg);
     color: var(--foreground);
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
@@ -217,11 +224,113 @@
   transform: translateX(0);
 }
 
+/* ─── GLOBAL INTERACTIVE STATES ─── */
+button, [role="button"], [role="tab"] {
+  cursor: pointer;
+  transition: background var(--duration-fast) var(--ease-default),
+              color var(--duration-fast) var(--ease-default),
+              opacity var(--duration-fast) var(--ease-default),
+              transform var(--duration-fast) var(--ease-default),
+              box-shadow var(--duration-fast) var(--ease-default);
+}
+
+button:active:not(:disabled), [role="button"]:active:not(:disabled) {
+  transform: scale(0.96);
+}
+
+/* Mobile tab nav hover */
+[role="tab"]:hover:not([data-state="active"]) {
+  color: var(--foreground) !important;
+  background: var(--muted) !important;
+}
+
+/* Sidebar nav items */
+.sidebar-nav-item {
+  transition: background var(--duration-fast) var(--ease-default),
+              color var(--duration-fast) var(--ease-default),
+              transform var(--duration-fast) var(--ease-spring);
+}
+.sidebar-nav-item:hover {
+  background: var(--primary-soft) !important;
+  color: var(--accent-foreground) !important;
+  transform: translateX(2px);
+}
+.sidebar-nav-item:hover svg {
+  color: var(--primary);
+}
+
+/* View toggle (Danh sách / Biểu đồ) */
+.view-toggle-btn {
+  transition: background var(--duration-fast) var(--ease-default),
+              color var(--duration-fast) var(--ease-default),
+              box-shadow var(--duration-fast) var(--ease-default);
+}
+.view-toggle-btn:hover {
+  color: var(--foreground) !important;
+}
+
+@media (min-width: 768px) {
+  .view-toggle-btn {
+    font-size: 14px;
+    padding: 6px 12px;
+  }
+
+  .add-btn-expand {
+    height: 30px;
+    max-width: 30px;
+    padding: 0 7px;
+    font-size: 14px;
+  }
+
+  .add-btn-expand:hover {
+    max-width: 200px;
+    padding: 0 14px 0 9px;
+  }
+}
+
+/* ─── EXPANDING ADD BUTTON ─── */
+.add-btn-expand {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  height: 26px;
+  padding: 0 6px;
+  border-radius: 9999px;
+  overflow: hidden;
+  max-width: 26px;
+  white-space: nowrap;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 600;
+  background: var(--primary-soft);
+  color: var(--primary);
+  transition: max-width 260ms var(--ease-spring),
+              padding 200ms var(--ease-default),
+              background 160ms var(--ease-default),
+              color 160ms var(--ease-default);
+}
+
+.add-btn-expand:hover {
+  max-width: 160px;
+  padding: 0 10px 0 6px;
+  background: var(--primary);
+  color: var(--primary-foreground);
+}
+
+.add-btn-label {
+  opacity: 0;
+  transition: opacity 120ms ease 80ms;
+}
+
+.add-btn-expand:hover .add-btn-label {
+  opacity: 1;
+}
+
 /* ─── OVERLINE TEXT ─── */
 .text-overline {
-  font-size: 11px;
+  font-size: 14px;
   font-weight: 600;
-  letter-spacing: 0.06em;
+  letter-spacing: 0.04em;
   text-transform: uppercase;
   color: var(--muted-foreground);
 }
@@ -231,15 +340,15 @@
   max-width: 480px;
   margin: 0 auto;
   min-height: 100dvh;
-  background: var(--background);
+  background: var(--page-bg);
   position: relative;
-  box-shadow: 0 0 40px rgba(0,0,0,0.06);
 }
 
 @media (min-width: 768px) {
   .app-container {
     max-width: 100%;
     box-shadow: none;
+    background: var(--page-bg);
   }
 
   /* Bottom sheet → centered modal on desktop */

@@ -44,7 +44,7 @@ export function AddSourceSheet({ open, onClose }: AddSourceSheetProps) {
         <div className="flex-1 overflow-y-auto px-5 py-4 flex flex-col gap-5">
           {/* Tên nguồn */}
           <div className="flex flex-col gap-2">
-            <Label className="text-xs font-medium tracking-wide uppercase" style={{ color: 'var(--muted-foreground)' }}>
+            <Label className="text-sm font-medium tracking-wide uppercase" style={{ color: 'var(--muted-foreground)' }}>
               Tên nguồn tiền
             </Label>
             <Input
@@ -58,7 +58,7 @@ export function AddSourceSheet({ open, onClose }: AddSourceSheetProps) {
 
           {/* Icon picker */}
           <div className="flex flex-col gap-2">
-            <Label className="text-xs font-medium tracking-wide uppercase" style={{ color: 'var(--muted-foreground)' }}>
+            <Label className="text-sm font-medium tracking-wide uppercase" style={{ color: 'var(--muted-foreground)' }}>
               Chọn icon
             </Label>
             <div className="grid grid-cols-5 gap-2">
@@ -93,7 +93,7 @@ export function AddSourceSheet({ open, onClose }: AddSourceSheetProps) {
           {/* Danh sách custom sources */}
           {customSources.length > 0 && (
             <div className="flex flex-col gap-2">
-              <Label className="text-xs font-medium tracking-wide uppercase" style={{ color: 'var(--muted-foreground)' }}>
+              <Label className="text-sm font-medium tracking-wide uppercase" style={{ color: 'var(--muted-foreground)' }}>
                 Nguồn đã thêm
               </Label>
               <div className="rounded-xl overflow-hidden" style={{ border: '1px solid var(--border)' }}>

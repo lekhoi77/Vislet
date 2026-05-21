@@ -23,7 +23,7 @@ export function EmptyState({ icon: Icon, title, subtitle }: EmptyStateProps) {
           {title}
         </p>
         {subtitle && (
-          <p className="text-xs" style={{ color: 'var(--muted-foreground)' }}>
+          <p className="text-sm" style={{ color: 'var(--muted-foreground)' }}>
             {subtitle}
           </p>
         )}
