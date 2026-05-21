@@ -110,7 +110,7 @@ export function GoalBlocks({ transactions, title, onAdd, addLabel = 'Thêm mục
           )}
         </div>
       ) : (
-        <div className="flex-1 overflow-y-auto">
+        <div className="flex-1 md:overflow-y-auto">
           {balances.map((g, i) => {
             const pct = total > 0 ? (g.balance / total) * 100 : 0;
             return (

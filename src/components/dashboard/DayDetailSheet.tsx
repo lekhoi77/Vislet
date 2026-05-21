@@ -1,10 +1,11 @@
 'use client';
 
-import { useState, useMemo, useEffect, useRef } from 'react';
+import { useMemo } from 'react';
 import { Transaction, Debt } from '@/lib/types';
 import { formatVND } from '@/lib/format';
 import { resolveSourceLabel, resolveGoalLabel } from '@/lib/constants';
 import { useAppStore } from '@/store/app-store';
+import { useDraggableSheet } from '@/lib/use-draggable-sheet';
 import {
   Sheet,
   SheetContent,
@@ -24,9 +25,6 @@ interface DayDetailSheetProps {
 }
 
 const DOW_VI = ['Chủ Nhật', 'Thứ Hai', 'Thứ Ba', 'Thứ Tư', 'Thứ Năm', 'Thứ Sáu', 'Thứ Bảy'];
-const EXPANDED_KEY = 'day-detail-expanded';
-const HALF_HEIGHT = '52dvh';
-const FULL_HEIGHT = '92dvh';
 
 function isSameDay(iso: string, target: Date): boolean {
   const d = new Date(iso);
@@ -48,54 +46,7 @@ export function DayDetailSheet({
   const { customSources, customBudgets } = useAppStore();
   const open = date !== null;
 
-  const [expanded, setExpanded] = useState(false);
-
-  // Restore from localStorage on mount (client only)
-  useEffect(() => {
-    try {
-      const saved = localStorage.getItem(EXPANDED_KEY);
-      if (saved === '1') setExpanded(true);
-    } catch { /* ignore */ }
-  }, []);
-
-  // Persist whenever expanded changes
-  useEffect(() => {
-    try { localStorage.setItem(EXPANDED_KEY, expanded ? '1' : '0'); } catch { /* ignore */ }
-  }, [expanded]);
-
-  // Drag state for handle
-  const dragRef = useRef<{ startY: number; startExpanded: boolean } | null>(null);
-
-  const handlePointerDown = (e: React.PointerEvent) => {
-    dragRef.current = { startY: e.clientY, startExpanded: expanded };
-    (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
-  };
-
-  const handlePointerMove = (e: React.PointerEvent) => {
-    if (!dragRef.current) return;
-    const dy = e.clientY - dragRef.current.startY;
-    // dy > 40 = kéo xuống → thu nhỏ; dy < -40 = kéo lên → mở rộng
-    if (dy < -40 && !dragRef.current.startExpanded) {
-      setExpanded(true);
-      dragRef.current.startExpanded = true;
-      dragRef.current.startY = e.clientY;
-    } else if (dy > 40 && dragRef.current.startExpanded) {
-      setExpanded(false);
-      dragRef.current.startExpanded = false;
-      dragRef.current.startY = e.clientY;
-    }
-  };
-
-  const handlePointerUp = (e: React.PointerEvent) => {
-    if (!dragRef.current) return;
-    const dy = e.clientY - dragRef.current.startY;
-    // Nếu là click thuần (không kéo) → toggle
-    if (Math.abs(dy) < 4) {
-      setExpanded(v => !v);
-    }
-    dragRef.current = null;
-    try { (e.currentTarget as HTMLElement).releasePointerCapture(e.pointerId); } catch { /* ignore */ }
-  };
+  const { expanded, sheetStyle, handleProps } = useDraggableSheet('day-detail-expanded', false);
 
   const dayTxs = useMemo(() => {
     if (!date) return [];
@@ -128,20 +79,13 @@ export function DayDetailSheet({
       <SheetContent
         side="bottom"
         showCloseButton={false}
-        className="rounded-t-2xl gap-0 flex flex-col p-0 transition-[max-height,height] duration-300 ease-out"
-        style={{
-          background: 'var(--background)',
-          maxHeight: expanded ? FULL_HEIGHT : HALF_HEIGHT,
-          height: expanded ? FULL_HEIGHT : HALF_HEIGHT,
-        }}
+        className="rounded-t-2xl gap-0 flex flex-col p-0"
+        style={{ background: 'var(--background)', ...sheetStyle }}
       >
         {/* Drag handle — touch/click to toggle, drag up/down for snap */}
         <div
+          {...handleProps}
           className="shrink-0 flex justify-center pt-3 pb-2 cursor-grab active:cursor-grabbing touch-none select-none"
-          onPointerDown={handlePointerDown}
-          onPointerMove={handlePointerMove}
-          onPointerUp={handlePointerUp}
-          onPointerCancel={() => { dragRef.current = null; }}
           role="button"
           aria-label={expanded ? 'Thu nhỏ' : 'Mở rộng'}
         >

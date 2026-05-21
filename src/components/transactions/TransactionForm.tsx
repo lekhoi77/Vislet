@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef, useCallback } from 'react';
+import { useDraggableSheet } from '@/lib/use-draggable-sheet';
 import {
   Sheet,
   SheetContent,
@@ -192,25 +193,39 @@ export function TransactionForm({ open, type, editingTx, onClose }: TransactionF
   };
   const sourcePreview = getSourcePreview();
 
+  // Drag-to-expand sheet height (mặc định: full vì form có nhiều field)
+  const { expanded, sheetStyle, handleProps } = useDraggableSheet('tx-form-expanded', true);
+
   return (
     <Sheet open={open} onOpenChange={v => !v && onClose()}>
       <SheetContent
+        showCloseButton={false}
         side="bottom"
-        className="rounded-t-2xl max-h-[92dvh] gap-0"
-        style={{ padding: 0, background: 'var(--background)' }}
+        className="rounded-t-2xl gap-0 flex flex-col"
+        style={{ padding: 0, background: 'var(--background)', ...sheetStyle }}
       >
         {/* Fixed header */}
-        <div className="shrink-0 px-5 pt-3 pb-3" style={{ borderBottom: '1px solid var(--border)' }}>
-          <div className="mx-auto w-10 h-1 rounded-full bg-[var(--border)] mb-3" />
-          <SheetHeader className="p-0">
-            <SheetTitle className="text-base font-semibold text-left flex items-center gap-2" style={{ color: 'var(--foreground)' }}>
-              {isIncome
-                ? <TrendingUp size={18} style={{ color: 'var(--income)' }} />
-                : <TrendingDown size={18} style={{ color: 'var(--expense)' }} />
-              }
-              {titleStr}
-            </SheetTitle>
-          </SheetHeader>
+        <div className="shrink-0" style={{ borderBottom: '1px solid var(--border)' }}>
+          {/* Drag handle */}
+          <div
+            {...handleProps}
+            className="flex justify-center pt-3 pb-2 cursor-grab active:cursor-grabbing touch-none select-none"
+            role="button"
+            aria-label={expanded ? 'Thu nhỏ' : 'Mở rộng'}
+          >
+            <div className="w-10 h-1 rounded-full" style={{ background: 'var(--border)' }} />
+          </div>
+          <div className="px-5 pb-3">
+            <SheetHeader className="p-0">
+              <SheetTitle className="text-base font-semibold text-left flex items-center gap-2" style={{ color: 'var(--foreground)' }}>
+                {isIncome
+                  ? <TrendingUp size={18} style={{ color: 'var(--income)' }} />
+                  : <TrendingDown size={18} style={{ color: 'var(--expense)' }} />
+                }
+                {titleStr}
+              </SheetTitle>
+            </SheetHeader>
+          </div>
         </div>
 
         {/* Scrollable body */}

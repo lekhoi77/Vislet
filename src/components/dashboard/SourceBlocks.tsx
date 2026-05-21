@@ -107,7 +107,7 @@ export function SourceBlocks({ transactions, title, onAdd, addLabel = 'Thêm ngu
           )}
         </div>
       ) : (
-        <div className="flex-1 overflow-y-auto">
+        <div className="flex-1 md:overflow-y-auto">
           {allSources.map((s, i) => {
             const balance = getBalance(s.id);
             return (

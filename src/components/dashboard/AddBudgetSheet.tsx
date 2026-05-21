@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
+import { useDraggableSheet } from '@/lib/use-draggable-sheet';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
@@ -33,16 +34,32 @@ export function AddBudgetSheet({ open, onClose }: AddBudgetSheetProps) {
     }
   };
 
+  const { expanded, sheetStyle, handleProps } = useDraggableSheet('add-budget-expanded', true);
+
   return (
     <Sheet open={open} onOpenChange={v => !v && onClose()}>
-      <SheetContent side="bottom" className="rounded-t-2xl max-h-[92dvh] gap-0" style={{ padding: 0, background: 'var(--background)' }}>
-        <div className="shrink-0 px-5 pt-3 pb-3" style={{ borderBottom: '1px solid var(--border)' }}>
-          <div className="mx-auto w-10 h-1 rounded-full bg-[var(--border)] mb-3" />
-          <SheetHeader className="p-0">
-            <SheetTitle className="text-base font-semibold text-left" style={{ color: 'var(--foreground)' }}>
-              Quản lý mục tiêu
-            </SheetTitle>
-          </SheetHeader>
+      <SheetContent
+        showCloseButton={false}
+        side="bottom"
+        className="rounded-t-2xl gap-0 flex flex-col"
+        style={{ padding: 0, background: 'var(--background)', ...sheetStyle }}
+      >
+        <div className="shrink-0" style={{ borderBottom: '1px solid var(--border)' }}>
+          <div
+            {...handleProps}
+            className="flex justify-center pt-3 pb-2 cursor-grab active:cursor-grabbing touch-none select-none"
+            role="button"
+            aria-label={expanded ? 'Thu nhỏ' : 'Mở rộng'}
+          >
+            <div className="w-10 h-1 rounded-full" style={{ background: 'var(--border)' }} />
+          </div>
+          <div className="px-5 pb-3">
+            <SheetHeader className="p-0">
+              <SheetTitle className="text-base font-semibold text-left" style={{ color: 'var(--foreground)' }}>
+                Quản lý mục tiêu
+              </SheetTitle>
+            </SheetHeader>
+          </div>
         </div>
 
         <div className="flex-1 overflow-y-auto px-5 py-4 flex flex-col gap-5">
