@@ -26,6 +26,7 @@ import { ExpenseHeatmap } from '@/components/dashboard/ExpenseHeatmap';
 import { AddSourceSheet } from '@/components/dashboard/AddSourceSheet';
 import { AddBudgetSheet } from '@/components/dashboard/AddBudgetSheet';
 import { WalkthroughTour } from '@/components/tour/WalkthroughTour';
+import { CalculatorPanel } from '@/components/calculator/Calculator';
 import { Transaction, Debt, TransactionType } from '@/lib/types';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Separator } from '@/components/ui/separator';
@@ -65,6 +66,9 @@ export default function HomePage() {
   // Source/budget manager sheets
   const [showAddSource, setShowAddSource] = useState(false);
   const [showAddBudget, setShowAddBudget] = useState(false);
+
+  // Calculator
+  const [calcOpen, setCalcOpen] = useState(false);
 
   // Page content transition
   const [contentKey, setContentKey] = useState(0);
@@ -185,32 +189,30 @@ export default function HomePage() {
     window.scrollTo({ top: 0 });
   }, []);
 
+  // Shortcuts:  T = Thu nhập  |  E = Chi tiêu  |  C = Mở máy tính
+  // Esc closes (handled by base-ui Dialog for modals, and by Calculator itself).
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
-      if (!e.ctrlKey || !e.altKey) return;
+      if (e.ctrlKey || e.altKey || e.metaKey) return;
+      const tag = (e.target as HTMLElement).tagName;
+      if (tag === 'INPUT' || tag === 'TEXTAREA') return;
+
       if (e.key === 't' || e.key === 'T') {
         e.preventDefault();
-        // Nếu đang mở form income → đóng lại; ngược lại mở ra
-        if (txFormOpen && txFormType === 'income') {
-          setTxFormOpen(false);
-          setEditingTx(null);
-        } else {
-          handleOpenIncomForm();
-        }
+        handleOpenIncomForm();
       } else if (e.key === 'e' || e.key === 'E') {
         e.preventDefault();
-        // Nếu đang mở form expense → đóng lại; ngược lại mở ra
-        if (txFormOpen && txFormType === 'expense') {
-          setTxFormOpen(false);
-          setEditingTx(null);
-        } else {
-          handleOpenExpenseForm();
+        handleOpenExpenseForm();
+      } else if (e.key === 'c' || e.key === 'C') {
+        if (!calcOpen) {
+          e.preventDefault();
+          setCalcOpen(true);
         }
       }
     };
     window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
-  }, [handleOpenIncomForm, handleOpenExpenseForm, txFormOpen, txFormType]);
+  }, [handleOpenIncomForm, handleOpenExpenseForm, calcOpen]);
 
   const filteredDebts = debts.filter(d => debtFilter === 'open' ? !d.settled : d.settled);
   const monthTxs = transactions.filter(tx => {
@@ -258,6 +260,8 @@ export default function HomePage() {
         onAddAccount={() => setShowLoginOverlay(true)}
         onOpenGuide={handleOpenTour}
         guidePulse={guidePulse}
+        onOpenCalc={() => setCalcOpen(v => !v)}
+        calcOpen={calcOpen}
       />
 
       <div className="md:flex md:pb-4" style={{ minHeight: 'calc(100dvh - 56px)' }}>
@@ -308,26 +312,26 @@ export default function HomePage() {
                   <button
                     onClick={handleOpenIncomForm}
                     className="flex items-center gap-2 h-10 md:h-12 px-4 rounded-xl font-semibold text-sm w-full justify-center transition-all hover:bg-[var(--primary-soft)] active:scale-95"
-                    style={{ border: '1.5px solid var(--primary)', color: 'var(--primary)', background: 'transparent' }}
+                    style={{ border: '2px solid var(--primary)', color: 'var(--primary)', background: 'transparent' }}
                   >
                     <Plus size={15} /> Thu nhập
                   </button>
                   <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5 px-2 py-1 rounded-md text-sm font-medium opacity-0 group-hover:opacity-100 pointer-events-none whitespace-nowrap transition-opacity duration-150 z-50"
                     style={{ background: '#1a1a1a', color: '#fff' }}>
-                    Ctrl+Alt+T
+                    T
                   </div>
                 </div>
                 <div className="relative group">
                   <button
                     onClick={handleOpenExpenseForm}
                     className="flex items-center gap-2 h-10 md:h-12 px-4 rounded-xl font-semibold text-sm w-full justify-center transition-all hover:bg-[var(--orange-soft)] active:scale-95"
-                    style={{ border: '1.5px solid var(--orange)', color: 'var(--orange)', background: 'transparent' }}
+                    style={{ border: '2px solid var(--orange)', color: 'var(--orange)', background: 'transparent' }}
                   >
                     <Plus size={15} /> Chi tiêu
                   </button>
                   <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5 px-2 py-1 rounded-md text-sm font-medium opacity-0 group-hover:opacity-100 pointer-events-none whitespace-nowrap transition-opacity duration-150 z-50"
                     style={{ background: '#1a1a1a', color: '#fff' }}>
-                    Ctrl+Alt+E
+                    E
                   </div>
                 </div>
               </>
@@ -479,6 +483,10 @@ export default function HomePage() {
         onClose={handleCloseTour}
         onRequestTab={handleTabChange}
       />
+
+      {/* Calculator — floating on desktop, bottom sheet on mobile */}
+      <CalculatorPanel open={calcOpen} onClose={() => setCalcOpen(false)} />
+
       <Toaster position="top-center" richColors />
     </div>
   );

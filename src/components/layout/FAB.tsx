@@ -56,7 +56,7 @@ export function FAB({ activeTab, onIncome, onExpense, onDebt, isFirstTime }: FAB
           isFirstTime && 'fab-hint'
         )}
         style={{
-          border: '1.5px solid var(--primary)',
+          border: '2px solid var(--primary)',
           color: 'var(--primary)',
           background: 'white',
           boxShadow: 'var(--shadow-md)',
@@ -70,7 +70,7 @@ export function FAB({ activeTab, onIncome, onExpense, onDebt, isFirstTime }: FAB
         onClick={onExpense}
         className="flex items-center gap-2 h-12 px-5 rounded-full font-semibold text-sm transition-all hover:bg-[var(--muted)] active:scale-95"
         style={{
-          border: '1.5px solid var(--border)',
+          border: '2px solid var(--border)',
           color: 'var(--foreground)',
           background: 'white',
           boxShadow: 'var(--shadow-md)',
