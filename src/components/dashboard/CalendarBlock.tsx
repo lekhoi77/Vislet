@@ -17,9 +17,9 @@ const WEEKDAY_LABELS = ['T2', 'T3', 'T4', 'T5', 'T6', 'T7', 'CN'];
 interface DayCell {
   day: number | null;
   isToday: boolean;
-  hasIncome: boolean;
-  hasExpense: boolean;
-  hasDebt: boolean;
+  incomeCount: number;
+  expenseCount: number;
+  debtCount: number;
 }
 
 export function CalendarBlock({ transactions, debts, month, year, onEdit }: CalendarBlockProps) {
@@ -33,7 +33,7 @@ export function CalendarBlock({ transactions, debts, month, year, onEdit }: Cale
 
     const cells: DayCell[] = [];
     for (let i = 0; i < firstWeekday; i++) {
-      cells.push({ day: null, isToday: false, hasIncome: false, hasExpense: false, hasDebt: false });
+      cells.push({ day: null, isToday: false, incomeCount: 0, expenseCount: 0, debtCount: 0 });
     }
 
     for (let d = 1; d <= daysInMonth; d++) {
@@ -42,27 +42,25 @@ export function CalendarBlock({ transactions, debts, month, year, onEdit }: Cale
         now.getMonth() === month - 1 &&
         now.getDate() === d;
 
-      let hasIncome = false;
-      let hasExpense = false;
+      let incomeCount = 0;
+      let expenseCount = 0;
       for (const tx of transactions) {
         const td = new Date(tx.date);
         if (td.getFullYear() !== year || td.getMonth() !== month - 1 || td.getDate() !== d) continue;
-        if (tx.type === 'income') hasIncome = true;
-        else if (tx.type === 'expense') hasExpense = true;
-        if (hasIncome && hasExpense) break;
+        if (tx.type === 'income') incomeCount++;
+        else if (tx.type === 'expense') expenseCount++;
       }
 
-      let hasDebt = false;
+      let debtCount = 0;
       for (const debt of debts) {
         if (!debt.dueDate) continue;
         const dd = new Date(debt.dueDate);
         if (dd.getFullYear() === year && dd.getMonth() === month - 1 && dd.getDate() === d) {
-          hasDebt = true;
-          break;
+          debtCount++;
         }
       }
 
-      cells.push({ day: d, isToday, hasIncome, hasExpense, hasDebt });
+      cells.push({ day: d, isToday, incomeCount, expenseCount, debtCount });
     }
     return cells;
   }, [transactions, debts, month, year]);
@@ -75,7 +73,7 @@ export function CalendarBlock({ transactions, debts, month, year, onEdit }: Cale
       style={{ background: 'var(--card)', border: '1px solid var(--border)', boxShadow: 'var(--shadow-card)' }}
     >
       {/* Header */}
-      <div className="flex items-center justify-between gap-2 px-3 pt-3 pb-2">
+      <div className="flex items-center justify-between gap-2 px-3 pt-3 pb-4">
         <p className="text-overline">Lịch hoạt động</p>
         <div className="flex items-center gap-2.5 text-[14px] font-medium" style={{ color: 'var(--muted-foreground)' }}>
           <span className="flex items-center gap-1">
@@ -91,7 +89,7 @@ export function CalendarBlock({ transactions, debts, month, year, onEdit }: Cale
       </div>
 
       {/* Weekday labels */}
-      <div className="grid grid-cols-7 gap-1 px-3 pb-1">
+      <div className="grid grid-cols-7 gap-1 px-3 pb-2">
         {WEEKDAY_LABELS.map(label => (
           <div
             key={label}
@@ -109,7 +107,14 @@ export function CalendarBlock({ transactions, debts, month, year, onEdit }: Cale
           if (c.day === null) {
             return <div key={i} aria-hidden />;
           }
-          const hasAny = c.hasIncome || c.hasExpense || c.hasDebt;
+          const total = c.incomeCount + c.expenseCount + c.debtCount;
+          const hasAny = total > 0;
+          // Dots: per transaction. On mobile shrink and tighten gap when crowded.
+          const dotItems: { key: string; color: string }[] = [
+            ...Array.from({ length: c.incomeCount }, (_, k) => ({ key: `i${k}`, color: 'var(--income)' })),
+            ...Array.from({ length: c.expenseCount }, (_, k) => ({ key: `e${k}`, color: 'var(--orange)' })),
+            ...Array.from({ length: c.debtCount }, (_, k) => ({ key: `d${k}`, color: 'var(--expense)' })),
+          ];
           return (
             <button
               key={i}
@@ -121,7 +126,7 @@ export function CalendarBlock({ transactions, debts, month, year, onEdit }: Cale
                 border: c.isToday ? '1px solid var(--primary-muted)' : '1px solid transparent',
                 cursor: 'pointer',
               }}
-              aria-label={`Ngày ${c.day}${hasAny ? ', có giao dịch' : ''}`}
+              aria-label={`Ngày ${c.day}${hasAny ? `, ${total} hoạt động` : ''}`}
             >
               <span
                 className="text-[13px] leading-none"
@@ -132,16 +137,12 @@ export function CalendarBlock({ transactions, debts, month, year, onEdit }: Cale
               >
                 {c.day}
               </span>
-              <div className="flex gap-1 mt-1.5 min-h-[8px]">
-                {c.hasIncome && (
-                  <span style={{ width: 7, height: 7, borderRadius: '50%', background: 'var(--income)' }} />
-                )}
-                {c.hasExpense && (
-                  <span style={{ width: 7, height: 7, borderRadius: '50%', background: 'var(--orange)' }} />
-                )}
-                {c.hasDebt && (
-                  <span style={{ width: 7, height: 7, borderRadius: '50%', background: 'var(--expense)' }} />
-                )}
+              <div
+                className={`flex flex-wrap justify-center mt-1.5 min-h-[8px] cal-dots ${total > 6 ? 'is-crowded' : ''}`}
+              >
+                {dotItems.map(d => (
+                  <span key={d.key} className="cal-dot" style={{ background: d.color }} />
+                ))}
               </div>
             </button>
           );

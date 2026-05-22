@@ -17,6 +17,7 @@ export function FAB({ activeTab, onIncome, onExpense, onDebt, isFirstTime }: FAB
   if (activeTab === 'debts') {
     return (
       <div
+        data-tour="fab"
         className="fixed bottom-0 left-1/2 -translate-x-1/2 flex justify-center md:hidden"
         style={{ padding: '16px 20px 32px', zIndex: 40, maxWidth: 480, width: '100%' }}
       >
@@ -43,6 +44,7 @@ export function FAB({ activeTab, onIncome, onExpense, onDebt, isFirstTime }: FAB
 
   return (
     <div
+      data-tour="fab"
       className="fixed bottom-0 left-1/2 -translate-x-1/2 flex justify-center gap-3 md:hidden"
       style={{ padding: '16px 20px 32px', zIndex: 40, maxWidth: 480, width: '100%' }}
     >

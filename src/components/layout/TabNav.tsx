@@ -36,6 +36,7 @@ export function TabNav({ value, onChange }: TabNavProps) {
               key={tab.value}
               value={tab.value}
               id={`tab-${tab.value}`}
+              data-tour={`tab-${tab.value}`}
               className="relative flex-1 h-11 rounded-none bg-transparent text-sm font-medium border-0 shadow-none px-4
                 data-[state=active]:font-semibold data-[state=active]:shadow-none data-[state=active]:bg-transparent
                 after:absolute after:bottom-0 after:left-0 after:right-0 after:h-0.5 after:rounded-full

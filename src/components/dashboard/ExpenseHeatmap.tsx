@@ -75,7 +75,7 @@ export function ExpenseHeatmap({ transactions, month, year, onEdit }: ExpenseHea
       style={{ background: 'var(--card)', border: '1px solid var(--border)', boxShadow: 'var(--shadow-card)' }}
     >
       {/* Header */}
-      <div className="flex items-center justify-between gap-2 px-3 pt-3 pb-2">
+      <div className="flex items-center justify-between gap-2 px-3 pt-3 pb-4">
         <p className="text-overline">Heatmap chi tiêu</p>
         <p className="text-[14px] font-medium" style={{ color: 'var(--muted-foreground)' }}>
           {activeDays > 0 ? `${activeDays} ngày · cao nhất ${formatVNDShort(maxAmount)}` : 'Chưa có dữ liệu'}

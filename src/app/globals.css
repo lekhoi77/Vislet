@@ -36,47 +36,47 @@
 
 :root {
   /* ─── BRAND / PRIMARY (Pastel Green) ─── */
-  --primary:            hsl(145, 45%, 42%);
+  --primary: hsl(145, 45%, 42%);
   --primary-foreground: hsl(0, 0%, 100%);
-  --primary-soft:       hsl(145, 40%, 95%);
-  --primary-muted:      hsl(145, 30%, 85%);
+  --primary-soft: hsl(145, 40%, 95%);
+  --primary-muted: hsl(145, 30%, 85%);
 
   /* ─── ACCENT (Pastel Orange) ─── */
-  --orange:             hsl(24, 90%, 58%);
-  --orange-foreground:  hsl(0, 0%, 100%);
-  --orange-soft:        hsl(28, 95%, 94%);
-  --orange-muted:       hsl(26, 75%, 82%);
+  --orange: hsl(24, 90%, 58%);
+  --orange-foreground: hsl(0, 0%, 100%);
+  --orange-soft: hsl(28, 95%, 94%);
+  --orange-muted: hsl(26, 75%, 82%);
 
   /* ─── BACKGROUND ─── */
-  --background:         hsl(0, 0%, 100%);
-  --background-subtle:  hsl(150, 10%, 97.5%);
-  --page-bg:            hsl(145, 35%, 96%);
+  --background: hsl(0, 0%, 100%);
+  --background-subtle: hsl(150, 10%, 97.5%);
+  --page-bg: hsl(145, 35%, 96%);
 
   /* ─── SURFACE ─── */
-  --card:               hsl(0, 0%, 100%);
-  --card-foreground:    hsl(220, 15%, 15%);
-  --popover:            hsl(0, 0%, 100%);
+  --card: hsl(0, 0%, 100%);
+  --card-foreground: hsl(220, 15%, 15%);
+  --popover: hsl(0, 0%, 100%);
   --popover-foreground: hsl(220, 15%, 12%);
 
   /* ─── NEUTRAL ─── */
-  --foreground:         hsl(220, 15%, 12%);
-  --muted-foreground:   hsl(220, 8%, 46%);
-  --muted:              hsl(220, 10%, 96%);
-  --border:             hsl(220, 10%, 90%);
-  --border-subtle:      hsl(220, 10%, 94%);
-  --input:              hsl(220, 10%, 90%);
-  --ring:               hsl(145, 45%, 42%);
+  --foreground: hsl(220, 15%, 12%);
+  --muted-foreground: hsl(220, 8%, 46%);
+  --muted: hsl(220, 10%, 96%);
+  --border: hsl(220, 10%, 90%);
+  --border-subtle: hsl(220, 10%, 94%);
+  --input: hsl(220, 10%, 90%);
+  --ring: hsl(145, 45%, 42%);
 
   /* ─── SECONDARY ─── */
-  --secondary:          hsl(220, 10%, 96%);
+  --secondary: hsl(220, 10%, 96%);
   --secondary-foreground: hsl(220, 15%, 12%);
-  --accent:             hsl(145, 40%, 95%);
-  --accent-foreground:  hsl(145, 45%, 30%);
+  --accent: hsl(145, 40%, 95%);
+  --accent-foreground: hsl(145, 45%, 30%);
 
   /* ─── SEMANTIC ─── */
-  --income:             hsl(145, 55%, 38%);
-  --expense:            hsl(0, 70%, 50%);
-  --destructive:        hsl(0, 70%, 50%);
+  --income: hsl(145, 55%, 38%);
+  --expense: hsl(0, 70%, 50%);
+  --destructive: hsl(0, 70%, 50%);
   --destructive-foreground: hsl(0, 0%, 100%);
 
   /* ─── SPACING SCALE (8px grid) ─── */
@@ -99,12 +99,12 @@
   --shadow-float: 0 2px 6px rgba(16, 24, 40, 0.05), 0 12px 28px rgba(16, 24, 40, 0.08);
 
   /* ─── ANIMATION TIMING ─── */
-  --duration-fast:   150ms;
+  --duration-fast: 150ms;
   --duration-normal: 250ms;
-  --duration-slow:   400ms;
-  --ease-default:    cubic-bezier(0.25, 0.1, 0.25, 1);
-  --ease-spring:     cubic-bezier(0.34, 1.56, 0.64, 1);
-  --ease-out:        cubic-bezier(0, 0, 0.2, 1);
+  --duration-slow: 400ms;
+  --ease-default: cubic-bezier(0.25, 0.1, 0.25, 1);
+  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --ease-out: cubic-bezier(0, 0, 0.2, 1);
 
   /* shadcn radius token */
   --radius: 0.75rem;
@@ -132,6 +132,7 @@
     @apply border-border outline-ring/50;
     box-sizing: border-box;
   }
+
   body {
     font-family: 'Lexend', sans-serif;
     background: var(--page-bg);
@@ -139,6 +140,7 @@
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
   }
+
   html {
     font-family: 'Lexend', sans-serif;
   }
@@ -146,8 +148,15 @@
 
 /* ─── SKELETON ANIMATION ─── */
 @keyframes skeleton-pulse {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.4; }
+
+  0%,
+  100% {
+    opacity: 1;
+  }
+
+  50% {
+    opacity: 0.4;
+  }
 }
 
 .skeleton-animate {
@@ -162,6 +171,7 @@
     opacity: 0;
     transform: translateY(8px);
   }
+
   to {
     opacity: 1;
     transform: translateY(0);
@@ -174,8 +184,15 @@
 
 /* ─── FAB PULSE (first-time hint) ─── */
 @keyframes fab-pulse {
-  0%, 100% { box-shadow: var(--shadow-md); }
-  50% { box-shadow: 0 0 0 8px hsl(145, 45%, 42%, 0.2), var(--shadow-md); }
+
+  0%,
+  100% {
+    box-shadow: var(--shadow-md);
+  }
+
+  50% {
+    box-shadow: 0 0 0 8px hsl(145, 45%, 42%, 0.2), var(--shadow-md);
+  }
 }
 
 .fab-hint {
@@ -192,9 +209,11 @@
   width: 4px;
   height: 4px;
 }
+
 ::-webkit-scrollbar-track {
   background: transparent;
 }
+
 ::-webkit-scrollbar-thumb {
   background: var(--border);
   border-radius: 9999px;
@@ -225,16 +244,19 @@
 }
 
 /* ─── GLOBAL INTERACTIVE STATES ─── */
-button, [role="button"], [role="tab"] {
+button,
+[role="button"],
+[role="tab"] {
   cursor: pointer;
   transition: background var(--duration-fast) var(--ease-default),
-              color var(--duration-fast) var(--ease-default),
-              opacity var(--duration-fast) var(--ease-default),
-              transform var(--duration-fast) var(--ease-default),
-              box-shadow var(--duration-fast) var(--ease-default);
+    color var(--duration-fast) var(--ease-default),
+    opacity var(--duration-fast) var(--ease-default),
+    transform var(--duration-fast) var(--ease-default),
+    box-shadow var(--duration-fast) var(--ease-default);
 }
 
-button:active:not(:disabled), [role="button"]:active:not(:disabled) {
+button:active:not(:disabled),
+[role="button"]:active:not(:disabled) {
   transform: scale(0.96);
 }
 
@@ -247,14 +269,16 @@ button:active:not(:disabled), [role="button"]:active:not(:disabled) {
 /* Sidebar nav items */
 .sidebar-nav-item {
   transition: background var(--duration-fast) var(--ease-default),
-              color var(--duration-fast) var(--ease-default),
-              transform var(--duration-fast) var(--ease-spring);
+    color var(--duration-fast) var(--ease-default),
+    transform var(--duration-fast) var(--ease-spring);
 }
+
 .sidebar-nav-item:hover {
   background: var(--primary-soft) !important;
   color: var(--accent-foreground) !important;
   transform: translateX(2px);
 }
+
 .sidebar-nav-item:hover svg {
   color: var(--primary);
 }
@@ -262,9 +286,10 @@ button:active:not(:disabled), [role="button"]:active:not(:disabled) {
 /* View toggle (Danh sách / Biểu đồ) */
 .view-toggle-btn {
   transition: background var(--duration-fast) var(--ease-default),
-              color var(--duration-fast) var(--ease-default),
-              box-shadow var(--duration-fast) var(--ease-default);
+    color var(--duration-fast) var(--ease-default),
+    box-shadow var(--duration-fast) var(--ease-default);
 }
+
 .view-toggle-btn:hover {
   color: var(--foreground) !important;
 }
@@ -305,9 +330,9 @@ button:active:not(:disabled), [role="button"]:active:not(:disabled) {
   background: var(--primary-soft);
   color: var(--primary);
   transition: max-width 260ms var(--ease-spring),
-              padding 200ms var(--ease-default),
-              background 160ms var(--ease-default),
-              color 160ms var(--ease-default);
+    padding 200ms var(--ease-default),
+    background 160ms var(--ease-default),
+    color 160ms var(--ease-default);
 }
 
 .add-btn-expand:hover {
@@ -370,5 +395,144 @@ button:active:not(:disabled), [role="button"]:active:not(:disabled) {
 
   [data-slot="sheet-content"][data-side="bottom"][data-ending-style] {
     translate: -50% calc(-50% + 12px) !important;
+  }
+}
+
+/* Calendar activity dots — desktop comfy, mobile compact */
+.cal-dots {
+  gap: 3px;
+  row-gap: 2px;
+  max-width: 100%;
+}
+
+.cal-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+@media (max-width: 767px) {
+  .cal-dots {
+    gap: 2px;
+    row-gap: 1px;
+  }
+
+  .cal-dot {
+    width: 5px;
+    height: 5px;
+  }
+
+  .cal-dots.is-crowded .cal-dot {
+    width: 4px;
+    height: 4px;
+  }
+}
+
+@media (max-width: 380px) {
+  .cal-dot {
+    width: 4px;
+    height: 4px;
+  }
+
+  .cal-dots.is-crowded {
+    gap: 1px;
+  }
+}
+
+/* Walkthrough tour */
+.tour-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  pointer-events: auto;
+  background: transparent;
+}
+
+.tour-mask {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  pointer-events: auto;
+  background: rgba(15, 23, 42, 0.55);
+  -webkit-mask-image: var(--tour-mask, none);
+  mask-image: var(--tour-mask, none);
+  -webkit-mask-composite: source-out;
+  mask-composite: exclude;
+  transition: background 200ms ease;
+}
+
+.tour-highlight {
+  position: fixed;
+  z-index: 201;
+  border-radius: 14px;
+  pointer-events: none;
+  box-shadow: 0 0 0 3px var(--primary), 0 0 0 8px rgba(34, 197, 94, 0.25);
+  transition: top 240ms ease, left 240ms ease, width 240ms ease, height 240ms ease;
+}
+
+.tour-tooltip {
+  position: fixed;
+  z-index: 202;
+  width: min(340px, calc(100vw - 32px));
+  background: var(--card);
+  color: var(--foreground);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  box-shadow: 0 18px 40px rgba(0, 0, 0, 0.18);
+  padding: 16px;
+  transition: top 240ms ease, left 240ms ease;
+}
+
+/* Header guide button */
+.guide-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 999px;
+  background: #22c55e;
+  color: #fff;
+  border: none;
+  cursor: pointer;
+  transition: transform 160ms ease, box-shadow 160ms ease, background 160ms ease;
+  box-shadow: 0 2px 6px rgba(34, 197, 94, 0.35);
+}
+
+.guide-btn:hover {
+  background: #16a34a;
+  transform: translateY(-1px) scale(1.05);
+  box-shadow: 0 6px 14px rgba(34, 197, 94, 0.45);
+}
+
+.guide-btn:active {
+  transform: scale(0.95);
+}
+
+.guide-btn:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
+}
+
+.guide-btn-pulse::after {
+  content: '';
+  position: absolute;
+  inset: -4px;
+  border-radius: 999px;
+  border: 2px solid #22c55e;
+  opacity: 0.7;
+  animation: guidePulse 1.8s ease-out infinite;
+}
+
+@keyframes guidePulse {
+  0% {
+    transform: scale(0.9);
+    opacity: 0.7;
+  }
+
+  100% {
+    transform: scale(1.4);
+    opacity: 0;
   }
 }
