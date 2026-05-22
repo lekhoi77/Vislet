@@ -1,12 +1,12 @@
 'use client';
 
 import { useState } from 'react';
-import { Transaction, TransactionGoal, TransactionSource } from '@/lib/types';
+import { Transaction } from '@/lib/types';
 import { formatVND } from '@/lib/format';
 import { resolveGoalLabel, resolveSourceLabel, getGoalColor } from '@/lib/constants';
 import { useAppStore } from '@/store/app-store';
-import { BudgetIcon } from '@/lib/icons';
-import { Building2, Wallet, Smartphone, PiggyBank, Plane, Clock, Tag, CircleDot, ChevronDown } from 'lucide-react';
+import { BudgetIcon, AppIcon } from '@/lib/icons';
+import { ChevronDown } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 type FilterBy = 'goal' | 'source';
@@ -17,19 +17,6 @@ interface ExpenseBreakdownProps {
   month: number;
   year: number;
 }
-
-const GOAL_ICONS: Record<TransactionGoal, React.ReactNode> = {
-  none: <Tag size={14} />,
-  saving: <PiggyBank size={14} />,
-  travel: <Plane size={14} />,
-  soon: <Clock size={14} />,
-};
-
-const SOURCE_ICONS: Record<TransactionSource, React.ReactNode> = {
-  bank: <Building2 size={14} />,
-  cash: <Wallet size={14} />,
-  momo: <Smartphone size={14} />,
-};
 
 export function ExpenseBreakdown({ transactions, month, year }: ExpenseBreakdownProps) {
   const { customSources, customBudgets } = useAppStore();
@@ -43,14 +30,7 @@ export function ExpenseBreakdown({ transactions, month, year }: ExpenseBreakdown
 
   const total = monthExpenses.reduce((s, t) => s + t.amount, 0);
 
-  type GroupKey = TransactionGoal | TransactionSource;
-  const groups = new Map<GroupKey, { amount: number; count: number }>();
-
-  const keys: GroupKey[] = filterBy === 'goal'
-    ? ['none', 'saving', 'travel', 'soon']
-    : ['bank', 'cash', 'momo'];
-
-  keys.forEach(k => groups.set(k, { amount: 0, count: 0 }));
+  const groups = new Map<string, { amount: number; count: number }>();
 
   monthExpenses.forEach(tx => {
     const key = filterBy === 'goal' ? tx.goal : tx.source;
@@ -73,13 +53,11 @@ export function ExpenseBreakdown({ transactions, month, year }: ExpenseBreakdown
       className="rounded-2xl overflow-hidden"
       style={{ background: 'var(--card)', border: '1px solid var(--border)', boxShadow: 'var(--shadow-card)' }}
     >
-      {/* Controls */}
       <div className="flex items-center justify-between px-4 py-3" style={{ borderBottom: '1px solid var(--border)' }}>
         <p className="text-sm font-semibold uppercase tracking-wide" style={{ color: 'var(--muted-foreground)' }}>
           Chi tiêu theo {filterBy === 'goal' ? 'mục tiêu' : 'nguồn'}
         </p>
         <div className="flex items-center gap-2">
-          {/* Filter toggle */}
           <div className="flex rounded-lg overflow-hidden" style={{ border: '1px solid var(--border)' }}>
             {(['goal', 'source'] as FilterBy[]).map(f => (
               <button
@@ -95,7 +73,6 @@ export function ExpenseBreakdown({ transactions, month, year }: ExpenseBreakdown
               </button>
             ))}
           </div>
-          {/* Sort toggle */}
           <button
             onClick={() => setSortBy(s => s === 'amount' ? 'count' : 'amount')}
             className="flex items-center gap-1 px-2.5 py-1 rounded-lg text-sm font-medium transition-colors"
@@ -120,8 +97,8 @@ export function ExpenseBreakdown({ transactions, month, year }: ExpenseBreakdown
             const customBudget = customBudgets.find(b => b.id === key);
             const customSource = customSources.find(s => s.id === key);
             const icon = filterBy === 'goal'
-              ? (GOAL_ICONS[key as TransactionGoal] ?? (customBudget ? <BudgetIcon name={customBudget.icon} size={14} /> : <Tag size={14} />))
-              : (SOURCE_ICONS[key as TransactionSource] ?? (customSource ? <CircleDot size={14} /> : <CircleDot size={14} />));
+              ? <BudgetIcon name={customBudget?.icon ?? 'ShoppingCart'} size={14} />
+              : <AppIcon name={customSource?.icon ?? 'Wallet'} size={14} />;
             const pct = total > 0 ? (g.amount / total) * 100 : 0;
             const barColor = filterBy === 'goal'
               ? getGoalColor(key, customBudgets)
@@ -154,7 +131,6 @@ export function ExpenseBreakdown({ transactions, month, year }: ExpenseBreakdown
                     </span>
                   </div>
                 </div>
-                {/* Progress bar */}
                 <div className="h-1.5 rounded-full overflow-hidden" style={{ background: 'var(--muted)' }}>
                   <div
                     className="h-full rounded-full transition-all duration-500"

@@ -7,6 +7,8 @@ const KEYS = {
   debt: (id: string) => `viapp_debt_${id}`,
   sources: (id: string) => `viapp_sources_${id}`,
   budgets: (id: string) => `viapp_budgets_${id}`,
+  removedSources: (id: string) => `viapp_removed_src_${id}`,
+  removedGoals: (id: string) => `viapp_removed_goal_${id}`,
 };
 
 function safeGet<T>(key: string, fallback: T): T {
@@ -69,5 +71,19 @@ export const storage = {
   },
   setCustomBudgets(profileId: string, budgets: CustomBudget[]): boolean {
     return safeSet(KEYS.budgets(profileId), budgets);
+  },
+
+  getRemovedSourceIds(profileId: string): string[] {
+    return safeGet<string[]>(KEYS.removedSources(profileId), []);
+  },
+  setRemovedSourceIds(profileId: string, ids: string[]): boolean {
+    return safeSet(KEYS.removedSources(profileId), ids);
+  },
+
+  getRemovedGoalIds(profileId: string): string[] {
+    return safeGet<string[]>(KEYS.removedGoals(profileId), []);
+  },
+  setRemovedGoalIds(profileId: string, ids: string[]): boolean {
+    return safeSet(KEYS.removedGoals(profileId), ids);
   },
 };

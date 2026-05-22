@@ -13,6 +13,7 @@ import {
   SheetTitle,
   SheetDescription,
 } from '@/components/ui/sheet';
+import { SheetCloseButton } from '@/components/ui/sheet-close-button';
 import { ArrowDownLeft, ArrowUpRight, Handshake, Inbox } from 'lucide-react';
 
 interface DayDetailSheetProps {
@@ -78,25 +79,28 @@ export function DayDetailSheet({
     <Sheet open={open} onOpenChange={v => !v && onClose()}>
       <SheetContent
         side="bottom"
-        showCloseButton={false}
         className="rounded-t-2xl gap-0 flex flex-col p-0"
         style={{ background: 'var(--background)', ...sheetStyle }}
       >
-        {/* Drag handle — touch/click to toggle, drag up/down for snap */}
         <div
           {...handleProps}
-          className="shrink-0 flex justify-center pt-3 pb-2 cursor-grab active:cursor-grabbing touch-none select-none"
+          className="shrink-0 flex justify-center pt-3 pb-1 cursor-grab active:cursor-grabbing touch-none select-none"
           role="button"
           aria-label={expanded ? 'Thu nhỏ' : 'Mở rộng'}
         >
           <div className="w-10 h-1 rounded-full" style={{ background: 'var(--border)' }} />
         </div>
 
-        {/* Header */}
-        <SheetHeader className="shrink-0 px-5 pt-1 pb-4 gap-0" style={{ borderBottom: '1px solid var(--border)' }}>
-          <SheetTitle className="text-[15px] font-semibold text-left leading-tight" style={{ color: 'var(--foreground)' }}>
-            {dateLabel}
-          </SheetTitle>
+        <SheetHeader
+          className="shrink-0 px-5 pt-0.5 pb-4 gap-0"
+          style={{ borderBottom: '1px solid var(--border)' }}
+        >
+          <div className="flex items-center justify-between gap-3 min-h-[44px]">
+            <SheetTitle className="text-[15px] font-semibold text-left leading-tight flex-1 min-w-0" style={{ color: 'var(--foreground)' }}>
+              {dateLabel}
+            </SheetTitle>
+            <SheetCloseButton />
+          </div>
           <SheetDescription className="sr-only">
             Chi tiết giao dịch ngày {dateLabel}
           </SheetDescription>

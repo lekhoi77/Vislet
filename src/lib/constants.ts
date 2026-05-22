@@ -1,7 +1,8 @@
 import type { CustomSource, CustomBudget } from './types';
+import { DEFAULT_SOURCES, DEFAULT_GOALS } from './defaults';
 
-export const BUILT_IN_SOURCES = ['bank', 'cash', 'momo'] as const;
-export const BUILT_IN_GOALS = ['none', 'saving', 'travel', 'soon'] as const;
+export const BUILT_IN_SOURCES = DEFAULT_SOURCES.map(s => s.id);
+export const BUILT_IN_GOALS = DEFAULT_GOALS.map(g => g.id);
 
 // ─── Label resolvers (hỗ trợ cả built-in và custom) ─────────
 
@@ -48,7 +49,7 @@ export const SOURCE_LABELS: Record<string, string> = {
 };
 
 export const GOAL_LABELS: Record<string, string> = {
-  none: 'Không phân loại',
+  none: 'Chưa phân loại',
   saving: 'Tiết kiệm',
   travel: 'Du lịch',
   soon: 'Sắp dùng',
@@ -86,9 +87,9 @@ const BUILT_IN_GOAL_COLOR: Record<string, string> = {
 };
 
 /** Trả về màu nhất quán cho một goalId (built-in hoặc custom) */
-export function getGoalColor(goalId: string, customBudgets: CustomBudget[]): string {
+export function getGoalColor(goalId: string, goals: CustomBudget[]): string {
   if (BUILT_IN_GOAL_COLOR[goalId]) return BUILT_IN_GOAL_COLOR[goalId];
-  const idx = customBudgets.findIndex(b => b.id === goalId);
-  // custom goals bắt đầu từ index 4 trở đi
+  const customOnly = goals.filter(g => !BUILT_IN_GOALS.includes(g.id as (typeof BUILT_IN_GOALS)[number]));
+  const idx = customOnly.findIndex(b => b.id === goalId);
   return CATEGORY_COLORS[(4 + Math.max(0, idx)) % CATEGORY_COLORS.length];
 }

@@ -2,11 +2,7 @@
 
 import { useState, useMemo } from 'react';
 import { Transaction } from '@/lib/types';
-import {
-  BUILT_IN_SOURCES, BUILT_IN_GOALS,
-  SOURCE_LABELS, GOAL_LABELS,
-  resolveSourceLabel, resolveGoalLabel,
-} from '@/lib/constants';
+import { resolveSourceLabel, resolveGoalLabel } from '@/lib/constants';
 import { useAppStore } from '@/store/app-store';
 import { matchesQuery } from '@/lib/search';
 import { TransactionList } from './TransactionList';
@@ -16,6 +12,7 @@ import {
   SheetHeader,
   SheetTitle,
 } from '@/components/ui/sheet';
+import { SheetCloseButton } from '@/components/ui/sheet-close-button';
 import { Input } from '@/components/ui/input';
 import { Search, SlidersHorizontal, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -110,14 +107,8 @@ export function TransactionPane({ transactions, onEdit }: TransactionPaneProps) 
   const activeCount = countActiveFilters(filter);
 
   // Build source + goal options
-  const sourceOptions = [
-    ...BUILT_IN_SOURCES.map(s => ({ value: s, label: SOURCE_LABELS[s] ?? s })),
-    ...customSources.map(s => ({ value: s.id, label: s.label })),
-  ];
-  const goalOptions = [
-    ...BUILT_IN_GOALS.map(g => ({ value: g, label: GOAL_LABELS[g] ?? g })),
-    ...customBudgets.map(b => ({ value: b.id, label: b.label })),
-  ];
+  const sourceOptions = customSources.map(s => ({ value: s.id, label: s.label }));
+  const goalOptions = customBudgets.map(b => ({ value: b.id, label: b.label }));
 
   // Apply filters
   const filtered = useMemo(() => {
@@ -276,20 +267,20 @@ export function TransactionPane({ transactions, onEdit }: TransactionPaneProps) 
       <Sheet open={showFilter} onOpenChange={v => !v && setShowFilter(false)}>
         <SheetContent
           side="bottom"
-          showCloseButton={false}
           className="rounded-t-2xl max-h-[88dvh] gap-0 flex flex-col p-0"
           style={{ background: 'var(--background)' }}
         >
-          {/* Handle */}
-          <div className="shrink-0 flex justify-center pt-3 pb-2">
+          <div className="shrink-0 flex justify-center pt-3 pb-1">
             <div className="w-10 h-1 rounded-full" style={{ background: 'var(--border)' }} />
           </div>
 
-          {/* Header */}
-          <SheetHeader className="shrink-0 px-5 pt-1 pb-4 gap-0" style={{ borderBottom: '1px solid var(--border)' }}>
-            <SheetTitle className="text-[15px] font-semibold text-left" style={{ color: 'var(--foreground)' }}>
-              Bộ lọc
-            </SheetTitle>
+          <SheetHeader className="shrink-0 px-5 pt-0.5 pb-4 gap-0" style={{ borderBottom: '1px solid var(--border)' }}>
+            <div className="flex items-center justify-between gap-3 min-h-[44px]">
+              <SheetTitle className="text-[15px] font-semibold text-left flex-1" style={{ color: 'var(--foreground)' }}>
+                Bộ lọc
+              </SheetTitle>
+              <SheetCloseButton />
+            </div>
           </SheetHeader>
 
           {/* Body */}

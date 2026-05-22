@@ -1,14 +1,16 @@
 'use client';
 
 import { useState } from 'react';
-import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
+import { Sheet, SheetContent } from '@/components/ui/sheet';
+import { BottomSheetHeader } from '@/components/ui/bottom-sheet-header';
 import { useDraggableSheet } from '@/lib/use-draggable-sheet';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { useAppStore } from '@/store/app-store';
 import { AppIcon, SOURCE_ICON_NAMES } from '@/lib/icons';
-import { Plus, Trash2 } from 'lucide-react';
+import { CatalogItemList } from '@/components/dashboard/CatalogItemList';
+import { Plus } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 
@@ -18,7 +20,7 @@ interface AddSourceSheetProps {
 }
 
 export function AddSourceSheet({ open, onClose }: AddSourceSheetProps) {
-  const { customSources, addCustomSource, removeCustomSource } = useAppStore();
+  const { customSources, addCustomSource, updateCustomSource, removeCustomSource } = useAppStore();
   const [label, setLabel] = useState('');
   const [icon, setIcon] = useState('Wallet');
 
@@ -35,34 +37,44 @@ export function AddSourceSheet({ open, onClose }: AddSourceSheetProps) {
   return (
     <Sheet open={open} onOpenChange={v => !v && onClose()}>
       <SheetContent
-        showCloseButton={false}
         side="bottom"
         className="rounded-t-2xl gap-0 flex flex-col"
         style={{ padding: 0, background: 'var(--background)', ...sheetStyle }}
       >
-        <div className="shrink-0" style={{ borderBottom: '1px solid var(--border)' }}>
-          <div
-            {...handleProps}
-            className="flex justify-center pt-3 pb-2 cursor-grab active:cursor-grabbing touch-none select-none"
-            role="button"
-            aria-label={expanded ? 'Thu nhỏ' : 'Mở rộng'}
-          >
-            <div className="w-10 h-1 rounded-full" style={{ background: 'var(--border)' }} />
-          </div>
-          <div className="px-5 pb-3">
-            <SheetHeader className="p-0">
-              <SheetTitle className="text-base font-semibold text-left" style={{ color: 'var(--foreground)' }}>
-                Quản lý nguồn tiền
-              </SheetTitle>
-            </SheetHeader>
-          </div>
-        </div>
+        <BottomSheetHeader
+          handleProps={{
+            ...handleProps,
+            'aria-label': expanded ? 'Thu nhỏ' : 'Mở rộng',
+          }}
+          title="Quản lý nguồn tiền"
+        />
 
         <div className="flex-1 overflow-y-auto px-5 py-4 flex flex-col gap-5">
-          {/* Tên nguồn */}
+          <CatalogItemList
+            items={customSources}
+            listLabel="Danh sách nguồn tiền"
+            renderIcon={name => <AppIcon name={name} size={16} style={{ color: 'var(--primary)' }} />}
+            onUpdate={async (id, data) => {
+              await updateCustomSource(id, data);
+              toast.success('Đã cập nhật');
+            }}
+            onRemove={async id => {
+              try {
+                const { reassigned } = await removeCustomSource(id);
+                if (reassigned > 0) {
+                  toast.success(`Đã chuyển ${reassigned} giao dịch sang nguồn khác và xóa nguồn tiền`);
+                } else {
+                  toast.success('Đã xoá nguồn tiền');
+                }
+              } catch (err) {
+                toast.error((err as Error).message ?? 'Không thể xóa');
+              }
+            }}
+          />
+
           <div className="flex flex-col gap-2">
             <Label className="text-sm font-medium tracking-wide uppercase" style={{ color: 'var(--muted-foreground)' }}>
-              Tên nguồn tiền
+              Thêm nguồn mới
             </Label>
             <Input
               value={label}
@@ -73,7 +85,6 @@ export function AddSourceSheet({ open, onClose }: AddSourceSheetProps) {
             />
           </div>
 
-          {/* Icon picker */}
           <div className="flex flex-col gap-2">
             <Label className="text-sm font-medium tracking-wide uppercase" style={{ color: 'var(--muted-foreground)' }}>
               Chọn icon
@@ -97,7 +108,6 @@ export function AddSourceSheet({ open, onClose }: AddSourceSheetProps) {
             </div>
           </div>
 
-          {/* Nút thêm */}
           <Button
             onClick={handleAdd}
             disabled={!label.trim()}
@@ -106,38 +116,6 @@ export function AddSourceSheet({ open, onClose }: AddSourceSheetProps) {
           >
             <Plus size={15} /> Thêm nguồn tiền
           </Button>
-
-          {/* Danh sách custom sources */}
-          {customSources.length > 0 && (
-            <div className="flex flex-col gap-2">
-              <Label className="text-sm font-medium tracking-wide uppercase" style={{ color: 'var(--muted-foreground)' }}>
-                Nguồn đã thêm
-              </Label>
-              <div className="rounded-xl overflow-hidden" style={{ border: '1px solid var(--border)' }}>
-                {customSources.map((s, i) => (
-                  <div
-                    key={s.id}
-                    className="flex items-center justify-between px-4 py-3"
-                    style={{ borderTop: i > 0 ? '1px solid var(--border)' : 'none', background: 'var(--card)' }}
-                  >
-                    <div className="flex items-center gap-2.5">
-                      <div className="w-8 h-8 flex items-center justify-center rounded-lg" style={{ background: 'var(--muted)' }}>
-                        <AppIcon name={(s as { icon?: string }).icon ?? 'Wallet'} size={16} style={{ color: 'var(--primary)' }} />
-                      </div>
-                      <span className="text-sm font-medium" style={{ color: 'var(--foreground)' }}>{s.label}</span>
-                    </div>
-                    <button
-                      onClick={() => { removeCustomSource(s.id); toast.success('Đã xoá'); }}
-                      className="p-1.5 rounded-lg hover:bg-[var(--muted)] transition-colors"
-                      style={{ color: 'var(--expense)' }}
-                    >
-                      <Trash2 size={14} />
-                    </button>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
         </div>
 
         <div className="shrink-0 px-5 pt-3 pb-8" style={{ borderTop: '1px solid var(--border)' }}>

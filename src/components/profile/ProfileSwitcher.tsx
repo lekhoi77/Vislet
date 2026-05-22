@@ -33,6 +33,10 @@ export function ProfileSwitcher({ onAddAccount }: ProfileSwitcherProps) {
       debts: [],
       customSources: [],
       customBudgets: [],
+      sourcesDb: [],
+      goalsDb: [],
+      removedSourceIds: [],
+      removedGoalIds: [],
       isLoaded: false,
     });
     await signOut();

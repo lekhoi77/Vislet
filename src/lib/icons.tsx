@@ -9,6 +9,8 @@ import {
   // Source icons
   Building2, Wallet, Landmark, Bitcoin, Banknote,
   QrCode, Globe, Coins, CircleDollarSign, BadgeDollarSign,
+  // Goal extras
+  Tag, Clock,
   // Fallback
   CircleDot,
 } from 'lucide-react';
@@ -23,6 +25,7 @@ const ICON_MAP: Record<string, React.ComponentType<{ size?: number; className?: 
   // Source
   Building2, Wallet, Landmark, Bitcoin, Banknote,
   QrCode, Globe, Coins, CircleDollarSign, BadgeDollarSign,
+  Tag, Clock,
   // Fallback
   CircleDot,
 };

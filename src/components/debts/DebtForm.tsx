@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useDraggableSheet } from '@/lib/use-draggable-sheet';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
+import { SheetCloseButton } from '@/components/ui/sheet-close-button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
@@ -97,26 +98,32 @@ export function DebtForm({ open, onClose, editingDebt }: DebtFormProps) {
   return (
     <Sheet open={open} onOpenChange={v => !v && onClose()}>
       <SheetContent
-        showCloseButton={false}
         side="bottom"
         className="rounded-t-2xl overflow-y-auto"
         style={{ padding: 0, background: 'var(--background)', ...sheetStyle }}
       >
         <div
-          {...handleProps}
-          className="sticky top-0 z-10 flex justify-center pt-3 pb-2 cursor-grab active:cursor-grabbing touch-none select-none"
-          style={{ background: 'var(--background)' }}
-          role="button"
-          aria-label={expanded ? 'Thu nhỏ' : 'Mở rộng'}
+          className="sticky top-0 z-10 shrink-0"
+          style={{ background: 'var(--background)', borderBottom: '1px solid var(--border)' }}
         >
-          <div className="w-10 h-1 rounded-full" style={{ background: 'var(--border)' }} />
+          <div
+            {...handleProps}
+            className="flex justify-center pt-3 pb-1 cursor-grab active:cursor-grabbing touch-none select-none"
+            role="button"
+            aria-label={expanded ? 'Thu nhỏ' : 'Mở rộng'}
+          >
+            <div className="w-10 h-1 rounded-full" style={{ background: 'var(--border)' }} />
+          </div>
+          <div className="flex items-center justify-between gap-3 px-5 pb-3 min-h-[44px]">
+            <SheetHeader className="p-0 flex-1 min-w-0 mb-0">
+              <SheetTitle className="text-lg font-semibold text-left leading-tight" style={{ color: 'var(--foreground)' }}>
+                {editingDebt ? 'Sửa khoản nợ' : 'Ghi nợ mới'}
+              </SheetTitle>
+            </SheetHeader>
+            <SheetCloseButton />
+          </div>
         </div>
         <div className="px-5 pb-12">
-        <SheetHeader className="mb-6">
-          <SheetTitle className="text-lg font-semibold text-left" style={{ color: 'var(--foreground)' }}>
-            {editingDebt ? 'Sửa khoản nợ' : 'Ghi nợ mới'}
-          </SheetTitle>
-        </SheetHeader>
 
         <div className="flex flex-col gap-5">
           {/* Type */}

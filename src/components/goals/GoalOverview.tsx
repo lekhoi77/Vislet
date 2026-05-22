@@ -2,18 +2,13 @@
 
 import { Transaction } from '@/lib/types';
 import { formatVND, formatVNDShort } from '@/lib/format';
-import { GOAL_LABELS, getGoalColor } from '@/lib/constants';
+import { getGoalColor } from '@/lib/constants';
+import { sortGoalsForDisplay } from '@/lib/catalog';
+import { PROTECTED_GOAL_ID } from '@/lib/catalog-policy';
 import { useAppStore } from '@/store/app-store';
 import { BudgetIcon } from '@/lib/icons';
-import { PiggyBank, Plane, Clock, Tag, BarChart2 } from 'lucide-react';
+import { BarChart2 } from 'lucide-react';
 import { EmptyState } from '@/components/shared/EmptyState';
-
-const BUILT_IN_ICONS: Record<string, React.ReactNode> = {
-  saving: <PiggyBank size={16} />,
-  travel: <Plane size={16} />,
-  soon: <Clock size={16} />,
-  none: <Tag size={16} />,
-};
 
 interface GoalOverviewProps {
   transactions: Transaction[];
@@ -25,13 +20,11 @@ interface GoalOverviewProps {
 export function GoalOverview({ transactions, month, year }: GoalOverviewProps) {
   const { customBudgets } = useAppStore();
 
-  const allGoals = [
-    { id: 'saving', label: GOAL_LABELS['saving'] },
-    { id: 'travel', label: GOAL_LABELS['travel'] },
-    { id: 'soon', label: GOAL_LABELS['soon'] },
-    { id: 'none', label: GOAL_LABELS['none'] },
-    ...customBudgets.map(b => ({ id: b.id, label: b.label })),
-  ];
+  const allGoals = sortGoalsForDisplay(customBudgets).map(b => ({
+    id: b.id,
+    label: b.label,
+    icon: b.icon,
+  }));
 
   const monthTxs = transactions.filter(tx => {
     const d = new Date(tx.date);
@@ -49,8 +42,12 @@ export function GoalOverview({ transactions, month, year }: GoalOverviewProps) {
       const pct = totalExpense > 0 ? (amount / totalExpense) * 100 : 0;
       return { ...g, amount, count, pct, color: getGoalColor(g.id, customBudgets) };
     })
-    .filter(g => g.amount > 0)
-    .sort((a, b) => b.amount - a.amount);
+    .filter(g => g.amount > 0 || g.id === PROTECTED_GOAL_ID)
+    .sort((a, b) => {
+      if (a.id === PROTECTED_GOAL_ID) return -1;
+      if (b.id === PROTECTED_GOAL_ID) return 1;
+      return b.amount - a.amount;
+    });
 
   const incomeGroups = allGoals
     .map(g => {
@@ -71,16 +68,12 @@ export function GoalOverview({ transactions, month, year }: GoalOverviewProps) {
     );
   }
 
-  const getIcon = (id: string) => {
-    if (BUILT_IN_ICONS[id]) return BUILT_IN_ICONS[id];
-    const custom = customBudgets.find(b => b.id === id);
-    if (custom) return <BudgetIcon name={custom.icon} size={16} />;
-    return <Tag size={16} />;
-  };
+  const getIcon = (id: string, iconName: string) => (
+    <BudgetIcon name={iconName} size={16} />
+  );
 
   return (
     <div className="flex flex-col gap-6">
-      {/* Summary row */}
       <div className="grid grid-cols-2 gap-3">
         <div className="flex flex-col gap-0.5 p-4 rounded-2xl"
           style={{ background: 'var(--card)', border: '1px solid var(--border)', boxShadow: 'var(--shadow-card)' }}>
@@ -102,19 +95,21 @@ export function GoalOverview({ transactions, month, year }: GoalOverviewProps) {
         </div>
       </div>
 
-      {/* Stacked proportion bar */}
       {groups.length > 0 && (
         <div className="flex flex-col gap-3">
           <div className="flex h-3 rounded-full overflow-hidden gap-0.5">
             {groups.map(g => (
               <div
                 key={g.id}
-                style={{ width: `${g.pct}%`, background: g.color, minWidth: g.pct > 0 ? 4 : 0 }}
+                style={{
+                  width: `${g.pct}%`,
+                  background: g.color,
+                  minWidth: g.pct > 0 || g.id === PROTECTED_GOAL_ID ? 4 : 0,
+                }}
                 title={`${g.label}: ${g.pct.toFixed(1)}%`}
               />
             ))}
           </div>
-          {/* Legend */}
           <div className="flex flex-wrap gap-x-3 gap-y-1">
             {groups.map(g => (
               <div key={g.id} className="flex items-center gap-1.5">
@@ -126,7 +121,6 @@ export function GoalOverview({ transactions, month, year }: GoalOverviewProps) {
         </div>
       )}
 
-      {/* Expense breakdown */}
       {groups.length > 0 && (
         <div className="flex flex-col gap-2">
           <p className="text-overline">Chi tiêu theo danh mục</p>
@@ -142,7 +136,7 @@ export function GoalOverview({ transactions, month, year }: GoalOverviewProps) {
                   <div className="flex items-center gap-2.5 min-w-0">
                     <div className="flex items-center justify-center w-8 h-8 rounded-xl shrink-0"
                       style={{ background: `${g.color}18`, color: g.color }}>
-                      {getIcon(g.id)}
+                      {getIcon(g.id, g.icon)}
                     </div>
                     <div className="min-w-0">
                       <p className="text-sm font-semibold truncate" style={{ color: 'var(--foreground)' }}>{g.label}</p>
@@ -157,7 +151,11 @@ export function GoalOverview({ transactions, month, year }: GoalOverviewProps) {
                 <div className="w-full h-1.5 rounded-full" style={{ background: 'var(--muted)' }}>
                   <div
                     className="h-1.5 rounded-full transition-all duration-500"
-                    style={{ width: `${g.pct}%`, background: g.color, minWidth: g.pct > 0 ? 4 : 0 }}
+                    style={{
+                      width: `${g.pct}%`,
+                      background: g.color,
+                      minWidth: g.pct > 0 || g.id === PROTECTED_GOAL_ID ? 4 : 0,
+                    }}
                   />
                 </div>
               </div>
@@ -166,7 +164,6 @@ export function GoalOverview({ transactions, month, year }: GoalOverviewProps) {
         </div>
       )}
 
-      {/* Income by category (if any) */}
       {incomeGroups.length > 0 && (
         <div className="flex flex-col gap-2">
           <p className="text-overline">Thu nhập theo danh mục</p>
@@ -181,7 +178,7 @@ export function GoalOverview({ transactions, month, year }: GoalOverviewProps) {
                 <div className="flex items-center gap-2.5">
                   <div className="flex items-center justify-center w-8 h-8 rounded-xl shrink-0"
                     style={{ background: 'var(--muted)', color: 'var(--muted-foreground)' }}>
-                    {getIcon(g.id)}
+                    {getIcon(g.id, g.icon)}
                   </div>
                   <div>
                     <p className="text-sm font-semibold" style={{ color: 'var(--foreground)' }}>{g.label}</p>

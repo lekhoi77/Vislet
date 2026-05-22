@@ -5,9 +5,8 @@ import { useDraggableSheet } from '@/lib/use-draggable-sheet';
 import {
   Sheet,
   SheetContent,
-  SheetHeader,
-  SheetTitle,
 } from '@/components/ui/sheet';
+import { BottomSheetHeader } from '@/components/ui/bottom-sheet-header';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
@@ -15,11 +14,11 @@ import { Button } from '@/components/ui/button';
 import { AmountInput } from '@/components/shared/AmountInput';
 import { useAppStore } from '@/store/app-store';
 import { Transaction, TransactionSource, TransactionGoal, TransactionType } from '@/lib/types';
-import { Building2, Wallet, Smartphone, PiggyBank, Plane, Clock, TrendingUp, TrendingDown, ArrowRight, CircleDot, Tag } from 'lucide-react';
+import { TrendingUp, TrendingDown, ArrowRight } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { formatVND } from '@/lib/format';
-import { BudgetIcon } from '@/lib/icons';
+import { BudgetIcon, AppIcon } from '@/lib/icons';
 
 interface TransactionFormProps {
   open: boolean;
@@ -27,19 +26,6 @@ interface TransactionFormProps {
   editingTx?: Transaction | null;
   onClose: () => void;
 }
-
-const BUILT_IN_SOURCES: { value: TransactionSource; label: string; icon: React.ReactNode }[] = [
-  { value: 'bank', label: 'Ngân hàng', icon: <Building2 size={15} /> },
-  { value: 'cash', label: 'Tiền mặt', icon: <Wallet size={15} /> },
-  { value: 'momo', label: 'MoMo', icon: <Smartphone size={15} /> },
-];
-
-const BUILT_IN_GOALS: { value: TransactionGoal; label: string; icon?: React.ReactNode }[] = [
-  { value: 'none', label: 'Không phân loại', icon: <Tag size={14} /> },
-  { value: 'saving', label: 'Tiết kiệm', icon: <PiggyBank size={14} /> },
-  { value: 'travel', label: 'Du lịch', icon: <Plane size={14} /> },
-  { value: 'soon', label: 'Sắp dùng', icon: <Clock size={14} /> },
-];
 
 function SelectGroup<T extends string>({
   options,
@@ -83,15 +69,20 @@ function SelectGroup<T extends string>({
 export function TransactionForm({ open, type, editingTx, onClose }: TransactionFormProps) {
   const { addTransaction, updateTransaction, transactions, customSources, customBudgets } = useAppStore();
 
-  const SOURCES = [
-    ...BUILT_IN_SOURCES,
-    ...customSources.map(s => ({ value: s.id, label: s.label, icon: <CircleDot size={15} /> })),
-  ];
+  const SOURCES = customSources.map(s => ({
+    value: s.id as TransactionSource,
+    label: s.label,
+    icon: <AppIcon name={s.icon} size={15} />,
+  }));
 
-  const GOALS = [
-    ...BUILT_IN_GOALS,
-    ...customBudgets.map(b => ({ value: b.id, label: b.label, icon: <BudgetIcon name={b.icon} size={14} /> })),
-  ];
+  const GOALS = customBudgets.map(b => ({
+    value: b.id as TransactionGoal,
+    label: b.label,
+    icon: <BudgetIcon name={b.icon} size={14} />,
+  }));
+
+  const defaultSource = customSources[0]?.id ?? 'bank';
+  const defaultGoal = customBudgets.find(b => b.id === 'none')?.id ?? customBudgets[0]?.id ?? 'none';
 
   const [title, setTitle] = useState('');
   const [amount, setAmount] = useState(0);
@@ -114,14 +105,14 @@ export function TransactionForm({ open, type, editingTx, onClose }: TransactionF
       } else {
         setTitle('');
         setAmount(0);
-        setSource('bank');
-        setGoal('none');
+        setSource(defaultSource);
+        setGoal(defaultGoal);
         setNote('');
         setDate(todayStr);
       }
       setErrors({});
     }
-  }, [open, editingTx]);
+  }, [open, editingTx, defaultSource, defaultGoal]);
 
   const validate = () => {
     const e: Record<string, string> = {};
@@ -199,34 +190,25 @@ export function TransactionForm({ open, type, editingTx, onClose }: TransactionF
   return (
     <Sheet open={open} onOpenChange={v => !v && onClose()}>
       <SheetContent
-        showCloseButton={false}
         side="bottom"
         className="rounded-t-2xl gap-0 flex flex-col"
         style={{ padding: 0, background: 'var(--background)', ...sheetStyle }}
       >
-        {/* Fixed header */}
-        <div className="shrink-0" style={{ borderBottom: '1px solid var(--border)' }}>
-          {/* Drag handle */}
-          <div
-            {...handleProps}
-            className="flex justify-center pt-3 pb-2 cursor-grab active:cursor-grabbing touch-none select-none"
-            role="button"
-            aria-label={expanded ? 'Thu nhỏ' : 'Mở rộng'}
-          >
-            <div className="w-10 h-1 rounded-full" style={{ background: 'var(--border)' }} />
-          </div>
-          <div className="px-5 pb-3">
-            <SheetHeader className="p-0">
-              <SheetTitle className="text-base font-semibold text-left flex items-center gap-2" style={{ color: 'var(--foreground)' }}>
-                {isIncome
-                  ? <TrendingUp size={18} style={{ color: 'var(--income)' }} />
-                  : <TrendingDown size={18} style={{ color: 'var(--expense)' }} />
-                }
-                {titleStr}
-              </SheetTitle>
-            </SheetHeader>
-          </div>
-        </div>
+        <BottomSheetHeader
+          handleProps={{
+            ...handleProps,
+            'aria-label': expanded ? 'Thu nhỏ' : 'Mở rộng',
+          }}
+          title={
+            <span className="flex items-center gap-2">
+              {isIncome
+                ? <TrendingUp size={18} style={{ color: 'var(--income)' }} />
+                : <TrendingDown size={18} style={{ color: 'var(--expense)' }} />
+              }
+              {titleStr}
+            </span>
+          }
+        />
 
         {/* Scrollable body */}
         <div

@@ -2,19 +2,14 @@
 
 import { Transaction } from '@/lib/types';
 import { formatVND } from '@/lib/format';
-import { GOAL_LABELS, getGoalColor } from '@/lib/constants';
+import { getGoalColor } from '@/lib/constants';
+import { sortGoalsForDisplay } from '@/lib/catalog';
 import { useAppStore } from '@/store/app-store';
 import { BudgetIcon } from '@/lib/icons';
 import { Separator } from '@/components/ui/separator';
-import { PiggyBank, Plane, Clock, BarChart2, List, Plus } from 'lucide-react';
+import { BarChart2, List, Plus } from 'lucide-react';
 import { useState } from 'react';
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer, Legend } from 'recharts';
-
-const BUILT_IN_GOALS = [
-  { id: 'saving', label: GOAL_LABELS['saving'], icon: <PiggyBank size={16} /> },
-  { id: 'travel', label: GOAL_LABELS['travel'], icon: <Plane size={16} /> },
-  { id: 'soon',   label: GOAL_LABELS['soon'],   icon: <Clock size={16} /> },
-];
 
 interface GoalBlocksProps {
   transactions: Transaction[];
@@ -27,16 +22,12 @@ export function GoalBlocks({ transactions, title, onAdd, addLabel = 'Thêm mục
   const { customBudgets } = useAppStore();
   const [chartView, setChartView] = useState(false);
 
-  const allGoals = [
-    ...BUILT_IN_GOALS,
-    ...customBudgets.map(b => ({
-      id: b.id,
-      label: b.label,
-      icon: <BudgetIcon name={b.icon} size={16} />,
-    })),
-  ];
+  const allGoals = sortGoalsForDisplay(customBudgets).map(b => ({
+    id: b.id,
+    label: b.label,
+    icon: <BudgetIcon name={b.icon} size={16} />,
+  }));
 
-  // Mỗi goal hiển thị TỔNG CHI TIÊU đã gắn vào (vì form chỉ gán goal cho expense)
   const getSpent = (goalId: string) => {
     return transactions
       .filter(t => t.goal === goalId && t.type === 'expense')
@@ -56,7 +47,6 @@ export function GoalBlocks({ transactions, title, onAdd, addLabel = 'Thêm mục
     <div className="rounded-2xl overflow-hidden h-full flex flex-col"
       style={{ background: 'var(--card)', border: '1px solid var(--border)', boxShadow: 'var(--shadow-card)' }}>
 
-      {/* Header: title + add + toggle */}
       <div className="flex items-center justify-between gap-2 px-3 pt-3 pb-2">
         <div className="flex items-center gap-1.5 min-w-0">
           {title && (
@@ -111,7 +101,11 @@ export function GoalBlocks({ transactions, title, onAdd, addLabel = 'Thêm mục
         </div>
       ) : (
         <div className="flex-1 md:overflow-y-auto">
-          {balances.map((g, i) => {
+          {balances.length === 0 ? (
+            <p className="text-sm text-center py-4 px-3" style={{ color: 'var(--muted-foreground)' }}>
+              Chưa có mục tiêu — thêm mới để bắt đầu
+            </p>
+          ) : balances.map((g, i) => {
             const pct = total > 0 ? (g.balance / total) * 100 : 0;
             return (
               <div key={g.id}>
