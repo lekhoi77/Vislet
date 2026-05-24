@@ -19,9 +19,9 @@ import {
 import {
   Sheet,
   SheetContent,
-  SheetHeader,
   SheetTitle,
 } from '@/components/ui/sheet';
+import { BottomSheetHeader } from '@/components/ui/bottom-sheet-header';
 import { useAppStore } from '@/store/app-store';
 import { ArrowDownLeft, ArrowUpRight, FileText, Pencil, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
@@ -129,17 +129,12 @@ export function TransactionItem({ tx, onEdit, highlightQuery = '' }: Transaction
       <Sheet open={showDetail} onOpenChange={setShowDetail}>
         <SheetContent
           side="bottom"
-          className="rounded-t-2xl"
-          style={{ padding: '24px 20px 48px', background: 'var(--background)' }}
+          className="rounded-t-2xl gap-0 flex flex-col p-0"
+          style={{ background: 'var(--background)' }}
         >
-          <div className="mx-auto w-10 h-1 rounded-full bg-[var(--border)] mb-5" />
-          <SheetHeader className="mb-4">
-            <SheetTitle className="text-base font-semibold" style={{ color: 'var(--foreground)' }}>
-              Chi tiết giao dịch
-            </SheetTitle>
-          </SheetHeader>
+          <BottomSheetHeader title="Chi tiết giao dịch" showHandle withBorder={false} />
 
-          <div className="flex flex-col gap-3 mb-6">
+          <div className="flex flex-col gap-3 mb-6 px-5 pb-12">
             <div className="flex items-center justify-between">
               <span className="text-sm" style={{ color: 'var(--muted-foreground)' }}>Nội dung</span>
               <span className="text-sm font-medium" style={{ color: 'var(--foreground)' }}>{tx.title}</span>
@@ -172,7 +167,7 @@ export function TransactionItem({ tx, onEdit, highlightQuery = '' }: Transaction
             )}
           </div>
 
-          <div className="flex gap-3">
+          <div className="flex gap-3 px-5">
             <Button
               variant="outline"
               className="flex-1 h-11 gap-2"

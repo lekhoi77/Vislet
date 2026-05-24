@@ -1,14 +1,9 @@
 'use client';
 
 import { useState } from 'react';
-import {
-  Sheet,
-  SheetContent,
-  SheetHeader,
-  SheetTitle,
-} from '@/components/ui/sheet';
+import { Sheet, SheetContent } from '@/components/ui/sheet';
+import { BottomSheetHeader } from '@/components/ui/bottom-sheet-header';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { useAppStore } from '@/store/app-store';
 import { toast } from 'sonner';
@@ -38,17 +33,12 @@ export function AddProfileSheet({ open, onClose }: AddProfileSheetProps) {
     <Sheet open={open} onOpenChange={v => !v && onClose()}>
       <SheetContent
         side="bottom"
-        className="rounded-t-2xl"
-        style={{ padding: '16px 20px 36px', background: 'var(--background)' }}
+        className="rounded-t-2xl gap-0 flex flex-col p-0"
+        style={{ background: 'var(--background)' }}
       >
-        <div className="mx-auto w-8 h-1 rounded-full bg-[var(--border)] mb-4" />
-        <SheetHeader className="mb-4">
-          <SheetTitle className="text-sm font-semibold text-left" style={{ color: 'var(--foreground)' }}>
-            Thêm người dùng
-          </SheetTitle>
-        </SheetHeader>
+        <BottomSheetHeader title="Thêm người dùng" titleClassName="text-sm" showHandle withBorder={false} />
 
-        <div className="flex gap-2">
+        <div className="flex gap-2 px-5 pb-9 pt-2">
           <div className="flex flex-col gap-1 flex-1">
             <Input
               id="add-profile-name"

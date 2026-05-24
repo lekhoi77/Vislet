@@ -36,46 +36,46 @@
 
 :root {
   /* ─── BRAND / PRIMARY (Pastel Green) ─── */
-  --primary:            hsl(145, 45%, 42%);
+  --primary: hsl(145, 45%, 42%);
   --primary-foreground: hsl(0, 0%, 100%);
-  --primary-soft:       hsl(145, 40%, 95%);
-  --primary-muted:      hsl(145, 30%, 85%);
+  --primary-soft: hsl(145, 40%, 95%);
+  --primary-muted: hsl(145, 30%, 85%);
 
   /* ─── ACCENT (Pastel Orange) ─── */
-  --orange:             hsl(24, 90%, 58%);
-  --orange-foreground:  hsl(0, 0%, 100%);
-  --orange-soft:        hsl(28, 95%, 94%);
-  --orange-muted:       hsl(26, 75%, 82%);
+  --orange: hsl(24, 90%, 58%);
+  --orange-foreground: hsl(0, 0%, 100%);
+  --orange-soft: hsl(28, 95%, 94%);
+  --orange-muted: hsl(26, 75%, 82%);
 
   /* ─── DEBT (Purple) ─── */
   --debt:               hsl(262, 60%, 55%);
   --debt-soft:          hsl(262, 60%, 95%);
 
   /* ─── BACKGROUND ─── */
-  --background:         hsl(0, 0%, 100%);
-  --background-subtle:  hsl(150, 10%, 97.5%);
-  --page-bg:            hsl(145, 35%, 96%);
+  --background: hsl(0, 0%, 100%);
+  --background-subtle: hsl(150, 10%, 97.5%);
+  --page-bg: hsl(145, 35%, 96%);
 
   /* ─── SURFACE ─── */
-  --card:               hsl(0, 0%, 100%);
-  --card-foreground:    hsl(220, 15%, 15%);
-  --popover:            hsl(0, 0%, 100%);
+  --card: hsl(0, 0%, 100%);
+  --card-foreground: hsl(220, 15%, 15%);
+  --popover: hsl(0, 0%, 100%);
   --popover-foreground: hsl(220, 15%, 12%);
 
   /* ─── NEUTRAL ─── */
-  --foreground:         hsl(220, 15%, 12%);
-  --muted-foreground:   hsl(220, 8%, 46%);
-  --muted:              hsl(220, 10%, 96%);
-  --border:             hsl(220, 10%, 90%);
-  --border-subtle:      hsl(220, 10%, 94%);
-  --input:              hsl(220, 10%, 90%);
-  --ring:               hsl(145, 45%, 42%);
+  --foreground: hsl(220, 15%, 12%);
+  --muted-foreground: hsl(220, 8%, 46%);
+  --muted: hsl(220, 10%, 96%);
+  --border: hsl(220, 10%, 90%);
+  --border-subtle: hsl(220, 10%, 94%);
+  --input: hsl(220, 10%, 90%);
+  --ring: hsl(145, 45%, 42%);
 
   /* ─── SECONDARY ─── */
-  --secondary:          hsl(220, 10%, 96%);
+  --secondary: hsl(220, 10%, 96%);
   --secondary-foreground: hsl(220, 15%, 12%);
-  --accent:             hsl(145, 40%, 95%);
-  --accent-foreground:  hsl(145, 45%, 30%);
+  --accent: hsl(145, 40%, 95%);
+  --accent-foreground: hsl(145, 45%, 30%);
 
   /* ─── SEMANTIC ─── */
   --income:             hsl(145, 55%, 38%);
@@ -105,12 +105,12 @@
   --shadow-float: 0 2px 6px rgba(16, 24, 40, 0.05), 0 12px 28px rgba(16, 24, 40, 0.08);
 
   /* ─── ANIMATION TIMING ─── */
-  --duration-fast:   150ms;
+  --duration-fast: 150ms;
   --duration-normal: 250ms;
-  --duration-slow:   400ms;
-  --ease-default:    cubic-bezier(0.25, 0.1, 0.25, 1);
-  --ease-spring:     cubic-bezier(0.34, 1.56, 0.64, 1);
-  --ease-out:        cubic-bezier(0, 0, 0.2, 1);
+  --duration-slow: 400ms;
+  --ease-default: cubic-bezier(0.25, 0.1, 0.25, 1);
+  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --ease-out: cubic-bezier(0, 0, 0.2, 1);
 
   /* shadcn radius token */
   --radius: 0.75rem;
@@ -138,6 +138,7 @@
     @apply border-border outline-ring/50;
     box-sizing: border-box;
   }
+
   body {
     font-family: 'Lexend', sans-serif;
     background: var(--page-bg);
@@ -145,6 +146,7 @@
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
   }
+
   html {
     font-family: 'Lexend', sans-serif;
   }
@@ -152,8 +154,15 @@
 
 /* ─── SKELETON ANIMATION ─── */
 @keyframes skeleton-pulse {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.4; }
+
+  0%,
+  100% {
+    opacity: 1;
+  }
+
+  50% {
+    opacity: 0.4;
+  }
 }
 
 .skeleton-animate {
@@ -168,6 +177,7 @@
     opacity: 0;
     transform: translateY(8px);
   }
+
   to {
     opacity: 1;
     transform: translateY(0);
@@ -180,8 +190,15 @@
 
 /* ─── FAB PULSE (first-time hint) ─── */
 @keyframes fab-pulse {
-  0%, 100% { box-shadow: var(--shadow-md); }
-  50% { box-shadow: 0 0 0 8px hsl(145, 45%, 42%, 0.2), var(--shadow-md); }
+
+  0%,
+  100% {
+    box-shadow: var(--shadow-md);
+  }
+
+  50% {
+    box-shadow: 0 0 0 8px hsl(145, 45%, 42%, 0.2), var(--shadow-md);
+  }
 }
 
 .fab-hint {
@@ -198,9 +215,11 @@
   width: 4px;
   height: 4px;
 }
+
 ::-webkit-scrollbar-track {
   background: transparent;
 }
+
 ::-webkit-scrollbar-thumb {
   background: var(--border);
   border-radius: 9999px;
@@ -231,16 +250,19 @@
 }
 
 /* ─── GLOBAL INTERACTIVE STATES ─── */
-button, [role="button"], [role="tab"] {
+button,
+[role="button"],
+[role="tab"] {
   cursor: pointer;
   transition: background var(--duration-fast) var(--ease-default),
-              color var(--duration-fast) var(--ease-default),
-              opacity var(--duration-fast) var(--ease-default),
-              transform var(--duration-fast) var(--ease-default),
-              box-shadow var(--duration-fast) var(--ease-default);
+    color var(--duration-fast) var(--ease-default),
+    opacity var(--duration-fast) var(--ease-default),
+    transform var(--duration-fast) var(--ease-default),
+    box-shadow var(--duration-fast) var(--ease-default);
 }
 
-button:active:not(:disabled), [role="button"]:active:not(:disabled) {
+button:active:not(:disabled),
+[role="button"]:active:not(:disabled) {
   transform: scale(0.96);
 }
 
@@ -253,14 +275,16 @@ button:active:not(:disabled), [role="button"]:active:not(:disabled) {
 /* Sidebar nav items */
 .sidebar-nav-item {
   transition: background var(--duration-fast) var(--ease-default),
-              color var(--duration-fast) var(--ease-default),
-              transform var(--duration-fast) var(--ease-spring);
+    color var(--duration-fast) var(--ease-default),
+    transform var(--duration-fast) var(--ease-spring);
 }
+
 .sidebar-nav-item:hover {
   background: var(--primary-soft) !important;
   color: var(--accent-foreground) !important;
   transform: translateX(2px);
 }
+
 .sidebar-nav-item:hover svg {
   color: var(--primary);
 }
@@ -268,9 +292,10 @@ button:active:not(:disabled), [role="button"]:active:not(:disabled) {
 /* View toggle (Danh sách / Biểu đồ) */
 .view-toggle-btn {
   transition: background var(--duration-fast) var(--ease-default),
-              color var(--duration-fast) var(--ease-default),
-              box-shadow var(--duration-fast) var(--ease-default);
+    color var(--duration-fast) var(--ease-default),
+    box-shadow var(--duration-fast) var(--ease-default);
 }
+
 .view-toggle-btn:hover {
   color: var(--foreground) !important;
 }
@@ -311,9 +336,9 @@ button:active:not(:disabled), [role="button"]:active:not(:disabled) {
   background: var(--primary-soft);
   color: var(--primary);
   transition: max-width 260ms var(--ease-spring),
-              padding 200ms var(--ease-default),
-              background 160ms var(--ease-default),
-              color 160ms var(--ease-default);
+    padding 200ms var(--ease-default),
+    background 160ms var(--ease-default),
+    color 160ms var(--ease-default);
 }
 
 .add-btn-expand:hover {
@@ -377,4 +402,520 @@ button:active:not(:disabled), [role="button"]:active:not(:disabled) {
   [data-slot="sheet-content"][data-side="bottom"][data-ending-style] {
     translate: -50% calc(-50% + 12px) !important;
   }
+}
+
+/* Calendar activity dots — desktop comfy, mobile compact */
+.cal-dots {
+  gap: 3px;
+  row-gap: 2px;
+  max-width: 100%;
+}
+
+.cal-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+@media (max-width: 767px) {
+  .cal-dots {
+    gap: 2px;
+    row-gap: 1px;
+  }
+
+  .cal-dot {
+    width: 5px;
+    height: 5px;
+  }
+
+  .cal-dots.is-crowded .cal-dot {
+    width: 4px;
+    height: 4px;
+  }
+}
+
+@media (max-width: 380px) {
+  .cal-dot {
+    width: 4px;
+    height: 4px;
+  }
+
+  .cal-dots.is-crowded {
+    gap: 1px;
+  }
+}
+
+/* Walkthrough tour */
+.tour-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  pointer-events: auto;
+  background: transparent;
+}
+
+.tour-mask {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  pointer-events: auto;
+  background: rgba(15, 23, 42, 0.55);
+  -webkit-mask-image: var(--tour-mask, none);
+  mask-image: var(--tour-mask, none);
+  -webkit-mask-composite: source-out;
+  mask-composite: exclude;
+  transition: background 200ms ease;
+}
+
+.tour-highlight {
+  position: fixed;
+  z-index: 201;
+  border-radius: 14px;
+  pointer-events: none;
+  box-shadow: 0 0 0 3px var(--primary), 0 0 0 8px rgba(34, 197, 94, 0.25);
+  transition: top 240ms ease, left 240ms ease, width 240ms ease, height 240ms ease;
+}
+
+.tour-tooltip {
+  position: fixed;
+  z-index: 202;
+  width: min(340px, calc(100vw - 32px));
+  background: var(--card);
+  color: var(--foreground);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  box-shadow: 0 18px 40px rgba(0, 0, 0, 0.18);
+  padding: 16px;
+  transition: top 240ms ease, left 240ms ease;
+}
+
+/* Header guide button — matches calc-trigger-btn shape, uses system primary */
+.guide-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+  background: var(--primary);
+  color: var(--primary-foreground);
+  border: 1px solid transparent;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: filter 0.15s ease, transform 0.12s ease, box-shadow 0.15s ease;
+  box-shadow: 0 2px 6px rgba(61, 154, 110, 0.28);
+}
+
+.guide-btn:hover {
+  filter: brightness(1.08);
+  box-shadow: 0 4px 12px rgba(61, 154, 110, 0.38);
+}
+
+.guide-btn:active {
+  transform: scale(0.92);
+  filter: brightness(0.94);
+}
+
+.guide-btn:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
+}
+
+/* Pulse ring uses system primary color */
+.guide-btn-pulse::after {
+  content: '';
+  position: absolute;
+  inset: -5px;
+  border-radius: 14px;
+  border: 2px solid var(--primary);
+  opacity: 0.6;
+  animation: guidePulse 1.8s ease-out infinite;
+}
+
+@keyframes guidePulse {
+  0% {
+    transform: scale(0.92);
+    opacity: 0.6;
+  }
+
+  100% {
+    transform: scale(1.35);
+    opacity: 0;
+  }
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   CALCULATOR — trigger button
+   ───────────────────────────────────────────────────────────────────────────── */
+
+.calc-trigger-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+  background: var(--muted);
+  color: var(--muted-foreground);
+  border: 1px solid var(--border);
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease, transform 0.12s ease, box-shadow 0.15s ease;
+  flex-shrink: 0;
+}
+
+.calc-trigger-btn:hover {
+  background: var(--primary-soft);
+  color: var(--primary);
+  border-color: var(--primary-muted);
+}
+
+.calc-trigger-btn:active {
+  transform: scale(0.92);
+}
+
+.calc-trigger-btn:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
+}
+
+.calc-trigger-btn.calc-trigger-active {
+  background: var(--primary-soft);
+  color: var(--primary);
+  border-color: var(--primary-muted);
+  box-shadow: 0 0 0 3px rgba(61, 154, 110, 0.15);
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   CALCULATOR — backdrop (mobile only)
+   ───────────────────────────────────────────────────────────────────────────── */
+
+.calc-backdrop {
+  display: none;
+}
+
+@media (max-width: 767px) {
+  .calc-backdrop {
+    display: block;
+    position: fixed;
+    inset: 0;
+    /* Above shadcn sheet backdrop (~z-50) so calc floats on top */
+    z-index: 150;
+    background: rgba(15, 23, 42, 0.45);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.28s ease;
+  }
+
+  .calc-backdrop.calc-backdrop-open {
+    opacity: 1;
+    pointer-events: auto;
+  }
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   CALCULATOR — panel
+   Base (mobile): full-width bottom sheet that slides up
+   md+  (desktop): fixed corner floating card
+   ───────────────────────────────────────────────────────────────────────────── */
+
+.calc-panel {
+  position: fixed;
+  /* z-160: above shadcn Sheet (~z-50) and Header (z-50), below tour (z-200) */
+  z-index: 160;
+  background: var(--card);
+  box-shadow: var(--shadow-float);
+
+  /* ── Mobile: bottom sheet ── */
+  bottom: 0;
+  left: 0;
+  right: 0;
+  border-radius: 20px 20px 0 0;
+  transform: translateY(102%);
+  opacity: 1;
+  pointer-events: none;
+  transition: transform 0.38s cubic-bezier(0.34, 1.08, 0.64, 1);
+  /* Limit height so it never covers the full screen */
+  max-height: 92dvh;
+  overflow-y: auto;
+  overflow-x: hidden;
+  /* Hide scrollbar */
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.calc-panel::-webkit-scrollbar {
+  display: none;
+}
+
+.calc-panel.calc-open {
+  transform: translateY(0);
+  pointer-events: auto;
+}
+
+/* ── Desktop: corner floating card ── */
+@media (min-width: 768px) {
+  .calc-panel {
+    bottom: 28px;
+    right: 22px;
+    left: auto;
+    width: 284px;
+    border-radius: 20px;
+    /* Entrance from bottom-right */
+    transform: scale(0.94) translateY(12px);
+    opacity: 0;
+    overflow: visible;
+    max-height: none;
+    /* Tighter spring for the scale animation */
+    transition: transform 0.22s cubic-bezier(0.25, 0.1, 0.25, 1),
+                opacity  0.2s ease;
+    /* Float above most content, below header */
+    border: 1px solid var(--border-subtle);
+  }
+
+  .calc-panel.calc-open {
+    transform: scale(1) translateY(0);
+    opacity: 1;
+  }
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   CALCULATOR — drag handle
+   ───────────────────────────────────────────────────────────────────────────── */
+
+.calc-handle {
+  width: 36px;
+  height: 4px;
+  border-radius: 9999px;
+  background: var(--border);
+  flex-shrink: 0;
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   CALCULATOR — divider
+   ───────────────────────────────────────────────────────────────────────────── */
+
+.calc-divider {
+  height: 1px;
+  background: var(--border-subtle);
+  margin: 0 12px;
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   CALCULATOR — save slots row
+   ───────────────────────────────────────────────────────────────────────────── */
+
+.calc-slots-row {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding-bottom: 3px;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+  /* Prevent touch-drag from scrolling the page behind */
+  overscroll-behavior-x: contain;
+}
+
+.calc-slots-row::-webkit-scrollbar {
+  display: none;
+}
+
+/* Save button */
+.calc-save-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  height: 30px;
+  padding: 0 11px;
+  border-radius: 9999px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  flex-shrink: 0;
+  border: 1px solid;
+  transition: background 0.2s ease, color 0.2s ease, border-color 0.2s ease, transform 0.1s ease;
+  white-space: nowrap;
+}
+
+.calc-save-btn:active {
+  transform: scale(0.93);
+}
+
+/* Slot chip */
+.calc-slot-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  height: 30px;
+  padding: 0 9px 0 11px;
+  border-radius: 9999px;
+  background: var(--muted);
+  border: 1px solid var(--border);
+  font-size: 12px;
+  color: var(--foreground);
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: background 0.12s ease, border-color 0.12s ease, transform 0.1s ease;
+  white-space: nowrap;
+  user-select: none;
+}
+
+.calc-slot-chip:hover {
+  background: var(--primary-soft);
+  border-color: var(--primary-muted);
+  color: var(--primary);
+}
+
+.calc-slot-chip:active {
+  transform: scale(0.94);
+}
+
+.calc-slot-chip:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 1px;
+}
+
+/* Delete button inside chip */
+.calc-slot-del {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2px;
+  margin-left: 1px;
+  border: none;
+  background: transparent;
+  color: var(--muted-foreground);
+  opacity: 0.45;
+  cursor: pointer;
+  border-radius: 50%;
+  transition: opacity 0.15s ease, background 0.12s ease;
+  flex-shrink: 0;
+}
+
+.calc-slot-chip:hover .calc-slot-del,
+.calc-slot-del:hover {
+  opacity: 1;
+  background: rgba(0, 0, 0, 0.06);
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   CALCULATOR — keypad grid & buttons
+   ───────────────────────────────────────────────────────────────────────────── */
+
+.calc-keypad {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+  padding: 0 10px 10px;
+  /* Reserve space for iOS safe area */
+  padding-bottom: max(10px, env(safe-area-inset-bottom, 10px));
+}
+
+@media (max-width: 767px) {
+  .calc-keypad {
+    gap: 9px;
+    padding: 0 12px;
+    padding-bottom: max(20px, env(safe-area-inset-bottom, 20px));
+  }
+}
+
+/* ── Base button ── */
+.calc-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 12px;
+  border: none;
+  cursor: pointer;
+  font-family: inherit;
+  font-weight: 600;
+  font-size: 17px;
+  line-height: 1;
+  user-select: none;
+  /* Prevent text size change on double-tap in Safari */
+  -webkit-text-size-adjust: 100%;
+  /* Fixed height – responsive */
+  height: 52px;
+  transition: filter 0.1s ease, transform 0.1s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+@media (max-width: 767px) {
+  .calc-btn {
+    height: 58px;
+    border-radius: 14px;
+    font-size: 18px;
+  }
+}
+
+.calc-btn:active {
+  transform: scale(0.88);
+  filter: brightness(0.88);
+}
+
+.calc-btn:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 1px;
+}
+
+/* ── Number buttons ── */
+.calc-btn-num {
+  background: var(--muted);
+  color: var(--foreground);
+}
+.calc-btn-num:hover {
+  filter: brightness(0.95);
+}
+
+/* ── Function buttons (AC, +/-, %) ── */
+.calc-btn-fn {
+  background: hsl(220, 10%, 91%);
+  color: var(--muted-foreground);
+  font-size: 14px;
+}
+.calc-btn-fn:hover {
+  filter: brightness(0.93);
+}
+
+/* ── Operator buttons (÷, ×, −, +) ── */
+.calc-btn-op {
+  background: var(--primary-soft);
+  color: var(--primary);
+  border: 1.5px solid var(--primary-muted);
+  font-size: 20px;
+}
+.calc-btn-op:hover {
+  filter: brightness(0.95);
+}
+
+/* Active operator (pending, not yet resolved) */
+.calc-btn-op-active {
+  background: var(--primary);
+  color: var(--primary-foreground);
+  border-color: var(--primary);
+}
+.calc-btn-op-active:hover {
+  filter: brightness(1.06);
+}
+
+/* ── Equals button ── */
+.calc-btn-eq {
+  background: var(--primary);
+  color: var(--primary-foreground);
+  font-size: 20px;
+}
+.calc-btn-eq:hover {
+  filter: brightness(1.07);
+}
+
+/* ── Backspace button ── */
+.calc-btn-bs {
+  background: var(--muted);
+  color: var(--orange, hsl(24, 90%, 52%));
+}
+.calc-btn-bs:hover {
+  filter: brightness(0.93);
 }

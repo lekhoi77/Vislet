@@ -25,6 +25,8 @@ import { CalendarBlock } from '@/components/dashboard/CalendarBlock';
 import { ExpenseHeatmap } from '@/components/dashboard/ExpenseHeatmap';
 import { AddSourceSheet } from '@/components/dashboard/AddSourceSheet';
 import { AddBudgetSheet } from '@/components/dashboard/AddBudgetSheet';
+import { WalkthroughTour } from '@/components/tour/WalkthroughTour';
+import { CalculatorPanel } from '@/components/calculator/Calculator';
 import { Transaction, TransactionType } from '@/lib/types';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Separator } from '@/components/ui/separator';
@@ -66,11 +68,19 @@ export default function HomePage() {
   const [showAddSource, setShowAddSource] = useState(false);
   const [showAddBudget, setShowAddBudget] = useState(false);
 
+  // Calculator
+  const [calcOpen, setCalcOpen] = useState(false);
+
   // Page content transition
   const [contentKey, setContentKey] = useState(0);
 
   // First time hint for FAB
   const [isFirstTime, setIsFirstTime] = useState(false);
+
+  // Walkthrough tour
+  const [tourOpen, setTourOpen] = useState(false);
+  const [guidePulse, setGuidePulse] = useState(false);
+  const TOUR_SEEN_KEY = 'viapp_tour_seen';
 
   useEffect(() => {
     initAuth();
@@ -98,15 +108,37 @@ export default function HomePage() {
           setIsFirstTime(true);
           setTimeout(() => setIsFirstTime(false), 4000);
         }
+        // Auto-trigger walkthrough for new users (no transactions, never seen)
+        try {
+          const seen = localStorage.getItem(TOUR_SEEN_KEY);
+          if (!seen && transactions.length === 0) {
+            setTimeout(() => setTourOpen(true), 600);
+          } else if (!seen) {
+            setGuidePulse(true);
+          }
+        } catch { /* noop */ }
       }
     }
   }, [isLoaded, profiles.length, transactions.length]);
 
-  const handleTabChange = (tab: ActiveTab) => {
-    setActiveTab(tab);
-    setContentKey(k => k + 1);
+  const handleCloseTour = useCallback(() => {
+    setTourOpen(false);
+    setGuidePulse(false);
+    try { localStorage.setItem(TOUR_SEEN_KEY, '1'); } catch { /* noop */ }
+  }, []);
+
+  const handleOpenTour = useCallback(() => {
+    setGuidePulse(false);
+    setTourOpen(true);
+  }, []);
+
+  const handleTabChange = useCallback((tab: ActiveTab) => {
+    setActiveTab(prev => {
+      if (prev !== tab) setContentKey(k => k + 1);
+      return tab;
+    });
     window.scrollTo({ top: 0 });
-  };
+  }, []);
 
   const handlePrevMonth = () => {
     if (month === 1) { setMonth(12); setYear(y => y - 1); }
@@ -153,32 +185,30 @@ export default function HomePage() {
     window.scrollTo({ top: 0 });
   }, []);
 
+  // Shortcuts:  T = Thu nhập  |  E = Chi tiêu  |  C = Mở máy tính
+  // Esc closes (handled by base-ui Dialog for modals, and by Calculator itself).
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
-      if (!e.ctrlKey || !e.altKey) return;
+      if (e.ctrlKey || e.altKey || e.metaKey) return;
+      const tag = (e.target as HTMLElement).tagName;
+      if (tag === 'INPUT' || tag === 'TEXTAREA') return;
+
       if (e.key === 't' || e.key === 'T') {
         e.preventDefault();
-        // Nếu đang mở form income → đóng lại; ngược lại mở ra
-        if (txFormOpen && txFormType === 'income') {
-          setTxFormOpen(false);
-          setEditingTx(null);
-        } else {
-          handleOpenIncomForm();
-        }
+        handleOpenIncomForm();
       } else if (e.key === 'e' || e.key === 'E') {
         e.preventDefault();
-        // Nếu đang mở form expense → đóng lại; ngược lại mở ra
-        if (txFormOpen && txFormType === 'expense') {
-          setTxFormOpen(false);
-          setEditingTx(null);
-        } else {
-          handleOpenExpenseForm();
+        handleOpenExpenseForm();
+      } else if (e.key === 'c' || e.key === 'C') {
+        if (!calcOpen) {
+          e.preventDefault();
+          setCalcOpen(true);
         }
       }
     };
     window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
-  }, [handleOpenIncomForm, handleOpenExpenseForm, txFormOpen, txFormType]);
+  }, [handleOpenIncomForm, handleOpenExpenseForm, calcOpen]);
 
   const filteredDebts = sharedDebts.filter(d => {
     if (debtFilter === 'settled') return d.status === 'settled';
@@ -227,7 +257,13 @@ export default function HomePage() {
 
   return (
     <div className="app-container">
-      <Header onAddAccount={() => setShowLoginOverlay(true)} />
+      <Header
+        onAddAccount={() => setShowLoginOverlay(true)}
+        onOpenGuide={handleOpenTour}
+        guidePulse={guidePulse}
+        onOpenCalc={() => setCalcOpen(v => !v)}
+        calcOpen={calcOpen}
+      />
 
       <div className="md:flex md:pb-4" style={{ minHeight: 'calc(100dvh - 56px)' }}>
         {/* Desktop floating sidebar */}
@@ -248,6 +284,7 @@ export default function HomePage() {
               return (
                 <button
                   key={value}
+                  data-tour={`tab-${value}`}
                   onClick={() => handleTabChange(value)}
                   className="sidebar-nav-item flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium w-full text-left"
                   style={{
@@ -261,7 +298,7 @@ export default function HomePage() {
               );
             })}
           </nav>
-          <div className="p-3 flex flex-col gap-2" style={{ borderTop: '1px solid var(--border-subtle)' }}>
+          <div data-tour="fab" className="p-3 flex flex-col gap-2" style={{ borderTop: '1px solid var(--border-subtle)' }}>
             {activeTab === 'debts' ? (
               <button
                 onClick={() => setDebtFormOpen(true)}
@@ -276,26 +313,26 @@ export default function HomePage() {
                   <button
                     onClick={handleOpenIncomForm}
                     className="flex items-center gap-2 h-10 md:h-12 px-4 rounded-xl font-semibold text-sm w-full justify-center transition-all hover:bg-[var(--primary-soft)] active:scale-95"
-                    style={{ border: '1.5px solid var(--primary)', color: 'var(--primary)', background: 'transparent' }}
+                    style={{ border: '2px solid var(--primary)', color: 'var(--primary)', background: 'transparent' }}
                   >
                     <Plus size={15} /> Thu nhập
                   </button>
                   <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5 px-2 py-1 rounded-md text-sm font-medium opacity-0 group-hover:opacity-100 pointer-events-none whitespace-nowrap transition-opacity duration-150 z-50"
                     style={{ background: '#1a1a1a', color: '#fff' }}>
-                    Ctrl+Alt+T
+                    T
                   </div>
                 </div>
                 <div className="relative group">
                   <button
                     onClick={handleOpenExpenseForm}
                     className="flex items-center gap-2 h-10 md:h-12 px-4 rounded-xl font-semibold text-sm w-full justify-center transition-all hover:bg-[var(--orange-soft)] active:scale-95"
-                    style={{ border: '1.5px solid var(--orange)', color: 'var(--orange)', background: 'transparent' }}
+                    style={{ border: '2px solid var(--orange)', color: 'var(--orange)', background: 'transparent' }}
                   >
                     <Plus size={15} /> Chi tiêu
                   </button>
                   <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5 px-2 py-1 rounded-md text-sm font-medium opacity-0 group-hover:opacity-100 pointer-events-none whitespace-nowrap transition-opacity duration-150 z-50"
                     style={{ background: '#1a1a1a', color: '#fff' }}>
-                    Ctrl+Alt+E
+                    E
                   </div>
                 </div>
               </>
@@ -314,9 +351,11 @@ export default function HomePage() {
             <div className="flex items-center">
               <MonthSelector month={month} year={year} onPrev={handlePrevMonth} onNext={handleNextMonth} onSelect={handleSelectMonth} onToday={handleToday} />
             </div>
-            <SummaryCards transactions={transactions} month={month} year={year} />
+            <div data-tour="summary">
+              <SummaryCards transactions={transactions} month={month} year={year} />
+            </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="flex flex-col md:h-[280px]">
+              <div data-tour="sources" className="flex flex-col md:h-[440px]">
                 <SourceBlocks
                   transactions={transactions}
                   title="Nguồn tiền"
@@ -324,7 +363,7 @@ export default function HomePage() {
                   addLabel="Thêm nguồn tiền"
                 />
               </div>
-              <div className="flex flex-col md:h-[280px]">
+              <div data-tour="goals" className="flex flex-col md:h-[440px]">
                 <GoalBlocks
                   transactions={transactions}
                   month={month}
@@ -336,7 +375,9 @@ export default function HomePage() {
               </div>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <CalendarBlock transactions={transactions} sharedDebts={sharedDebts} month={month} year={year} onEdit={handleEditTx} />
+              <div data-tour="calendar">
+                <CalendarBlock transactions={transactions} sharedDebts={sharedDebts} month={month} year={year} onEdit={handleEditTx} />
+              </div>
               <ExpenseHeatmap transactions={transactions} month={month} year={year} onEdit={handleEditTx} />
             </div>
           </div>
@@ -445,6 +486,15 @@ export default function HomePage() {
 
       <AddSourceSheet open={showAddSource} onClose={() => setShowAddSource(false)} />
       <AddBudgetSheet open={showAddBudget} onClose={() => setShowAddBudget(false)} />
+      <WalkthroughTour
+        open={tourOpen}
+        onClose={handleCloseTour}
+        onRequestTab={handleTabChange}
+      />
+
+      {/* Calculator — floating on desktop, bottom sheet on mobile */}
+      <CalculatorPanel open={calcOpen} onClose={() => setCalcOpen(false)} />
+
       <Toaster position="top-center" richColors />
     </div>
   );
