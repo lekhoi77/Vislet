@@ -1,4 +1,4 @@
-import { UserProfile, Transaction, Debt, CustomSource, CustomBudget } from './types';
+import { UserProfile, Transaction, Debt, CustomSource, CustomCategory } from './types';
 
 const KEYS = {
   profiles: 'viapp_profiles',
@@ -6,7 +6,7 @@ const KEYS = {
   tx: (id: string) => `viapp_tx_${id}`,
   debt: (id: string) => `viapp_debt_${id}`,
   sources: (id: string) => `viapp_sources_${id}`,
-  budgets: (id: string) => `viapp_budgets_${id}`,
+  categories: (id: string) => `viapp_categories_${id}`,
 };
 
 function safeGet<T>(key: string, fallback: T): T {
@@ -64,10 +64,10 @@ export const storage = {
     return safeSet(KEYS.sources(profileId), sources);
   },
 
-  getCustomBudgets(profileId: string): CustomBudget[] {
-    return safeGet<CustomBudget[]>(KEYS.budgets(profileId), []);
+  getCustomCategories(profileId: string): CustomCategory[] {
+    return safeGet<CustomCategory[]>(KEYS.categories(profileId), []);
   },
-  setCustomBudgets(profileId: string, budgets: CustomBudget[]): boolean {
-    return safeSet(KEYS.budgets(profileId), budgets);
+  setCustomCategories(profileId: string, categories: CustomCategory[]): boolean {
+    return safeSet(KEYS.categories(profileId), categories);
   },
 };

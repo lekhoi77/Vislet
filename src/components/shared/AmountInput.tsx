@@ -38,7 +38,7 @@ export function AmountInput({ value, onChange, type = 'income', error, label = '
           placeholder="0"
           className={cn(
             'pr-16 text-base font-semibold',
-            error && 'border-[var(--expense)]'
+            error && 'border-[var(--destructive)]'
           )}
         />
         <span
@@ -54,7 +54,7 @@ export function AmountInput({ value, onChange, type = 'income', error, label = '
         </p>
       )}
       {error && (
-        <p className="text-sm" style={{ color: 'var(--expense)' }}>{error}</p>
+        <p className="text-sm" style={{ color: 'var(--destructive)' }}>{error}</p>
       )}
     </div>
   );

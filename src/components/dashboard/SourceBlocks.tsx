@@ -4,7 +4,7 @@ import { Transaction } from '@/lib/types';
 import { formatVND } from '@/lib/format';
 import { SOURCE_LABELS } from '@/lib/constants';
 import { useAppStore } from '@/store/app-store';
-import { Building2, Wallet, Smartphone, CircleDot, BarChart2, List, Plus } from 'lucide-react';
+import { Building2, Wallet, Smartphone, CircleDot, PieChart as PieIcon, List, Plus } from 'lucide-react';
 import { useState } from 'react';
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer, Legend } from 'recharts';
 
@@ -67,7 +67,7 @@ export function SourceBlocks({ transactions, title, onAdd, addLabel = 'Thêm ngu
           )}
         </div>
         <div className="flex rounded-lg p-0.5 shrink-0" style={{ background: 'var(--muted)', gap: 2 }}>
-          {([{ v: false, icon: <List size={12} />, label: 'Danh sách' }, { v: true, icon: <BarChart2 size={12} />, label: 'Biểu đồ' }] as const).map(opt => (
+          {([{ v: false, icon: <List size={12} />, label: 'Danh sách' }, { v: true, icon: <PieIcon size={12} />, label: 'Tỷ trọng' }] as const).map(opt => (
             <button key={String(opt.v)} onClick={() => setChartView(opt.v)}
               className="view-toggle-btn flex items-center gap-1 text-sm font-medium px-2.5 py-1 rounded-md"
               style={{
@@ -117,7 +117,7 @@ export function SourceBlocks({ transactions, title, onAdd, addLabel = 'Thêm ngu
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-medium truncate" style={{ color: 'var(--muted-foreground)' }}>{s.label}</p>
                   <p className="text-sm font-semibold amount leading-tight"
-                    style={{ color: balance < 0 ? 'var(--expense)' : 'var(--foreground)' }}>
+                    style={{ color: balance < 0 ? 'var(--down)' : 'var(--foreground)' }}>
                     {formatVND(balance)}
                   </p>
                 </div>

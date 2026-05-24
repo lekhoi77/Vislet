@@ -56,10 +56,10 @@ export function AddProfileSheet({ open, onClose }: AddProfileSheetProps) {
               onChange={e => { setName(e.target.value); setError(''); }}
               placeholder="Tên người dùng..."
               onKeyDown={e => e.key === 'Enter' && handleAdd()}
-              className={error ? 'border-[var(--expense)]' : ''}
+              className={error ? 'border-[var(--destructive)]' : ''}
               autoFocus
             />
-            {error && <p className="text-sm" style={{ color: 'var(--expense)' }}>{error}</p>}
+            {error && <p className="text-sm" style={{ color: 'var(--destructive)' }}>{error}</p>}
           </div>
           <Button
             id="add-profile-submit"

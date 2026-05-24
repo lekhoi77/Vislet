@@ -3,9 +3,9 @@
 import { useState, useMemo } from 'react';
 import { Transaction } from '@/lib/types';
 import {
-  BUILT_IN_SOURCES, BUILT_IN_GOALS,
-  SOURCE_LABELS, GOAL_LABELS,
-  resolveSourceLabel, resolveGoalLabel,
+  BUILT_IN_SOURCES, BUILT_IN_CATEGORIES,
+  SOURCE_LABELS, CATEGORY_LABELS,
+  resolveSourceLabel, resolveCategoryLabel,
 } from '@/lib/constants';
 import { useAppStore } from '@/store/app-store';
 import { matchesQuery } from '@/lib/search';
@@ -23,7 +23,7 @@ import { cn } from '@/lib/utils';
 interface TxFilter {
   type: 'all' | 'income' | 'expense';
   sources: string[];
-  goals: string[];
+  categories: string[];
   amountMin: string;
   amountMax: string;
 }
@@ -31,7 +31,7 @@ interface TxFilter {
 const DEFAULT_FILTER: TxFilter = {
   type: 'all',
   sources: [],
-  goals: [],
+  categories: [],
   amountMin: '',
   amountMax: '',
 };
@@ -40,7 +40,7 @@ function countActiveFilters(f: TxFilter): number {
   let n = 0;
   if (f.type !== 'all') n++;
   if (f.sources.length > 0) n++;
-  if (f.goals.length > 0) n++;
+  if (f.categories.length > 0) n++;
   if (f.amountMin !== '') n++;
   if (f.amountMax !== '') n++;
   return n;
@@ -100,7 +100,7 @@ interface TransactionPaneProps {
 }
 
 export function TransactionPane({ transactions, onEdit }: TransactionPaneProps) {
-  const { customSources, customBudgets } = useAppStore();
+  const { customSources, customCategories } = useAppStore();
 
   const [search, setSearch] = useState('');
   const [filter, setFilter] = useState<TxFilter>(DEFAULT_FILTER);
@@ -109,14 +109,14 @@ export function TransactionPane({ transactions, onEdit }: TransactionPaneProps) 
 
   const activeCount = countActiveFilters(filter);
 
-  // Build source + goal options
+  // Build source + category options
   const sourceOptions = [
     ...BUILT_IN_SOURCES.map(s => ({ value: s, label: SOURCE_LABELS[s] ?? s })),
     ...customSources.map(s => ({ value: s.id, label: s.label })),
   ];
-  const goalOptions = [
-    ...BUILT_IN_GOALS.map(g => ({ value: g, label: GOAL_LABELS[g] ?? g })),
-    ...customBudgets.map(b => ({ value: b.id, label: b.label })),
+  const categoryOptions = [
+    ...BUILT_IN_CATEGORIES.map(c => ({ value: c, label: CATEGORY_LABELS[c] ?? c })),
+    ...customCategories.map(c => ({ value: c.id, label: c.label })),
   ];
 
   // Apply filters
@@ -132,7 +132,7 @@ export function TransactionPane({ transactions, onEdit }: TransactionPaneProps) 
       }
       if (filter.type !== 'all' && tx.type !== filter.type) return false;
       if (filter.sources.length > 0 && !filter.sources.includes(tx.source)) return false;
-      if (filter.goals.length > 0 && !filter.goals.includes(tx.goal)) return false;
+      if (filter.categories.length > 0 && !filter.categories.includes(tx.category)) return false;
       if (min !== null && tx.amount < min) return false;
       if (max !== null && tx.amount > max) return false;
       return true;
@@ -233,11 +233,11 @@ export function TransactionPane({ transactions, onEdit }: TransactionPaneProps) 
               <button onClick={() => setFilter(f => ({ ...f, sources: f.sources.filter(x => x !== s) }))}><X size={11} /></button>
             </span>
           ))}
-          {filter.goals.map(g => (
-            <span key={g} className="flex items-center gap-1 px-2.5 py-1 rounded-full text-sm font-medium"
+          {filter.categories.map(c => (
+            <span key={c} className="flex items-center gap-1 px-2.5 py-1 rounded-full text-sm font-medium"
               style={{ background: 'var(--primary-soft)', color: 'var(--primary)' }}>
-              {resolveGoalLabel(g, customBudgets)}
-              <button onClick={() => setFilter(f => ({ ...f, goals: f.goals.filter(x => x !== g) }))}><X size={11} /></button>
+              {resolveCategoryLabel(c, customCategories)}
+              <button onClick={() => setFilter(f => ({ ...f, categories: f.categories.filter(x => x !== c) }))}><X size={11} /></button>
             </span>
           ))}
           {(filter.amountMin !== '' || filter.amountMax !== '') && (
@@ -276,7 +276,7 @@ export function TransactionPane({ transactions, onEdit }: TransactionPaneProps) 
       <Sheet open={showFilter} onOpenChange={v => !v && setShowFilter(false)}>
         <SheetContent
           side="bottom"
-          showCloseButton={false}
+         
           className="rounded-t-2xl max-h-[88dvh] gap-0 flex flex-col p-0"
           style={{ background: 'var(--background)' }}
         >
@@ -325,13 +325,13 @@ export function TransactionPane({ transactions, onEdit }: TransactionPaneProps) 
               />
             </div>
 
-            {/* Goals */}
+            {/* Categories */}
             <div>
-              <SectionLabel>Mục tiêu / Danh mục</SectionLabel>
+              <SectionLabel>Danh mục</SectionLabel>
               <ChipGroup
-                options={goalOptions}
-                selected={draft.goals}
-                onChange={v => setDraft(d => ({ ...d, goals: v }))}
+                options={categoryOptions}
+                selected={draft.categories}
+                onChange={v => setDraft(d => ({ ...d, categories: v }))}
               />
             </div>
 

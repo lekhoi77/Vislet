@@ -1,56 +1,108 @@
 'use client';
 
 import { Transaction } from '@/lib/types';
-import { formatVND } from '@/lib/format';
-import { GOAL_LABELS, getGoalColor } from '@/lib/constants';
+import { formatVND, formatVNDShort } from '@/lib/format';
+import { CATEGORY_LABELS, getCategoryColor } from '@/lib/constants';
 import { useAppStore } from '@/store/app-store';
-import { BudgetIcon } from '@/lib/icons';
+import { CategoryIcon } from '@/lib/icons';
 import { Separator } from '@/components/ui/separator';
-import { PiggyBank, Plane, Clock, BarChart2, List, Plus } from 'lucide-react';
+import { PiggyBank, Plane, Clock, BarChart2, List, PieChart as PieIcon, Plus } from 'lucide-react';
 import { useState } from 'react';
-import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer, Legend } from 'recharts';
+import {
+  PieChart, Pie, Cell, Tooltip, ResponsiveContainer, Legend,
+  BarChart, Bar, XAxis, YAxis, CartesianGrid,
+} from 'recharts';
 
-const BUILT_IN_GOALS = [
-  { id: 'saving', label: GOAL_LABELS['saving'], icon: <PiggyBank size={16} /> },
-  { id: 'travel', label: GOAL_LABELS['travel'], icon: <Plane size={16} /> },
-  { id: 'soon',   label: GOAL_LABELS['soon'],   icon: <Clock size={16} /> },
+const BUILT_IN_CATEGORIES = [
+  { id: 'saving', label: CATEGORY_LABELS['saving'], icon: <PiggyBank size={16} /> },
+  { id: 'travel', label: CATEGORY_LABELS['travel'], icon: <Plane size={16} /> },
+  { id: 'soon',   label: CATEGORY_LABELS['soon'],   icon: <Clock size={16} /> },
 ];
 
-interface GoalBlocksProps {
+type ViewMode = 'list' | 'pie' | 'bars';
+
+interface CategoryBlocksProps {
   transactions: Transaction[];
+  /** Tháng hiện đang xem (1–12) */
+  month: number;
+  year: number;
   title?: string;
   onAdd?: () => void;
   addLabel?: string;
 }
 
-export function GoalBlocks({ transactions, title, onAdd, addLabel = 'Thêm mục tiêu' }: GoalBlocksProps) {
-  const { customBudgets } = useAppStore();
-  const [chartView, setChartView] = useState(false);
+export function CategoryBlocks({ transactions, month, year, title, onAdd, addLabel = 'Thêm danh mục' }: CategoryBlocksProps) {
+  const { customCategories } = useAppStore();
+  const [view, setView] = useState<ViewMode>('list');
 
-  const allGoals = [
-    ...BUILT_IN_GOALS,
-    ...customBudgets.map(b => ({
-      id: b.id,
-      label: b.label,
-      icon: <BudgetIcon name={b.icon} size={16} />,
+  const allCategories = [
+    ...BUILT_IN_CATEGORIES,
+    ...customCategories.map(c => ({
+      id: c.id,
+      label: c.label,
+      icon: <CategoryIcon name={c.icon} size={16} />,
     })),
   ];
 
-  // Mỗi goal hiển thị TỔNG CHI TIÊU đã gắn vào (vì form chỉ gán goal cho expense)
-  const getSpent = (goalId: string) => {
-    return transactions
-      .filter(t => t.goal === goalId && t.type === 'expense')
+  // ── Reset hàng tháng: chỉ tính chi tiêu trong tháng đang xem ─
+  const monthTxs = transactions.filter(tx => {
+    const d = new Date(tx.date);
+    return d.getMonth() + 1 === month && d.getFullYear() === year;
+  });
+
+  const getSpent = (categoryId: string) => {
+    return monthTxs
+      .filter(t => t.category === categoryId && t.type === 'expense')
       .reduce((s, t) => s + t.amount, 0);
   };
 
-  const balances = allGoals.map(g => ({ ...g, balance: getSpent(g.id), color: getGoalColor(g.id, customBudgets) }));
-  const total = balances.reduce((s, g) => s + g.balance, 0);
+  const balances = allCategories.map(c => ({ ...c, balance: getSpent(c.id), color: getCategoryColor(c.id, customCategories) }));
+  const total = balances.reduce((s, c) => s + c.balance, 0);
 
-  const chartData = balances
-    .map(g => ({ name: g.label, value: g.balance }))
+  // ── Pie data
+  const pieData = balances
+    .map(c => ({ name: c.label, value: c.balance }))
     .filter(d => d.value > 0);
+  const hasPie = pieData.length > 0;
 
-  const hasData = chartData.length > 0;
+  // ── Bar data: 6 tháng gần nhất tính từ tháng hiện đang xem
+  const monthsBack = 6;
+  const months: { m: number; y: number; key: string; label: string }[] = [];
+  for (let i = monthsBack - 1; i >= 0; i--) {
+    const dt = new Date(year, month - 1 - i, 1);
+    months.push({
+      m: dt.getMonth() + 1,
+      y: dt.getFullYear(),
+      key: `${dt.getFullYear()}-${dt.getMonth() + 1}`,
+      label: `T${dt.getMonth() + 1}`,
+    });
+  }
+
+  const barData = months.map(({ m, y, label }) => {
+    const row: Record<string, string | number> = { label };
+    allCategories.forEach(c => {
+      row[c.label] = transactions
+        .filter(t => {
+          const d = new Date(t.date);
+          return t.type === 'expense'
+            && t.category === c.id
+            && d.getMonth() + 1 === m
+            && d.getFullYear() === y;
+        })
+        .reduce((s, t) => s + t.amount, 0);
+    });
+    return row;
+  });
+
+  const hasBars = barData.some(row =>
+    allCategories.some(c => (row[c.label] as number) > 0)
+  );
+
+  const viewOptions: { v: ViewMode; icon: React.ReactNode; label: string }[] = [
+    { v: 'list', icon: <List size={12} />, label: 'Danh sách' },
+    { v: 'pie',  icon: <PieIcon size={12} />, label: 'Tỉ trọng' },
+    { v: 'bars', icon: <BarChart2 size={12} />, label: 'So sánh' },
+  ];
 
   return (
     <div className="rounded-2xl overflow-hidden h-full flex flex-col"
@@ -70,13 +122,13 @@ export function GoalBlocks({ transactions, title, onAdd, addLabel = 'Thêm mục
           )}
         </div>
         <div className="flex rounded-lg p-0.5 shrink-0" style={{ background: 'var(--muted)', gap: 2 }}>
-          {([{ v: false, icon: <List size={12} />, label: 'Danh sách' }, { v: true, icon: <BarChart2 size={12} />, label: 'Biểu đồ' }] as const).map(opt => (
-            <button key={String(opt.v)} onClick={() => setChartView(opt.v)}
+          {viewOptions.map(opt => (
+            <button key={opt.v} onClick={() => setView(opt.v)}
               className="view-toggle-btn flex items-center gap-1 text-sm font-medium px-2.5 py-1 rounded-md"
               style={{
-                background: chartView === opt.v ? 'var(--background)' : 'transparent',
-                color: chartView === opt.v ? 'var(--foreground)' : 'var(--muted-foreground)',
-                boxShadow: chartView === opt.v ? '0 1px 3px rgba(0,0,0,0.08)' : 'none',
+                background: view === opt.v ? 'var(--background)' : 'transparent',
+                color: view === opt.v ? 'var(--foreground)' : 'var(--muted-foreground)',
+                boxShadow: view === opt.v ? '0 1px 3px rgba(0,0,0,0.08)' : 'none',
               }}>
               {opt.icon}{opt.label}
             </button>
@@ -84,15 +136,15 @@ export function GoalBlocks({ transactions, title, onAdd, addLabel = 'Thêm mục
         </div>
       </div>
 
-      {chartView ? (
+      {view === 'pie' && (
         <div className="flex-1 flex items-center justify-center px-2 pb-3">
-          {hasData ? (
+          {hasPie ? (
             <ResponsiveContainer width="100%" height={200}>
               <PieChart>
-                <Pie data={chartData} cx="50%" cy="50%" innerRadius={50} outerRadius={80}
+                <Pie data={pieData} cx="50%" cy="50%" innerRadius={50} outerRadius={80}
                   dataKey="value" paddingAngle={3}>
-                  {chartData.map((entry, i) => (
-                    <Cell key={i} fill={getGoalColor(balances.find(b => b.label === entry.name)?.id ?? '', customBudgets)} stroke="none" />
+                  {pieData.map((entry, i) => (
+                    <Cell key={i} fill={getCategoryColor(balances.find(b => b.label === entry.name)?.id ?? '', customCategories)} stroke="none" />
                   ))}
                 </Pie>
                 <Tooltip
@@ -109,29 +161,61 @@ export function GoalBlocks({ transactions, title, onAdd, addLabel = 'Thêm mục
             <p className="text-sm" style={{ color: 'var(--muted-foreground)' }}>Chưa có dữ liệu</p>
           )}
         </div>
-      ) : (
+      )}
+
+      {view === 'bars' && (
+        <div className="flex-1 flex flex-col px-2 pb-3 min-h-0">
+          {hasBars ? (
+            <ResponsiveContainer width="100%" height={220}>
+              <BarChart data={barData} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
+                <XAxis dataKey="label" tick={{ fontSize: 11, fill: 'var(--muted-foreground)' }} axisLine={false} tickLine={false} />
+                <YAxis tick={{ fontSize: 10, fill: 'var(--muted-foreground)' }} tickFormatter={(v) => formatVNDShort(Number(v))} axisLine={false} tickLine={false} width={40} />
+                <Tooltip
+                  formatter={(v) => formatVND(Number(v))}
+                  contentStyle={{ borderRadius: 10, border: '1px solid var(--border)', background: 'var(--card)', fontSize: 12 }}
+                  itemStyle={{ fontWeight: 600 }}
+                  cursor={{ fill: 'var(--muted)' }}
+                />
+                <Legend iconType="circle" iconSize={7}
+                  wrapperStyle={{ fontSize: 11 }}
+                  formatter={(v) => <span style={{ fontWeight: 600, color: 'var(--foreground)' }}>{v}</span>} />
+                {allCategories.map(c => (
+                  <Bar key={c.id} dataKey={c.label} fill={getCategoryColor(c.id, customCategories)} radius={[4, 4, 0, 0]} />
+                ))}
+              </BarChart>
+            </ResponsiveContainer>
+          ) : (
+            <div className="flex-1 flex items-center justify-center">
+              <p className="text-sm" style={{ color: 'var(--muted-foreground)' }}>Chưa có dữ liệu các tháng gần đây</p>
+            </div>
+          )}
+        </div>
+      )}
+
+      {view === 'list' && (
         <div className="flex-1 md:overflow-y-auto">
-          {balances.map((g, i) => {
-            const pct = total > 0 ? (g.balance / total) * 100 : 0;
+          {balances.map((c, i) => {
+            const pct = total > 0 ? (c.balance / total) * 100 : 0;
             return (
-              <div key={g.id}>
+              <div key={c.id}>
                 {i > 0 && <Separator />}
                 <div className="flex flex-col gap-1.5 p-3">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
                       <div className="flex items-center justify-center w-7 h-7 rounded-lg shrink-0"
-                        style={{ background: `${g.color}20`, color: g.color }}>
-                        {g.icon}
+                        style={{ background: `${c.color}20`, color: c.color }}>
+                        {c.icon}
                       </div>
-                      <p className="text-sm font-medium leading-tight" style={{ color: 'var(--foreground)' }}>{g.label}</p>
+                      <p className="text-sm font-medium leading-tight" style={{ color: 'var(--foreground)' }}>{c.label}</p>
                     </div>
                     <p className="text-sm font-semibold amount shrink-0 ml-2" style={{ color: 'var(--foreground)' }}>
-                      {formatVND(g.balance)}
+                      {formatVND(c.balance)}
                     </p>
                   </div>
                   <div className="w-full h-1 rounded-full" style={{ background: 'var(--muted)' }}>
                     <div className="h-1 rounded-full transition-all duration-500"
-                      style={{ width: `${pct}%`, background: g.color, minWidth: pct > 0 ? 4 : 0 }} />
+                      style={{ width: `${pct}%`, background: c.color, minWidth: pct > 0 ? 4 : 0 }} />
                   </div>
                 </div>
               </div>
@@ -142,3 +226,6 @@ export function GoalBlocks({ transactions, title, onAdd, addLabel = 'Thêm mục
     </div>
   );
 }
+
+// Backward-compat alias
+export const GoalBlocks = CategoryBlocks;

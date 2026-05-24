@@ -1,6 +1,7 @@
 'use client';
 
 import { ProfileSwitcher } from '@/components/profile/ProfileSwitcher';
+import { NotificationBell } from '@/components/notifications/NotificationBell';
 
 interface HeaderProps {
   onAddAccount: () => void;
@@ -23,7 +24,10 @@ export function Header({ onAddAccount }: HeaderProps) {
         height={48}
         style={{ height: 48, width: 'auto' }}
       />
-      <ProfileSwitcher onAddAccount={onAddAccount} />
+      <div className="flex items-center gap-1">
+        <NotificationBell />
+        <ProfileSwitcher onAddAccount={onAddAccount} />
+      </div>
     </header>
   );
 }

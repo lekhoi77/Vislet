@@ -5,7 +5,7 @@ export default function manifest(): MetadataRoute.Manifest {
     name: 'Vislet — Quản lý tài chính cá nhân',
     short_name: 'Vislet',
     description:
-      'Theo dõi thu nhập, chi tiêu, mục tiêu tài chính và quản lý nợ một cách đơn giản.',
+      'Theo dõi thu nhập, chi tiêu, danh mục tài chính và quản lý nợ một cách đơn giản.',
     start_url: '/',
     scope: '/',
     display: 'standalone',
@@ -32,9 +32,9 @@ export default function manifest(): MetadataRoute.Manifest {
         sizes: '180x180',
         type: 'image/png',
       },
-      // SVG fallback cho browser hiện đại
+      // SVG fallback cho browser hiện đại (icon thu nhỏ, khác logo header)
       {
-        src: '/logo.svg',
+        src: '/logo-small.svg',
         sizes: 'any',
         type: 'image/svg+xml',
       },

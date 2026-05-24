@@ -1,6 +1,6 @@
 import React from 'react';
 import {
-  // Budget / Goal icons
+  // Category icons
   PiggyBank, ShoppingCart, Coffee, Car, Home, Heart,
   Briefcase, GraduationCap, Plane, Music, Dumbbell, Gift,
   Smartphone, Shirt, Baby, Utensils, Zap, Star,
@@ -14,7 +14,7 @@ import {
 } from 'lucide-react';
 
 const ICON_MAP: Record<string, React.ComponentType<{ size?: number; className?: string; style?: React.CSSProperties }>> = {
-  // Budget / Goal
+  // Category
   PiggyBank, ShoppingCart, Coffee, Car, Home, Heart,
   Briefcase, GraduationCap, Plane, Music, Dumbbell, Gift,
   Smartphone, Shirt, Baby, Utensils, Zap, Star,
@@ -29,15 +29,15 @@ const ICON_MAP: Record<string, React.ComponentType<{ size?: number; className?: 
 
 type IconProps = { size?: number; className?: string; style?: React.CSSProperties };
 
-export function BudgetIcon({ name, size = 16, className, style }: { name: string } & IconProps) {
+export function CategoryIcon({ name, size = 16, className, style }: { name: string } & IconProps) {
   const Icon = ICON_MAP[name] ?? CircleDot;
   return <Icon size={size} className={className} style={style} />;
 }
 
-// Alias dùng chung cho cả source lẫn budget
-export const AppIcon = BudgetIcon;
+// Alias dùng chung cho cả source lẫn category
+export const AppIcon = CategoryIcon;
 
-export const BUDGET_ICON_NAMES = [
+export const CATEGORY_ICON_NAMES = [
   'PiggyBank','ShoppingCart','Coffee','Car','Home','Heart',
   'Briefcase','GraduationCap','Plane','Music','Dumbbell','Gift',
   'Smartphone','Shirt','Baby','Utensils','Zap','Star',

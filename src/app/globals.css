@@ -47,6 +47,10 @@
   --orange-soft:        hsl(28, 95%, 94%);
   --orange-muted:       hsl(26, 75%, 82%);
 
+  /* ─── DEBT (Purple) ─── */
+  --debt:               hsl(262, 60%, 55%);
+  --debt-soft:          hsl(262, 60%, 95%);
+
   /* ─── BACKGROUND ─── */
   --background:         hsl(0, 0%, 100%);
   --background-subtle:  hsl(150, 10%, 97.5%);
@@ -75,7 +79,9 @@
 
   /* ─── SEMANTIC ─── */
   --income:             hsl(145, 55%, 38%);
-  --expense:            hsl(0, 70%, 50%);
+  --expense:            hsl(24, 90%, 50%);
+  --up:                 hsl(145, 55%, 38%);
+  --down:               hsl(0, 70%, 50%);
   --destructive:        hsl(0, 70%, 50%);
   --destructive-foreground: hsl(0, 0%, 100%);
 

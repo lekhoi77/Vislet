@@ -35,7 +35,7 @@ export function AddSourceSheet({ open, onClose }: AddSourceSheetProps) {
   return (
     <Sheet open={open} onOpenChange={v => !v && onClose()}>
       <SheetContent
-        showCloseButton={false}
+       
         side="bottom"
         className="rounded-t-2xl gap-0 flex flex-col"
         style={{ padding: 0, background: 'var(--background)', ...sheetStyle }}
@@ -129,7 +129,7 @@ export function AddSourceSheet({ open, onClose }: AddSourceSheetProps) {
                     <button
                       onClick={() => { removeCustomSource(s.id); toast.success('Đã xoá'); }}
                       className="p-1.5 rounded-lg hover:bg-[var(--muted)] transition-colors"
-                      style={{ color: 'var(--expense)' }}
+                      style={{ color: 'var(--destructive)' }}
                     >
                       <Trash2 size={14} />
                     </button>

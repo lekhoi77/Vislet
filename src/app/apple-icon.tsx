@@ -12,7 +12,7 @@ export const size = { width: 180, height: 180 };
 export const contentType = 'image/png';
 
 export default function AppleIcon() {
-  const svgPath = path.join(process.cwd(), 'public', 'logo.svg');
+  const svgPath = path.join(process.cwd(), 'public', 'logo-small.svg');
   const svg = fs.readFileSync(svgPath, 'utf-8');
   const dataUrl = `data:image/svg+xml;base64,${Buffer.from(svg).toString('base64')}`;
 

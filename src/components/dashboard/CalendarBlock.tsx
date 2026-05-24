@@ -1,12 +1,12 @@
 'use client';
 
 import { useMemo, useState } from 'react';
-import { Transaction, Debt } from '@/lib/types';
+import { Transaction, SharedDebt } from '@/lib/types';
 import { DayDetailSheet } from './DayDetailSheet';
 
 interface CalendarBlockProps {
   transactions: Transaction[];
-  debts: Debt[];
+  sharedDebts: SharedDebt[];
   month: number;
   year: number;
   onEdit?: (tx: Transaction) => void;
@@ -22,7 +22,7 @@ interface DayCell {
   hasDebt: boolean;
 }
 
-export function CalendarBlock({ transactions, debts, month, year, onEdit }: CalendarBlockProps) {
+export function CalendarBlock({ transactions, sharedDebts, month, year, onEdit }: CalendarBlockProps) {
   const [selectedDay, setSelectedDay] = useState<number | null>(null);
 
   const days = useMemo<DayCell[]>(() => {
@@ -53,9 +53,11 @@ export function CalendarBlock({ transactions, debts, month, year, onEdit }: Cale
       }
 
       let hasDebt = false;
-      for (const debt of debts) {
-        if (!debt.dueDate) continue;
-        const dd = new Date(debt.dueDate);
+      for (const debt of sharedDebts) {
+        // Sync với dashboard: ưu tiên dueDate, fallback về createdAt
+        const dateStr = debt.dueDate ?? debt.createdAt;
+        if (!dateStr) continue;
+        const dd = new Date(dateStr);
         if (dd.getFullYear() === year && dd.getMonth() === month - 1 && dd.getDate() === d) {
           hasDebt = true;
           break;
@@ -65,7 +67,7 @@ export function CalendarBlock({ transactions, debts, month, year, onEdit }: Cale
       cells.push({ day: d, isToday, hasIncome, hasExpense, hasDebt });
     }
     return cells;
-  }, [transactions, debts, month, year]);
+  }, [transactions, sharedDebts, month, year]);
 
   const selectedDate = selectedDay !== null ? new Date(year, month - 1, selectedDay) : null;
 
@@ -79,13 +81,13 @@ export function CalendarBlock({ transactions, debts, month, year, onEdit }: Cale
         <p className="text-overline">Lịch hoạt động</p>
         <div className="flex items-center gap-2.5 text-[14px] font-medium" style={{ color: 'var(--muted-foreground)' }}>
           <span className="flex items-center gap-1">
-            <span style={{ width: 8, height: 8, borderRadius: '50%', background: 'var(--income)' }} /> Thu
+            <span style={{ display: 'inline-block', width: 8, height: 8, borderRadius: '50%', background: 'var(--income)', flexShrink: 0 }} /> Thu
           </span>
           <span className="flex items-center gap-1">
-            <span style={{ width: 8, height: 8, borderRadius: '50%', background: 'var(--orange)' }} /> Chi
+            <span style={{ display: 'inline-block', width: 8, height: 8, borderRadius: '50%', background: 'var(--orange)', flexShrink: 0 }} /> Chi
           </span>
           <span className="flex items-center gap-1">
-            <span style={{ width: 8, height: 8, borderRadius: '50%', background: 'var(--expense)' }} /> Nợ
+            <span style={{ display: 'inline-block', width: 8, height: 8, borderRadius: '50%', background: 'hsl(262, 60%, 55%)', flexShrink: 0 }} /> Nợ
           </span>
         </div>
       </div>
@@ -140,7 +142,7 @@ export function CalendarBlock({ transactions, debts, month, year, onEdit }: Cale
                   <span style={{ width: 7, height: 7, borderRadius: '50%', background: 'var(--orange)' }} />
                 )}
                 {c.hasDebt && (
-                  <span style={{ width: 7, height: 7, borderRadius: '50%', background: 'var(--expense)' }} />
+                  <span style={{ width: 7, height: 7, borderRadius: '50%', background: 'hsl(262, 60%, 55%)' }} />
                 )}
               </div>
             </button>
@@ -151,7 +153,7 @@ export function CalendarBlock({ transactions, debts, month, year, onEdit }: Cale
       <DayDetailSheet
         date={selectedDate}
         transactions={transactions}
-        debts={debts}
+        sharedDebts={sharedDebts}
         filterType="all"
         onEdit={onEdit}
         onClose={() => setSelectedDay(null)}

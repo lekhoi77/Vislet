@@ -7,39 +7,39 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { useAppStore } from '@/store/app-store';
-import { BudgetIcon, BUDGET_ICON_NAMES } from '@/lib/icons';
+import { CategoryIcon, CATEGORY_ICON_NAMES } from '@/lib/icons';
 import { Plus, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 
-interface AddBudgetSheetProps {
+interface AddCategorySheetProps {
   open: boolean;
   onClose: () => void;
 }
 
-export function AddBudgetSheet({ open, onClose }: AddBudgetSheetProps) {
-  const { customBudgets, addCustomBudget, removeCustomBudget } = useAppStore();
+export function AddCategorySheet({ open, onClose }: AddCategorySheetProps) {
+  const { customCategories, addCustomCategory, removeCustomCategory } = useAppStore();
   const [label, setLabel] = useState('');
   const [icon, setIcon] = useState('ShoppingCart');
 
   const handleAdd = async () => {
     if (!label.trim()) return;
     try {
-      await addCustomBudget(label, icon);
+      await addCustomCategory(label, icon);
       setLabel('');
       setIcon('ShoppingCart');
-      toast.success('Đã thêm mục tiêu');
+      toast.success('Đã thêm danh mục');
     } catch (err) {
       toast.error(`Lỗi: ${(err as { message?: string })?.message ?? 'Không thể thêm'}`);
     }
   };
 
-  const { expanded, sheetStyle, handleProps } = useDraggableSheet('add-budget-expanded', true);
+  const { expanded, sheetStyle, handleProps } = useDraggableSheet('add-category-expanded', true);
 
   return (
     <Sheet open={open} onOpenChange={v => !v && onClose()}>
       <SheetContent
-        showCloseButton={false}
+       
         side="bottom"
         className="rounded-t-2xl gap-0 flex flex-col"
         style={{ padding: 0, background: 'var(--background)', ...sheetStyle }}
@@ -56,7 +56,7 @@ export function AddBudgetSheet({ open, onClose }: AddBudgetSheetProps) {
           <div className="px-5 pb-3">
             <SheetHeader className="p-0">
               <SheetTitle className="text-base font-semibold text-left" style={{ color: 'var(--foreground)' }}>
-                Quản lý mục tiêu
+                Quản lý danh mục
               </SheetTitle>
             </SheetHeader>
           </div>
@@ -66,7 +66,7 @@ export function AddBudgetSheet({ open, onClose }: AddBudgetSheetProps) {
           {/* Name */}
           <div className="flex flex-col gap-2">
             <Label className="text-sm font-medium tracking-wide uppercase" style={{ color: 'var(--muted-foreground)' }}>
-              Tên mục tiêu
+              Tên danh mục
             </Label>
             <Input
               value={label}
@@ -84,7 +84,7 @@ export function AddBudgetSheet({ open, onClose }: AddBudgetSheetProps) {
               Chọn icon
             </Label>
             <div className="grid grid-cols-6 gap-2">
-              {BUDGET_ICON_NAMES.map(name => (
+              {CATEGORY_ICON_NAMES.map(name => (
                 <button
                   key={name}
                   type="button"
@@ -99,7 +99,7 @@ export function AddBudgetSheet({ open, onClose }: AddBudgetSheetProps) {
                   }}
                   title={name}
                 >
-                  <BudgetIcon name={name} size={18} style={{ color: icon === name ? 'var(--primary)' : 'var(--muted-foreground)' }} />
+                  <CategoryIcon name={name} size={18} style={{ color: icon === name ? 'var(--primary)' : 'var(--muted-foreground)' }} />
                 </button>
               ))}
             </div>
@@ -112,32 +112,32 @@ export function AddBudgetSheet({ open, onClose }: AddBudgetSheetProps) {
             className="w-full h-11 rounded-xl text-sm font-semibold flex items-center gap-2"
             style={{ background: 'var(--primary)', color: 'var(--primary-foreground)' }}
           >
-            <Plus size={15} /> Thêm mục tiêu
+            <Plus size={15} /> Thêm danh mục
           </Button>
 
-          {/* Existing custom budgets */}
-          {customBudgets.length > 0 && (
+          {/* Existing custom categories */}
+          {customCategories.length > 0 && (
             <div className="flex flex-col gap-2">
               <Label className="text-sm font-medium tracking-wide uppercase" style={{ color: 'var(--muted-foreground)' }}>
-                Mục tiêu đã thêm
+                Danh mục đã thêm
               </Label>
               <div className="rounded-xl overflow-hidden" style={{ border: '1px solid var(--border)' }}>
-                {customBudgets.map((b, i) => (
+                {customCategories.map((c, i) => (
                   <div
-                    key={b.id}
+                    key={c.id}
                     className="flex items-center justify-between px-4 py-3"
                     style={{ borderTop: i > 0 ? '1px solid var(--border)' : 'none', background: 'var(--card)' }}
                   >
                     <div className="flex items-center gap-2.5">
                       <div className="w-8 h-8 flex items-center justify-center rounded-lg" style={{ background: 'var(--muted)' }}>
-                        <BudgetIcon name={b.icon} size={16} style={{ color: 'var(--primary)' }} />
+                        <CategoryIcon name={c.icon} size={16} style={{ color: 'var(--primary)' }} />
                       </div>
-                      <span className="text-sm font-medium" style={{ color: 'var(--foreground)' }}>{b.label}</span>
+                      <span className="text-sm font-medium" style={{ color: 'var(--foreground)' }}>{c.label}</span>
                     </div>
                     <button
-                      onClick={() => { removeCustomBudget(b.id); toast.success('Đã xoá'); }}
+                      onClick={() => { removeCustomCategory(c.id); toast.success('Đã xoá'); }}
                       className="p-1.5 rounded-lg hover:bg-[var(--muted)] transition-colors"
-                      style={{ color: 'var(--expense)' }}
+                      style={{ color: 'var(--destructive)' }}
                     >
                       <Trash2 size={14} />
                     </button>
@@ -158,3 +158,6 @@ export function AddBudgetSheet({ open, onClose }: AddBudgetSheetProps) {
     </Sheet>
   );
 }
+
+// Backward-compat alias
+export const AddBudgetSheet = AddCategorySheet;

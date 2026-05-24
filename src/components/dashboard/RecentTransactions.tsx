@@ -63,7 +63,7 @@ export function RecentTransactions({ transactions, month, year, onViewAll, onEdi
             </div>
             <span
               className="text-sm font-semibold amount shrink-0"
-              style={{ color: tx.type === 'income' ? 'var(--income)' : 'var(--expense)' }}
+              style={{ color: tx.type === 'income' ? 'var(--up)' : 'var(--down)' }}
             >
               {tx.type === 'income' ? '+' : '-'}{formatVND(tx.amount)}
             </span>

@@ -4,7 +4,7 @@ import './globals.css';
 export const metadata: Metadata = {
   title: 'Vislet — Quản lý tài chính cá nhân',
   description:
-    'Theo dõi thu nhập, chi tiêu, mục tiêu tài chính và quản lý nợ một cách đơn giản.',
+    'Theo dõi thu nhập, chi tiêu, danh mục tài chính và quản lý nợ một cách đơn giản.',
   keywords: ['tài chính', 'chi tiêu', 'thu nhập', 'quản lý nợ', 'tiết kiệm'],
   applicationName: 'Vislet',
   appleWebApp: {

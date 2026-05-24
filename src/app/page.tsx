@@ -12,7 +12,7 @@ import { TransactionForm } from '@/components/transactions/TransactionForm';
 import { TransactionList } from '@/components/transactions/TransactionList';
 import { TransactionPane } from '@/components/transactions/TransactionPane';
 import { DebtForm } from '@/components/debts/DebtForm';
-import { DebtCard } from '@/components/debts/DebtCard';
+import { SharedDebtCard } from '@/components/debts/SharedDebtCard';
 import { DebtStats } from '@/components/debts/DebtStats';
 import { SummaryCards } from '@/components/dashboard/SummaryCards';
 import { SourceBlocks } from '@/components/dashboard/SourceBlocks';
@@ -25,18 +25,20 @@ import { CalendarBlock } from '@/components/dashboard/CalendarBlock';
 import { ExpenseHeatmap } from '@/components/dashboard/ExpenseHeatmap';
 import { AddSourceSheet } from '@/components/dashboard/AddSourceSheet';
 import { AddBudgetSheet } from '@/components/dashboard/AddBudgetSheet';
-import { Transaction, Debt, TransactionType } from '@/lib/types';
+import { Transaction, TransactionType } from '@/lib/types';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Separator } from '@/components/ui/separator';
 import { EmptyState } from '@/components/shared/EmptyState';
-import { Handshake, LayoutDashboard, ArrowLeftRight, Target, Plus } from 'lucide-react';
+import { Handshake, LayoutDashboard, ArrowLeftRight, Tags, Plus } from 'lucide-react';
 import { Toaster } from '@/components/ui/sonner';
 
-type ActiveTab = 'overview' | 'transactions' | 'goals' | 'debts';
-type DebtFilter = 'open' | 'settled';
+type ActiveTab = 'overview' | 'transactions' | 'categories' | 'debts';
+type DebtFilter = 'owed_by_me' | 'owed_to_me' | 'settled';
+
+const OPEN_DEBT_STATUSES = ['pending', 'active', 'pending_confirm'] as const;
 
 export default function HomePage() {
-  const { initApp, isLoaded, profiles, transactions, debts } = useAppStore();
+  const { initApp, isLoaded, profiles, transactions, sharedDebts, refreshSharedDebts, fetchNotifications } = useAppStore();
   const { user, isAuthLoading, initAuth } = useAuthStore();
 
   const [activeTab, setActiveTab] = useState<ActiveTab>('overview');
@@ -51,7 +53,6 @@ export default function HomePage() {
 
   // Debt form state
   const [debtFormOpen, setDebtFormOpen] = useState(false);
-  const [editingDebt, setEditingDebt] = useState<Debt | null>(null);
 
   // Month filter
   const now = new Date();
@@ -59,7 +60,7 @@ export default function HomePage() {
   const [year, setYear] = useState(now.getFullYear());
 
   // Debt filter tab
-  const [debtFilter, setDebtFilter] = useState<DebtFilter>('open');
+  const [debtFilter, setDebtFilter] = useState<DebtFilter>('owed_to_me');
 
   // Source/budget manager sheets
   const [showAddSource, setShowAddSource] = useState(false);
@@ -80,7 +81,7 @@ export default function HomePage() {
       // Nếu account vừa đổi (login tài khoản khác) thì đóng overlay
       if (prevUserIdRef.current && prevUserIdRef.current !== user.id) {
         setShowLoginOverlay(false);
-        useAppStore.setState({ profiles: [], currentProfileId: null, transactions: [], debts: [], customSources: [], customBudgets: [], isLoaded: false });
+        useAppStore.setState({ profiles: [], currentProfileId: null, transactions: [], sharedDebts: [], notifications: [], debtContacts: [], customSources: [], customCategories: [], isLoaded: false });
       }
       prevUserIdRef.current = user.id;
       initApp();
@@ -137,11 +138,6 @@ export default function HomePage() {
     setTxFormOpen(true);
   }, []);
 
-  const handleEditDebt = useCallback((debt: Debt) => {
-    setEditingDebt(debt);
-    setDebtFormOpen(true);
-  }, []);
-
   const handleSelectMonth = useCallback((m: number, y: number) => {
     setMonth(m);
     setYear(y);
@@ -184,7 +180,12 @@ export default function HomePage() {
     return () => window.removeEventListener('keydown', handler);
   }, [handleOpenIncomForm, handleOpenExpenseForm, txFormOpen, txFormType]);
 
-  const filteredDebts = debts.filter(d => debtFilter === 'open' ? !d.settled : d.settled);
+  const filteredDebts = sharedDebts.filter(d => {
+    if (debtFilter === 'settled') return d.status === 'settled';
+    if (!(OPEN_DEBT_STATUSES as readonly string[]).includes(d.status)) return false;
+    if (debtFilter === 'owed_by_me') return d.debtorUserId === user?.id;
+    return d.creditorUserId === user?.id;
+  });
   const monthTxs = transactions.filter(tx => {
     const d = new Date(tx.date);
     return d.getMonth() + 1 === month && d.getFullYear() === year;
@@ -220,7 +221,7 @@ export default function HomePage() {
   const DESKTOP_TABS = [
     { value: 'overview' as ActiveTab, label: 'Tổng quan', icon: LayoutDashboard },
     { value: 'transactions' as ActiveTab, label: 'Giao dịch', icon: ArrowLeftRight },
-    { value: 'goals' as ActiveTab, label: 'Mục tiêu', icon: Target },
+    { value: 'categories' as ActiveTab, label: 'Danh mục', icon: Tags },
     { value: 'debts' as ActiveTab, label: 'Nợ', icon: Handshake },
   ];
 
@@ -263,7 +264,7 @@ export default function HomePage() {
           <div className="p-3 flex flex-col gap-2" style={{ borderTop: '1px solid var(--border-subtle)' }}>
             {activeTab === 'debts' ? (
               <button
-                onClick={() => { setEditingDebt(null); setDebtFormOpen(true); }}
+                onClick={() => setDebtFormOpen(true)}
                 className="flex items-center gap-2 h-10 md:h-12 px-4 rounded-xl font-semibold text-sm w-full justify-center transition-all hover:opacity-90 active:scale-95"
                 style={{ background: 'var(--primary)', color: 'var(--primary-foreground)' }}
               >
@@ -326,14 +327,16 @@ export default function HomePage() {
               <div className="flex flex-col md:h-[280px]">
                 <GoalBlocks
                   transactions={transactions}
-                  title="Mục tiêu"
+                  month={month}
+                  year={year}
+                  title="Danh mục"
                   onAdd={() => setShowAddBudget(true)}
-                  addLabel="Thêm mục tiêu"
+                  addLabel="Thêm danh mục"
                 />
               </div>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <CalendarBlock transactions={transactions} debts={debts} month={month} year={year} onEdit={handleEditTx} />
+              <CalendarBlock transactions={transactions} sharedDebts={sharedDebts} month={month} year={year} onEdit={handleEditTx} />
               <ExpenseHeatmap transactions={transactions} month={month} year={year} onEdit={handleEditTx} />
             </div>
           </div>
@@ -350,9 +353,9 @@ export default function HomePage() {
           </div>
         )}
 
-        {/* ─── GOALS TAB ─── */}
-        {activeTab === 'goals' && (
-          <div key={`goals-${contentKey}`} className="page-appear p-5 pt-5">
+        {/* ─── CATEGORIES TAB ─── */}
+        {activeTab === 'categories' && (
+          <div key={`categories-${contentKey}`} className="page-appear p-5 pt-5">
             <GoalOverview transactions={transactions} month={month} year={year} onEdit={handleEditTx} />
           </div>
         )}
@@ -361,16 +364,22 @@ export default function HomePage() {
         {activeTab === 'debts' && (
           <div key={`debts-${contentKey}`} className="page-appear flex flex-col gap-5 p-5 pt-5">
             <p className="text-overline">Quản lý nợ</p>
-            <DebtStats debts={debts} />
+            <DebtStats sharedDebts={sharedDebts} currentUserId={user?.id ?? ''} />
 
             {/* Filter tabs */}
             <Tabs value={debtFilter} onValueChange={v => setDebtFilter(v as DebtFilter)}>
               <TabsList className="w-full h-10 bg-[var(--muted)] rounded-xl p-1">
                 <TabsTrigger
-                  value="open"
+                  value="owed_to_me"
                   className="flex-1 text-sm rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-sm"
                 >
-                  Đang mở
+                  Họ nợ tôi
+                </TabsTrigger>
+                <TabsTrigger
+                  value="owed_by_me"
+                  className="flex-1 text-sm rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-sm"
+                >
+                  Tôi đang nợ
                 </TabsTrigger>
                 <TabsTrigger
                   value="settled"
@@ -384,13 +393,13 @@ export default function HomePage() {
             {filteredDebts.length === 0 ? (
               <EmptyState
                 icon={Handshake}
-                title={debtFilter === 'open' ? 'Chưa có khoản nợ nào' : 'Chưa có khoản nợ đã xử lý'}
-                subtitle={debtFilter === 'open' ? 'Nhấn + Ghi nợ để thêm' : undefined}
+                title={debtFilter === 'settled' ? 'Chưa có khoản nợ đã xử lý' : 'Chưa có khoản nợ nào'}
+                subtitle={debtFilter === 'settled' ? undefined : 'Nhấn + Ghi nợ để thêm'}
               />
             ) : (
               <div className="flex flex-col gap-3">
                 {filteredDebts.map(d => (
-                  <DebtCard key={d.id} debt={d} onEdit={handleEditDebt} />
+                  <SharedDebtCard key={d.id} debt={d} currentUserId={user?.id ?? ''} />
                 ))}
               </div>
             )}
@@ -403,7 +412,7 @@ export default function HomePage() {
             activeTab={activeTab}
             onIncome={handleOpenIncomForm}
             onExpense={handleOpenExpenseForm}
-            onDebt={() => { setEditingDebt(null); setDebtFormOpen(true); }}
+            onDebt={() => setDebtFormOpen(true)}
             isFirstTime={isFirstTime}
           />
         </div>
@@ -431,8 +440,7 @@ export default function HomePage() {
       />
       <DebtForm
         open={debtFormOpen}
-        onClose={() => { setDebtFormOpen(false); setEditingDebt(null); }}
-        editingDebt={editingDebt}
+        onClose={() => setDebtFormOpen(false)}
       />
 
       <AddSourceSheet open={showAddSource} onClose={() => setShowAddSource(false)} />

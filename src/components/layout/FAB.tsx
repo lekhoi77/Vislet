@@ -3,7 +3,7 @@
 import { Plus } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
-type ActiveTab = 'overview' | 'transactions' | 'goals' | 'debts';
+type ActiveTab = 'overview' | 'transactions' | 'categories' | 'debts';
 
 interface FABProps {
   activeTab: ActiveTab;
@@ -66,10 +66,10 @@ export function FAB({ activeTab, onIncome, onExpense, onDebt, isFirstTime }: FAB
       <button
         id="fab-expense"
         onClick={onExpense}
-        className="flex items-center gap-2 h-12 px-5 rounded-full font-semibold text-sm transition-all hover:bg-[var(--muted)] active:scale-95"
+        className="flex items-center gap-2 h-12 px-5 rounded-full font-semibold text-sm transition-all hover:bg-[var(--orange-soft)] active:scale-95"
         style={{
-          border: '1.5px solid var(--border)',
-          color: 'var(--foreground)',
+          border: '1.5px solid var(--orange)',
+          color: 'var(--orange)',
           background: 'white',
           boxShadow: 'var(--shadow-md)',
         }}

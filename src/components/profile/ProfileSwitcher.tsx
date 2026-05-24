@@ -32,7 +32,7 @@ export function ProfileSwitcher({ onAddAccount }: ProfileSwitcherProps) {
       transactions: [],
       debts: [],
       customSources: [],
-      customBudgets: [],
+      customCategories: [],
       isLoaded: false,
     });
     await signOut();
@@ -122,8 +122,8 @@ export function ProfileSwitcher({ onAddAccount }: ProfileSwitcherProps) {
           onClick={handleSignOut}
           className="flex items-center gap-2 cursor-pointer"
         >
-          <LogOut size={14} style={{ color: 'var(--expense)' }} />
-          <span className="text-sm" style={{ color: 'var(--expense)' }}>
+          <LogOut size={14} style={{ color: 'var(--destructive)' }} />
+          <span className="text-sm" style={{ color: 'var(--destructive)' }}>
             Đăng xuất
           </span>
         </DropdownMenuItem>

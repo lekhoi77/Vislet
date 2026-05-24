@@ -3,9 +3,8 @@ import fs from 'node:fs';
 import path from 'node:path';
 
 /**
- * Dynamic PWA icon — converts /public/logo.svg into 512x512 PNG so
- * Windows/Android PWA installers (which often require PNG) show the real
- * Vislet logo instead of falling back to a default.
+ * Dynamic PWA / tab icon — converts /public/logo-small.svg into 512x512 PNG so
+ * Windows/Android PWA installers (which often require PNG) show the app icon.
  */
 
 export const runtime = 'nodejs';
@@ -13,7 +12,7 @@ export const size = { width: 512, height: 512 };
 export const contentType = 'image/png';
 
 export default function Icon() {
-  const svgPath = path.join(process.cwd(), 'public', 'logo.svg');
+  const svgPath = path.join(process.cwd(), 'public', 'logo-small.svg');
   const svg = fs.readFileSync(svgPath, 'utf-8');
   const dataUrl = `data:image/svg+xml;base64,${Buffer.from(svg).toString('base64')}`;
 

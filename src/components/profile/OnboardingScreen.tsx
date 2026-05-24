@@ -61,10 +61,10 @@ export function OnboardingScreen({ onDone }: OnboardingScreenProps) {
             }}
             placeholder="Nhập tên..."
             onKeyDown={e => e.key === 'Enter' && handleStart()}
-            className={error ? 'border-[var(--expense)]' : ''}
+            className={error ? 'border-[var(--destructive)]' : ''}
             autoFocus
           />
-          {error && <p className="text-sm" style={{ color: 'var(--expense)' }}>{error}</p>}
+          {error && <p className="text-sm" style={{ color: 'var(--destructive)' }}>{error}</p>}
         </div>
 
         <Button

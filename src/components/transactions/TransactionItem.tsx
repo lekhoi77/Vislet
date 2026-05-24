@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { Transaction } from '@/lib/types';
 import { formatVND, formatDate } from '@/lib/format';
-import { resolveSourceLabel, resolveGoalLabel } from '@/lib/constants';
+import { resolveSourceLabel, resolveCategoryLabel } from '@/lib/constants';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
@@ -35,15 +35,15 @@ interface TransactionItemProps {
 }
 
 export function TransactionItem({ tx, onEdit, highlightQuery = '' }: TransactionItemProps) {
-  const { deleteTransaction, customSources, customBudgets } = useAppStore();
+  const { deleteTransaction, customSources, customCategories } = useAppStore();
   const [showDetail, setShowDetail] = useState(false);
   const [showDelete, setShowDelete] = useState(false);
 
   const isIncome = tx.type === 'income';
   const amountStr = (isIncome ? '+' : '-') + formatVND(tx.amount);
   const sourceLabel = resolveSourceLabel(tx.source, customSources);
-  const goalLabel = resolveGoalLabel(tx.goal, customBudgets);
-  const hasGoal = tx.goal && tx.goal !== 'none';
+  const categoryLabel = resolveCategoryLabel(tx.category, customCategories);
+  const hasCategory = tx.category && tx.category !== 'none';
 
   const handleDelete = () => {
     deleteTransaction(tx.id);
@@ -65,7 +65,7 @@ export function TransactionItem({ tx, onEdit, highlightQuery = '' }: Transaction
           style={{
             width: 40,
             height: 40,
-            background: isIncome ? 'var(--primary-soft)' : 'hsl(0, 65%, 96%)',
+            background: isIncome ? 'var(--primary-soft)' : 'var(--orange-soft)',
           }}
         >
           {isIncome
@@ -85,7 +85,7 @@ export function TransactionItem({ tx, onEdit, highlightQuery = '' }: Transaction
             />
             <p
               className="flex-shrink-0 font-semibold text-sm amount"
-              style={{ color: isIncome ? 'var(--income)' : 'var(--expense)' }}
+              style={{ color: isIncome ? 'var(--up)' : 'var(--down)' }}
             >
               {amountStr}
             </p>
@@ -101,13 +101,13 @@ export function TransactionItem({ tx, onEdit, highlightQuery = '' }: Transaction
             >
               {sourceLabel}
             </Badge>
-            {hasGoal && (
+            {hasCategory && (
               <Badge
                 variant="secondary"
                 className="text-[11px] px-1.5 py-0 h-auto font-medium border-0"
                 style={{ background: 'var(--muted)', color: 'var(--muted-foreground)' }}
               >
-                {goalLabel}
+                {categoryLabel}
               </Badge>
             )}
           </div>
@@ -146,7 +146,7 @@ export function TransactionItem({ tx, onEdit, highlightQuery = '' }: Transaction
             </div>
             <div className="flex items-center justify-between">
               <span className="text-sm" style={{ color: 'var(--muted-foreground)' }}>Số tiền</span>
-              <span className="text-base font-bold amount" style={{ color: isIncome ? 'var(--income)' : 'var(--expense)' }}>
+              <span className="text-base font-bold amount" style={{ color: isIncome ? 'var(--up)' : 'var(--down)' }}>
                 {amountStr}
               </span>
             </div>
@@ -154,10 +154,10 @@ export function TransactionItem({ tx, onEdit, highlightQuery = '' }: Transaction
               <span className="text-sm" style={{ color: 'var(--muted-foreground)' }}>Nguồn tiền</span>
               <span className="text-sm font-medium" style={{ color: 'var(--foreground)' }}>{sourceLabel}</span>
             </div>
-            {hasGoal && (
+            {hasCategory && (
               <div className="flex items-center justify-between">
-                <span className="text-sm" style={{ color: 'var(--muted-foreground)' }}>Mục tiêu</span>
-                <span className="text-sm font-medium" style={{ color: 'var(--foreground)' }}>{goalLabel}</span>
+                <span className="text-sm" style={{ color: 'var(--muted-foreground)' }}>Danh mục</span>
+                <span className="text-sm font-medium" style={{ color: 'var(--foreground)' }}>{categoryLabel}</span>
               </div>
             )}
             <div className="flex items-center justify-between">
@@ -186,7 +186,7 @@ export function TransactionItem({ tx, onEdit, highlightQuery = '' }: Transaction
             </Button>
             <Button
               className="flex-1 h-11 gap-2"
-              style={{ background: 'var(--expense)', color: '#fff' }}
+              style={{ background: 'var(--destructive)', color: '#fff' }}
               onClick={() => setShowDelete(true)}
             >
               <Trash2 size={15} />
@@ -209,7 +209,7 @@ export function TransactionItem({ tx, onEdit, highlightQuery = '' }: Transaction
             <AlertDialogCancel>Huỷ</AlertDialogCancel>
             <AlertDialogAction
               onClick={handleDelete}
-              style={{ background: 'var(--expense)', color: '#fff' }}
+              style={{ background: 'var(--destructive)', color: '#fff' }}
             >
               Xoá
             </AlertDialogAction>

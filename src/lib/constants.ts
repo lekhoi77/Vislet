@@ -1,7 +1,7 @@
-import type { CustomSource, CustomBudget } from './types';
+import type { CustomSource, CustomCategory } from './types';
 
 export const BUILT_IN_SOURCES = ['bank', 'cash', 'momo'] as const;
-export const BUILT_IN_GOALS = ['none', 'saving', 'travel', 'soon'] as const;
+export const BUILT_IN_CATEGORIES = ['none', 'saving', 'travel', 'soon'] as const;
 
 // ─── Label resolvers (hỗ trợ cả built-in và custom) ─────────
 
@@ -11,21 +11,21 @@ export function resolveSourceLabel(sourceId: string, customSources: CustomSource
     ?? sourceId;
 }
 
-export function resolveGoalLabel(goalId: string, customBudgets: CustomBudget[] = []): string {
-  return GOAL_LABELS[goalId]
-    ?? customBudgets.find(b => b.id === goalId)?.label
-    ?? goalId;
+export function resolveCategoryLabel(categoryId: string, customCategories: CustomCategory[] = []): string {
+  return CATEGORY_LABELS[categoryId]
+    ?? customCategories.find(c => c.id === categoryId)?.label
+    ?? categoryId;
 }
 
-export function isBuiltInGoal(goalId: string): boolean {
-  return (BUILT_IN_GOALS as readonly string[]).includes(goalId);
+export function isBuiltInCategory(categoryId: string): boolean {
+  return (BUILT_IN_CATEGORIES as readonly string[]).includes(categoryId);
 }
 
 export function isBuiltInSource(sourceId: string): boolean {
   return (BUILT_IN_SOURCES as readonly string[]).includes(sourceId);
 }
 
-export const BUDGET_ICONS = [
+export const CATEGORY_ICONS = [
   'PiggyBank','ShoppingCart','Coffee','Car','Home','Heart',
   'Briefcase','GraduationCap','Plane','Music','Dumbbell','Gift',
   'Smartphone','Shirt','Baby','Utensils','Zap','Star',
@@ -47,14 +47,14 @@ export const SOURCE_LABELS: Record<string, string> = {
   momo: 'MoMo',
 };
 
-export const GOAL_LABELS: Record<string, string> = {
+export const CATEGORY_LABELS: Record<string, string> = {
   none: 'Không phân loại',
   saving: 'Tiết kiệm',
   travel: 'Du lịch',
   soon: 'Sắp dùng',
 };
 
-export const GOAL_DESCRIPTIONS: Record<string, string> = {
+export const CATEGORY_DESCRIPTIONS: Record<string, string> = {
   saving: 'Không rút — chỉ tích lũy',
   travel: 'Dành cho chuyến đi',
   soon: 'Tiền chờ chi tiêu',
@@ -63,7 +63,7 @@ export const GOAL_DESCRIPTIONS: Record<string, string> = {
 export const MAX_PROFILES = 5;
 export const PAGE_SIZE = 20;
 
-// ─── Goal colors (dùng chung cho GoalBlocks, ExpenseBreakdown, GoalOverview) ─
+// ─── Category colors (dùng chung cho CategoryBlocks, ExpenseBreakdown, CategoryOverview) ─
 export const CATEGORY_COLORS = [
   '#3b82f6', // blue     — saving
   '#f59e0b', // amber    — travel
@@ -77,18 +77,18 @@ export const CATEGORY_COLORS = [
   '#14b8a6', // teal
 ];
 
-/** Màu cố định cho built-in goals */
-const BUILT_IN_GOAL_COLOR: Record<string, string> = {
+/** Màu cố định cho built-in categories */
+const BUILT_IN_CATEGORY_COLOR: Record<string, string> = {
   saving: CATEGORY_COLORS[0],
   travel: CATEGORY_COLORS[1],
   soon:   CATEGORY_COLORS[2],
   none:   CATEGORY_COLORS[3],
 };
 
-/** Trả về màu nhất quán cho một goalId (built-in hoặc custom) */
-export function getGoalColor(goalId: string, customBudgets: CustomBudget[]): string {
-  if (BUILT_IN_GOAL_COLOR[goalId]) return BUILT_IN_GOAL_COLOR[goalId];
-  const idx = customBudgets.findIndex(b => b.id === goalId);
-  // custom goals bắt đầu từ index 4 trở đi
+/** Trả về màu nhất quán cho một categoryId (built-in hoặc custom) */
+export function getCategoryColor(categoryId: string, customCategories: CustomCategory[]): string {
+  if (BUILT_IN_CATEGORY_COLOR[categoryId]) return BUILT_IN_CATEGORY_COLOR[categoryId];
+  const idx = customCategories.findIndex(c => c.id === categoryId);
+  // custom categories bắt đầu từ index 4 trở đi
   return CATEGORY_COLORS[(4 + Math.max(0, idx)) % CATEGORY_COLORS.length];
 }

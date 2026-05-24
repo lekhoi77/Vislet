@@ -1,15 +1,15 @@
 'use client';
 
 import { useState } from 'react';
-import { Transaction, TransactionGoal, TransactionSource } from '@/lib/types';
+import { Transaction, TransactionCategory, TransactionSource } from '@/lib/types';
 import { formatVND } from '@/lib/format';
-import { resolveGoalLabel, resolveSourceLabel, getGoalColor } from '@/lib/constants';
+import { resolveCategoryLabel, resolveSourceLabel, getCategoryColor } from '@/lib/constants';
 import { useAppStore } from '@/store/app-store';
-import { BudgetIcon } from '@/lib/icons';
+import { CategoryIcon } from '@/lib/icons';
 import { Building2, Wallet, Smartphone, PiggyBank, Plane, Clock, Tag, CircleDot, ChevronDown } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
-type FilterBy = 'goal' | 'source';
+type FilterBy = 'category' | 'source';
 type SortBy = 'amount' | 'count';
 
 interface ExpenseBreakdownProps {
@@ -18,7 +18,7 @@ interface ExpenseBreakdownProps {
   year: number;
 }
 
-const GOAL_ICONS: Record<TransactionGoal, React.ReactNode> = {
+const CATEGORY_ICONS: Record<TransactionCategory, React.ReactNode> = {
   none: <Tag size={14} />,
   saving: <PiggyBank size={14} />,
   travel: <Plane size={14} />,
@@ -32,8 +32,8 @@ const SOURCE_ICONS: Record<TransactionSource, React.ReactNode> = {
 };
 
 export function ExpenseBreakdown({ transactions, month, year }: ExpenseBreakdownProps) {
-  const { customSources, customBudgets } = useAppStore();
-  const [filterBy, setFilterBy] = useState<FilterBy>('goal');
+  const { customSources, customCategories } = useAppStore();
+  const [filterBy, setFilterBy] = useState<FilterBy>('category');
   const [sortBy, setSortBy] = useState<SortBy>('amount');
 
   const monthExpenses = transactions.filter(tx => {
@@ -43,17 +43,17 @@ export function ExpenseBreakdown({ transactions, month, year }: ExpenseBreakdown
 
   const total = monthExpenses.reduce((s, t) => s + t.amount, 0);
 
-  type GroupKey = TransactionGoal | TransactionSource;
+  type GroupKey = TransactionCategory | TransactionSource;
   const groups = new Map<GroupKey, { amount: number; count: number }>();
 
-  const keys: GroupKey[] = filterBy === 'goal'
+  const keys: GroupKey[] = filterBy === 'category'
     ? ['none', 'saving', 'travel', 'soon']
     : ['bank', 'cash', 'momo'];
 
   keys.forEach(k => groups.set(k, { amount: 0, count: 0 }));
 
   monthExpenses.forEach(tx => {
-    const key = filterBy === 'goal' ? tx.goal : tx.source;
+    const key = filterBy === 'category' ? tx.category : tx.source;
     if (!key) return;
     let g = groups.get(key);
     if (!g) {
@@ -76,12 +76,12 @@ export function ExpenseBreakdown({ transactions, month, year }: ExpenseBreakdown
       {/* Controls */}
       <div className="flex items-center justify-between px-4 py-3" style={{ borderBottom: '1px solid var(--border)' }}>
         <p className="text-sm font-semibold uppercase tracking-wide" style={{ color: 'var(--muted-foreground)' }}>
-          Chi tiêu theo {filterBy === 'goal' ? 'mục tiêu' : 'nguồn'}
+          Chi tiêu theo {filterBy === 'category' ? 'danh mục' : 'nguồn'}
         </p>
         <div className="flex items-center gap-2">
           {/* Filter toggle */}
           <div className="flex rounded-lg overflow-hidden" style={{ border: '1px solid var(--border)' }}>
-            {(['goal', 'source'] as FilterBy[]).map(f => (
+            {(['category', 'source'] as FilterBy[]).map(f => (
               <button
                 key={f}
                 onClick={() => setFilterBy(f)}
@@ -91,7 +91,7 @@ export function ExpenseBreakdown({ transactions, month, year }: ExpenseBreakdown
                   color: filterBy === f ? 'var(--primary-foreground)' : 'var(--muted-foreground)',
                 }}
               >
-                {f === 'goal' ? 'Mục tiêu' : 'Nguồn'}
+                {f === 'category' ? 'Danh mục' : 'Nguồn'}
               </button>
             ))}
           </div>
@@ -114,17 +114,17 @@ export function ExpenseBreakdown({ transactions, month, year }: ExpenseBreakdown
       ) : (
         <div className="flex flex-col">
           {rows.map(([key, g], i) => {
-            const label = filterBy === 'goal'
-              ? resolveGoalLabel(key, customBudgets)
+            const label = filterBy === 'category'
+              ? resolveCategoryLabel(key, customCategories)
               : resolveSourceLabel(key, customSources);
-            const customBudget = customBudgets.find(b => b.id === key);
+            const customCategory = customCategories.find(c => c.id === key);
             const customSource = customSources.find(s => s.id === key);
-            const icon = filterBy === 'goal'
-              ? (GOAL_ICONS[key as TransactionGoal] ?? (customBudget ? <BudgetIcon name={customBudget.icon} size={14} /> : <Tag size={14} />))
+            const icon = filterBy === 'category'
+              ? (CATEGORY_ICONS[key as TransactionCategory] ?? (customCategory ? <CategoryIcon name={customCategory.icon} size={14} /> : <Tag size={14} />))
               : (SOURCE_ICONS[key as TransactionSource] ?? (customSource ? <CircleDot size={14} /> : <CircleDot size={14} />));
             const pct = total > 0 ? (g.amount / total) * 100 : 0;
-            const barColor = filterBy === 'goal'
-              ? getGoalColor(key, customBudgets)
+            const barColor = filterBy === 'category'
+              ? getCategoryColor(key, customCategories)
               : 'var(--primary)';
 
             return (
@@ -137,8 +137,8 @@ export function ExpenseBreakdown({ transactions, month, year }: ExpenseBreakdown
                   <div className="flex items-center gap-2">
                     <div className="flex items-center justify-center w-6 h-6 rounded-lg shrink-0"
                       style={{
-                        background: filterBy === 'goal' ? `${barColor}20` : 'var(--primary-soft)',
-                        color: filterBy === 'goal' ? barColor : 'var(--primary)',
+                        background: filterBy === 'category' ? `${barColor}20` : 'var(--primary-soft)',
+                        color: filterBy === 'category' ? barColor : 'var(--primary)',
                       }}>
                       {icon}
                     </div>

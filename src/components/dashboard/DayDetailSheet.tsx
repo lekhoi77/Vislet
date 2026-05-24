@@ -1,9 +1,10 @@
 'use client';
 
 import { useMemo } from 'react';
-import { Transaction, Debt } from '@/lib/types';
+import { Transaction, SharedDebt } from '@/lib/types';
+import { useAuthStore } from '@/store/auth-store';
 import { formatVND } from '@/lib/format';
-import { resolveSourceLabel, resolveGoalLabel } from '@/lib/constants';
+import { resolveSourceLabel, resolveCategoryLabel } from '@/lib/constants';
 import { useAppStore } from '@/store/app-store';
 import { useDraggableSheet } from '@/lib/use-draggable-sheet';
 import {
@@ -19,7 +20,7 @@ interface DayDetailSheetProps {
   date: Date | null;
   transactions: Transaction[];
   filterType?: 'income' | 'expense' | 'all';
-  debts?: Debt[];
+  sharedDebts?: SharedDebt[];
   onEdit?: (tx: Transaction) => void;
   onClose: () => void;
 }
@@ -39,11 +40,12 @@ export function DayDetailSheet({
   date,
   transactions,
   filterType = 'all',
-  debts = [],
+  sharedDebts = [],
   onEdit,
   onClose,
 }: DayDetailSheetProps) {
-  const { customSources, customBudgets } = useAppStore();
+  const { customSources, customCategories } = useAppStore();
+  const currentUserId = useAuthStore(s => s.user?.id ?? '');
   const open = date !== null;
 
   const { expanded, sheetStyle, handleProps } = useDraggableSheet('day-detail-expanded', false);
@@ -58,8 +60,11 @@ export function DayDetailSheet({
 
   const dayDebts = useMemo(() => {
     if (!date) return [];
-    return debts.filter(d => d.dueDate && isSameDay(d.dueDate, date));
-  }, [date, debts]);
+    return sharedDebts.filter(d => {
+      const dateStr = d.dueDate ?? d.createdAt;
+      return dateStr && isSameDay(dateStr, date);
+    });
+  }, [date, sharedDebts]);
 
   const totalIncome = dayTxs.filter(t => t.type === 'income').reduce((s, t) => s + t.amount, 0);
   const totalExpense = dayTxs.filter(t => t.type === 'expense').reduce((s, t) => s + t.amount, 0);
@@ -78,7 +83,7 @@ export function DayDetailSheet({
     <Sheet open={open} onOpenChange={v => !v && onClose()}>
       <SheetContent
         side="bottom"
-        showCloseButton={false}
+       
         className="rounded-t-2xl gap-0 flex flex-col p-0"
         style={{ background: 'var(--background)', ...sheetStyle }}
       >
@@ -112,9 +117,9 @@ export function DayDetailSheet({
               )}
               {(filterType === 'all' || filterType === 'expense') && totalExpense > 0 && (
                 <div className="flex-1 flex flex-col gap-1 p-3 rounded-xl"
-                  style={{ background: 'hsl(0, 65%, 96%)' }}>
+                  style={{ background: 'var(--orange-soft)' }}>
                   <span className="text-[11px] font-semibold uppercase tracking-wide leading-none" style={{ color: 'var(--muted-foreground)' }}>Chi</span>
-                  <p className="text-sm font-bold amount leading-none" style={{ color: 'var(--expense)' }}>-{formatVND(totalExpense)}</p>
+                  <p className="text-sm font-bold amount leading-none" style={{ color: 'var(--down)' }}>-{formatVND(totalExpense)}</p>
                 </div>
               )}
             </div>
@@ -134,8 +139,8 @@ export function DayDetailSheet({
               {dayTxs.map(tx => {
                 const isIncome = tx.type === 'income';
                 const sourceLabel = resolveSourceLabel(tx.source, customSources);
-                const goalLabel = resolveGoalLabel(tx.goal, customBudgets);
-                const hasGoal = tx.goal && tx.goal !== 'none';
+                const categoryLabel = resolveCategoryLabel(tx.category, customCategories);
+                const hasCategory = tx.category && tx.category !== 'none';
 
                 return (
                   <button
@@ -145,7 +150,7 @@ export function DayDetailSheet({
                     style={{ background: 'var(--card)', border: '1px solid var(--border)' }}
                   >
                     <div className="flex items-center justify-center rounded-xl shrink-0"
-                      style={{ width: 36, height: 36, background: isIncome ? 'var(--primary-soft)' : 'hsl(0, 65%, 96%)' }}>
+                      style={{ width: 36, height: 36, background: isIncome ? 'var(--primary-soft)' : 'var(--orange-soft)' }}>
                       {isIncome
                         ? <ArrowDownLeft size={16} style={{ color: 'var(--primary)' }} />
                         : <ArrowUpRight size={16} style={{ color: 'var(--expense)' }} />
@@ -157,7 +162,7 @@ export function DayDetailSheet({
                           {tx.title}
                         </p>
                         <p className="text-sm font-semibold amount shrink-0"
-                          style={{ color: isIncome ? 'var(--income)' : 'var(--expense)' }}>
+                          style={{ color: isIncome ? 'var(--up)' : 'var(--down)' }}>
                           {isIncome ? '+' : '-'}{formatVND(tx.amount)}
                         </p>
                       </div>
@@ -166,10 +171,10 @@ export function DayDetailSheet({
                           style={{ background: 'var(--muted)', color: 'var(--muted-foreground)' }}>
                           {sourceLabel}
                         </span>
-                        {hasGoal && (
+                        {hasCategory && (
                           <span className="text-[12px] px-1.5 py-0.5 rounded font-medium"
                             style={{ background: 'var(--muted)', color: 'var(--muted-foreground)' }}>
-                            {goalLabel}
+                            {categoryLabel}
                           </span>
                         )}
                       </div>
@@ -186,30 +191,34 @@ export function DayDetailSheet({
               {dayDebts.length > 0 && (
                 <>
                   {dayTxs.length > 0 && <p className="text-overline mt-3">Nợ đến hạn</p>}
-                  {dayDebts.map(debt => (
-                    <div key={debt.id} className="w-full flex items-start gap-3 p-3 rounded-xl"
-                      style={{ background: 'var(--card)', border: '1px solid var(--border)' }}>
-                      <div className="flex items-center justify-center rounded-xl shrink-0"
-                        style={{ width: 36, height: 36, background: 'hsl(0, 65%, 96%)' }}>
-                        <Handshake size={16} style={{ color: 'var(--expense)' }} />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-start justify-between gap-2">
-                          <p className="text-sm font-semibold truncate" style={{ color: 'var(--foreground)' }}>
-                            {debt.type === 'owe' ? 'Nợ' : 'Cho vay'} · {debt.person}
-                          </p>
-                          <p className="text-sm font-semibold amount shrink-0" style={{ color: 'var(--expense)' }}>
-                            {formatVND(debt.amount)}
-                          </p>
+                  {dayDebts.map(debt => {
+                    const iOwe = debt.debtorUserId === currentUserId;
+                    const counterpart = iOwe ? debt.creditorName : debt.debtorName;
+                    return (
+                      <div key={debt.id} className="w-full flex items-start gap-3 p-3 rounded-xl"
+                        style={{ background: 'var(--card)', border: '1px solid var(--border)' }}>
+                        <div className="flex items-center justify-center rounded-xl shrink-0"
+                          style={{ width: 36, height: 36, background: 'var(--orange-soft)' }}>
+                          <Handshake size={16} style={{ color: 'var(--expense)' }} />
                         </div>
-                        {debt.note && (
-                          <p className="text-[13px] mt-1 line-clamp-1" style={{ color: 'var(--muted-foreground)' }}>
-                            {debt.note}
-                          </p>
-                        )}
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-start justify-between gap-2">
+                            <p className="text-sm font-semibold truncate" style={{ color: 'var(--foreground)' }}>
+                              {iOwe ? 'Nợ' : 'Cho vay'} · {counterpart}
+                            </p>
+                            <p className="text-sm font-semibold amount shrink-0" style={{ color: 'var(--expense)' }}>
+                              {formatVND(debt.remainingAmount)}
+                            </p>
+                          </div>
+                          {debt.note && (
+                            <p className="text-[13px] mt-1 line-clamp-1" style={{ color: 'var(--muted-foreground)' }}>
+                              {debt.note}
+                            </p>
+                          )}
+                        </div>
                       </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </>
               )}
             </div>

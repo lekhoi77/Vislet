@@ -1,20 +1,29 @@
 'use client';
 
-import { Debt } from '@/lib/types';
+import { SharedDebt } from '@/lib/types';
 import { formatVND } from '@/lib/format';
 
 interface DebtStatsProps {
-  debts: Debt[];
+  sharedDebts: SharedDebt[];
+  currentUserId: string;
 }
 
-export function DebtStats({ debts }: DebtStatsProps) {
-  const totalOwe = debts.filter(d => d.type === 'owe' && !d.settled).reduce((s, d) => s + d.amount, 0);
-  const totalLend = debts.filter(d => d.type === 'lend' && !d.settled).reduce((s, d) => s + d.amount, 0);
-  const totalSettled = debts.filter(d => d.settled).reduce((s, d) => s + d.amount, 0);
+const OPEN_STATUSES: SharedDebt['status'][] = ['pending', 'active', 'pending_confirm'];
+
+export function DebtStats({ sharedDebts, currentUserId }: DebtStatsProps) {
+  const totalOwe = sharedDebts
+    .filter(d => d.debtorUserId === currentUserId && OPEN_STATUSES.includes(d.status))
+    .reduce((s, d) => s + d.remainingAmount, 0);
+  const totalLend = sharedDebts
+    .filter(d => d.creditorUserId === currentUserId && OPEN_STATUSES.includes(d.status))
+    .reduce((s, d) => s + d.remainingAmount, 0);
+  const totalSettled = sharedDebts
+    .filter(d => d.status === 'settled')
+    .reduce((s, d) => s + d.debtAmount, 0);
 
   const stats = [
-    { label: 'Đang nợ', value: totalOwe, color: 'var(--expense)' },
-    { label: 'Cho vay', value: totalLend, color: 'var(--income)' },
+    { label: 'Tôi đang nợ', value: totalOwe, color: 'var(--down)' },
+    { label: 'Họ nợ tôi', value: totalLend, color: 'var(--income)' },
     { label: 'Đã xử lý', value: totalSettled, color: 'var(--muted-foreground)' },
   ];
 

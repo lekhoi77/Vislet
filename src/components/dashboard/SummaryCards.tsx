@@ -24,22 +24,28 @@ function card(extra?: React.CSSProperties): React.CSSProperties {
 
 // ── Greeting pool ──────────────────────────────────────────────
 // Tất cả câu KHÔNG có dấu câu cuối — sẽ tự thêm ", Tên?"
+
 const GREETINGS = [
-  'Hôm nay bạn thấy thế nào',
-  'Có ai rủ bạn đi ăn không',
-  'Ví tiền hôm nay ổn không',
-  'Hôm nay tiêu xài có vui không',
-  'Cà phê sáng tính vào đâu chưa',
-  'Bữa trưa ăn gì chưa tính chưa',
-  'Cuối tháng rồi ví còn bao nhiêu',
-  'Mua sắm hôm nay có gì hay không',
-  'Hôm nay có đặt mục tiêu gì chưa',
-  'Tháng này chi tiêu ổn không',
-  'Có khoản nào chưa ghi lại không',
-  'Hôm nay bỏ ống heo được không',
-  'Đi ăn ngoài hay tự nấu hôm nay',
-  'Tháng này tiết kiệm được bao nhiêu',
-  'Cuối tuần có kế hoạch gì chưa',
+  'Nay lỡ tiêu lố chưa',
+  'Hôm nay tài chính ổn áp chứ',
+  'Nay có tốn xiền trà sữa hông',
+  'Ví nay còn dày hông dạ',
+  'Sáng giờ có tốn đồng nào chưa',
+  'Nay lượn lờ chốt đơn gì chưa',
+  'Chốt sổ hôm nay chưa nè',
+  'Gần cuối tháng rồi, sắp cháy túi chưa',
+  'Tháng này ráng giữ tiền nha',
+  'Nay có mua gì dỗ dành bản thân không',
+  'Cuối ngày rồi, dòm lại ví xíu hông',
+  'Mở app lên là chuẩn bị tốn tiền nữa hả',
+  'Tiền tháng này đi đâu hết rồi',
+  'Nay lỡ quẹt thẻ gắt quá không',
+  'Hôm nay tiền bạc rủng rỉnh không',
+  'Xài xong nhớ ghi sổ liền tay nha',
+  'Mới lương về hay gì mà vô app đây',
+  'Tháng này dư dả hông',
+  'Nay có đi đu đưa đâu tốn kém không',
+  'Thấy tiền nong dạo này sao rồi'
 ];
 
 function LiveDateTime() {
@@ -59,14 +65,12 @@ function LiveDateTime() {
   );
 }
 
-function DeltaRow({ label, delta, isExpense }: { label: string; delta: number; isExpense: boolean }) {
+function DeltaRow({ label, delta }: { label: string; delta: number; isExpense?: boolean }) {
   const isZero = delta === 0;
   const isUp = delta > 0;
   let color = 'var(--muted-foreground)';
   if (!isZero) {
-    color = isExpense
-      ? (isUp ? 'var(--expense)' : 'var(--income)')
-      : (isUp ? 'var(--income)' : 'var(--expense)');
+    color = isUp ? 'var(--up)' : 'var(--down)';
   }
   return (
     <div className="flex items-center justify-between gap-2">
@@ -121,8 +125,8 @@ function GreetingCard({ profileName, deltaIncome, deltaExpense, isCurrentMonth }
           </p>
         </div>
         <div className="flex flex-col gap-1.5 mt-3">
-          <DeltaRow label="Thu nhập hôm nay" delta={isCurrentMonth ? deltaIncome : 0} isExpense={false} />
-          <DeltaRow label="Chi tiêu hôm nay" delta={isCurrentMonth ? deltaExpense : 0} isExpense={true} />
+          <DeltaRow label="Thu nhập hôm nay" delta={isCurrentMonth ? deltaIncome : 0} />
+          <DeltaRow label="Chi tiêu hôm nay" delta={isCurrentMonth ? deltaExpense : 0} />
         </div>
       </div>
     </>
@@ -194,7 +198,7 @@ export function SummaryCards({ transactions, month, year, isLoading }: SummaryCa
           </div>
           <p
             className="text-xl font-bold amount"
-            style={{ color: balance >= 0 ? 'var(--foreground)' : 'var(--expense)', lineHeight: 1.2, letterSpacing: '-0.01em' }}
+            style={{ color: 'var(--foreground)', lineHeight: 1.2, letterSpacing: '-0.01em' }}
           >
             {formatVND(Math.max(0, balance))}
           </p>

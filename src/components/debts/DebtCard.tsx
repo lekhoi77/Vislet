@@ -69,7 +69,7 @@ export function DebtCard({ debt, onEdit }: DebtCardProps) {
           <Badge
             className="text-sm px-2 py-0.5 h-auto font-medium border-0"
             style={{
-              background: isOwe ? 'hsl(0, 65%, 96%)' : 'var(--primary-soft)',
+              background: isOwe ? 'var(--orange-soft)' : 'var(--primary-soft)',
               color: isOwe ? 'var(--expense)' : 'var(--income)',
             }}
           >
@@ -133,7 +133,7 @@ export function DebtCard({ debt, onEdit }: DebtCardProps) {
           <Button
             size="sm"
             className="h-9 w-9 p-0 rounded-lg"
-            style={{ background: 'hsl(0,65%,96%)', color: 'var(--expense)', border: 'none' }}
+            style={{ background: 'hsl(0,65%,96%)', color: 'var(--destructive)', border: 'none' }}
             onClick={() => setShowDelete(true)}
             aria-label="Xoá"
           >
@@ -171,7 +171,7 @@ export function DebtCard({ debt, onEdit }: DebtCardProps) {
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Huỷ</AlertDialogCancel>
-            <AlertDialogAction onClick={handleDelete} style={{ background: 'var(--expense)', color: '#fff' }}>
+            <AlertDialogAction onClick={handleDelete} style={{ background: 'var(--destructive)', color: '#fff' }}>
               Xoá
             </AlertDialogAction>
           </AlertDialogFooter>

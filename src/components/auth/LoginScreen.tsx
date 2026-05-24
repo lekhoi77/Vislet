@@ -146,7 +146,7 @@ export function LoginScreen() {
           </div>
 
           {error && (
-            <p className="text-sm" style={{ color: 'var(--expense)' }}>{error}</p>
+            <p className="text-sm" style={{ color: 'var(--destructive)' }}>{error}</p>
           )}
         </div>
 

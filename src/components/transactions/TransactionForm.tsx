@@ -14,12 +14,12 @@ import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
 import { AmountInput } from '@/components/shared/AmountInput';
 import { useAppStore } from '@/store/app-store';
-import { Transaction, TransactionSource, TransactionGoal, TransactionType } from '@/lib/types';
+import { Transaction, TransactionSource, TransactionCategory, TransactionType } from '@/lib/types';
 import { Building2, Wallet, Smartphone, PiggyBank, Plane, Clock, TrendingUp, TrendingDown, ArrowRight, CircleDot, Tag } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { formatVND } from '@/lib/format';
-import { BudgetIcon } from '@/lib/icons';
+import { CategoryIcon } from '@/lib/icons';
 
 interface TransactionFormProps {
   open: boolean;
@@ -34,7 +34,7 @@ const BUILT_IN_SOURCES: { value: TransactionSource; label: string; icon: React.R
   { value: 'momo', label: 'MoMo', icon: <Smartphone size={15} /> },
 ];
 
-const BUILT_IN_GOALS: { value: TransactionGoal; label: string; icon?: React.ReactNode }[] = [
+const BUILT_IN_CATEGORIES: { value: TransactionCategory; label: string; icon?: React.ReactNode }[] = [
   { value: 'none', label: 'Không phân loại', icon: <Tag size={14} /> },
   { value: 'saving', label: 'Tiết kiệm', icon: <PiggyBank size={14} /> },
   { value: 'travel', label: 'Du lịch', icon: <Plane size={14} /> },
@@ -80,26 +80,35 @@ function SelectGroup<T extends string>({
   );
 }
 
+import { UserSearchPicker, PickedDebtor } from '@/components/shared/UserSearchPicker';
+import { Users } from 'lucide-react';
+
 export function TransactionForm({ open, type, editingTx, onClose }: TransactionFormProps) {
-  const { addTransaction, updateTransaction, transactions, customSources, customBudgets } = useAppStore();
+  const { addTransaction, updateTransaction, createSharedDebt, transactions, customSources, customCategories } = useAppStore();
 
   const SOURCES = [
     ...BUILT_IN_SOURCES,
     ...customSources.map(s => ({ value: s.id, label: s.label, icon: <CircleDot size={15} /> })),
   ];
 
-  const GOALS = [
-    ...BUILT_IN_GOALS,
-    ...customBudgets.map(b => ({ value: b.id, label: b.label, icon: <BudgetIcon name={b.icon} size={14} /> })),
+  const CATEGORIES = [
+    ...BUILT_IN_CATEGORIES,
+    ...customCategories.map(c => ({ value: c.id, label: c.label, icon: <CategoryIcon name={c.icon} size={14} /> })),
   ];
 
   const [title, setTitle] = useState('');
   const [amount, setAmount] = useState(0);
   const [source, setSource] = useState<TransactionSource>('bank');
-  const [goal, setGoal] = useState<TransactionGoal>('none');
+  const [category, setCategory] = useState<TransactionCategory>('none');
   const [note, setNote] = useState('');
   const [date, setDate] = useState('');
   const [errors, setErrors] = useState<Record<string, string>>({});
+
+  // Split cost (only for expense)
+  const [splitEnabled, setSplitEnabled] = useState(false);
+  const [splitDebtor, setSplitDebtor] = useState<PickedDebtor | null>(null);
+  const [splitAmount, setSplitAmount] = useState<number>(0);
+  const [splitDueDate, setSplitDueDate] = useState<string>('');
 
   useEffect(() => {
     if (open) {
@@ -108,17 +117,21 @@ export function TransactionForm({ open, type, editingTx, onClose }: TransactionF
         setTitle(editingTx.title);
         setAmount(editingTx.amount);
         setSource(editingTx.source);
-        setGoal(editingTx.goal);
+        setCategory(editingTx.category);
         setNote(editingTx.note);
         setDate(new Date(editingTx.date).toISOString().slice(0, 10));
       } else {
         setTitle('');
         setAmount(0);
         setSource('bank');
-        setGoal('none');
+        setCategory('none');
         setNote('');
         setDate(todayStr);
       }
+      setSplitEnabled(false);
+      setSplitDebtor(null);
+      setSplitAmount(0);
+      setSplitDueDate('');
       setErrors({});
     }
   }, [open, editingTx]);
@@ -130,6 +143,11 @@ export function TransactionForm({ open, type, editingTx, onClose }: TransactionF
     if (amount <= 0) e.amount = 'Vui lòng nhập số tiền hợp lệ';
     if (amount > 999_999_999_999) e.amount = 'Số tiền vượt quá giới hạn';
     if (note.length > 500) e.note = 'Ghi chú tối đa 500 ký tự';
+    if (splitEnabled) {
+      if (!splitDebtor) e.split = 'Chọn người nợ bạn';
+      if (splitAmount <= 0) e.splitAmount = 'Nhập số tiền họ nợ';
+      if (splitAmount > amount) e.splitAmount = 'Không thể lớn hơn tổng chi tiêu';
+    }
     setErrors(e);
     return Object.keys(e).length === 0;
   };
@@ -141,7 +159,7 @@ export function TransactionForm({ open, type, editingTx, onClose }: TransactionF
       title: title.trim(),
       amount,
       source,
-      goal,
+      category,
       note: note.trim(),
       date: date ? new Date(date).toISOString() : new Date().toISOString(),
     };
@@ -150,15 +168,36 @@ export function TransactionForm({ open, type, editingTx, onClose }: TransactionF
         await updateTransaction(editingTx.id, txData);
         toast.success('Đã cập nhật giao dịch');
       } else {
-        await addTransaction(txData);
-        toast.success(type === 'income' ? 'Đã lưu thu nhập' : 'Đã lưu chi tiêu');
+        const created = await addTransaction(txData);
+        // Nếu bật chia chi phí: tạo SharedDebt liên kết
+        if (splitEnabled && splitDebtor && splitAmount > 0) {
+          await createSharedDebt({
+            sourceTransactionId: created.id,
+            totalExpense: amount,
+            debtAmount: splitAmount,
+            debtorType: splitDebtor.type,
+            debtorUserId: splitDebtor.userId,
+            debtorProfileId: splitDebtor.profileId,
+            debtorName: splitDebtor.name,
+            debtorEmail: splitDebtor.email,
+            direction: 'forward',
+            note: title.trim() || note.trim(),
+            category,
+            dueDate: splitDueDate ? new Date(splitDueDate).toISOString() : null,
+          });
+          toast.success(splitDebtor.type === 'linked'
+            ? 'Đã lưu chi tiêu, đã gửi yêu cầu nợ'
+            : 'Đã lưu chi tiêu kèm khoản nợ');
+        } else {
+          toast.success(type === 'income' ? 'Đã lưu thu nhập' : 'Đã lưu chi tiêu');
+        }
       }
       onClose();
     } catch (err) {
       toast.error(`Lỗi: ${(err as Error).message ?? 'Không thể lưu giao dịch'}`);
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [type, title, amount, source, goal, note, date, editingTx, onClose]);
+  }, [type, title, amount, source, category, note, date, editingTx, onClose, splitEnabled, splitDebtor, splitAmount, splitDueDate]);
 
   // Enter = submit (trừ khi đang gõ trong textarea)
   const handleSubmitRef = useRef(handleSubmit);
@@ -199,7 +238,7 @@ export function TransactionForm({ open, type, editingTx, onClose }: TransactionF
   return (
     <Sheet open={open} onOpenChange={v => !v && onClose()}>
       <SheetContent
-        showCloseButton={false}
+       
         side="bottom"
         className="rounded-t-2xl gap-0 flex flex-col"
         style={{ padding: 0, background: 'var(--background)', ...sheetStyle }}
@@ -245,10 +284,10 @@ export function TransactionForm({ open, type, editingTx, onClose }: TransactionF
                 onChange={e => setTitle(e.target.value)}
                 placeholder={isIncome ? 'VD: Lương tháng 5...' : 'VD: Cà phê Highlands...'}
                 maxLength={100}
-                className={errors.title ? 'border-[var(--expense)]' : ''}
+                className={errors.title ? 'border-[var(--destructive)]' : ''}
               />
               {errors.title && (
-                <p className="text-sm" style={{ color: 'var(--expense)' }}>{errors.title}</p>
+                <p className="text-sm" style={{ color: 'var(--destructive)' }}>{errors.title}</p>
               )}
             </div>
 
@@ -283,20 +322,20 @@ export function TransactionForm({ open, type, editingTx, onClose }: TransactionF
                   <span>{SOURCES.find(s => s.value === source)?.label ?? source}</span>
                   <span className="font-semibold" style={{ color: 'var(--foreground)' }}>{formatVND(sourcePreview.current)}</span>
                   <ArrowRight size={12} />
-                  <span className="font-semibold" style={{ color: sourcePreview.next >= 0 ? 'var(--income)' : 'var(--expense)' }}>
+                  <span className="font-semibold" style={{ color: sourcePreview.next >= 0 ? 'var(--foreground)' : 'var(--down)' }}>
                     {formatVND(Math.abs(sourcePreview.next))}{sourcePreview.next < 0 ? ' (âm)' : ''}
                   </span>
                 </div>
               )}
             </div>
 
-            {/* Goal - expense only */}
+            {/* Category - expense only */}
             {!isIncome && (
               <div className="flex flex-col gap-2">
                 <Label className="text-sm font-medium tracking-wide uppercase" style={{ color: 'var(--muted-foreground)' }}>
-                  Mục tiêu
+                  Danh mục
                 </Label>
-                <SelectGroup options={GOALS} value={goal} onChange={setGoal} accent="orange" />
+                <SelectGroup options={CATEGORIES} value={category} onChange={setCategory} accent="orange" />
               </div>
             )}
 
@@ -312,12 +351,101 @@ export function TransactionForm({ open, type, editingTx, onClose }: TransactionF
                 placeholder="Thêm ghi chú..."
                 maxLength={500}
                 rows={2}
-                className={errors.note ? 'border-[var(--expense)]' : ''}
+                className={errors.note ? 'border-[var(--destructive)]' : ''}
               />
               {errors.note && (
-                <p className="text-sm" style={{ color: 'var(--expense)' }}>{errors.note}</p>
+                <p className="text-sm" style={{ color: 'var(--destructive)' }}>{errors.note}</p>
               )}
             </div>
+
+            {/* Split cost — only for expense, new transaction */}
+            {!isIncome && !editingTx && (
+              <div className="flex flex-col gap-3 p-3 rounded-xl" style={{ background: 'var(--muted)' }}>
+                <label className="flex items-center justify-between gap-3 cursor-pointer">
+                  <div className="flex items-center gap-2">
+                    <Users size={15} style={{ color: 'var(--foreground)' }} />
+                    <span className="text-sm font-semibold" style={{ color: 'var(--foreground)' }}>
+                      Chia chi phí với người khác
+                    </span>
+                  </div>
+                  <span
+                    role="switch"
+                    aria-checked={splitEnabled}
+                    onClick={() => setSplitEnabled(v => !v)}
+                    className="relative inline-flex shrink-0 cursor-pointer rounded-full transition-colors"
+                    style={{
+                      width: 36, height: 20,
+                      background: splitEnabled ? 'var(--primary)' : 'var(--border)',
+                    }}
+                  >
+                    <span
+                      className="inline-block rounded-full bg-white shadow transition-transform"
+                      style={{ width: 16, height: 16, marginTop: 2, marginLeft: 2, transform: splitEnabled ? 'translateX(16px)' : 'translateX(0)' }}
+                    />
+                  </span>
+                </label>
+
+                {splitEnabled && (
+                  <>
+                    <div className="flex flex-col gap-2">
+                      <Label className="text-sm font-medium tracking-wide uppercase" style={{ color: 'var(--muted-foreground)' }}>
+                        Người nợ bạn *
+                      </Label>
+                      <UserSearchPicker value={splitDebtor} onChange={setSplitDebtor} />
+                      {errors.split && <p className="text-sm" style={{ color: 'var(--destructive)' }}>{errors.split}</p>}
+                    </div>
+
+                    <div className="flex flex-col gap-2">
+                      <Label className="text-sm font-medium tracking-wide uppercase" style={{ color: 'var(--muted-foreground)' }}>
+                        Số tiền họ nợ *
+                      </Label>
+                      <div className="relative">
+                        <Input
+                          type="text"
+                          inputMode="numeric"
+                          value={splitAmount === 0 ? '' : new Intl.NumberFormat('vi-VN').format(splitAmount)}
+                          onChange={(e) => {
+                            const raw = e.target.value.replace(/\D/g, '');
+                            setSplitAmount(parseInt(raw || '0', 10));
+                          }}
+                          placeholder="0"
+                          className={`pr-16 text-base font-semibold ${errors.splitAmount ? 'border-[var(--destructive)]' : ''}`}
+                        />
+                        <span className="absolute right-3 top-1/2 -translate-y-1/2 text-sm font-medium" style={{ color: 'var(--muted-foreground)' }}>VNĐ</span>
+                      </div>
+                      {/* Gợi ý chia */}
+                      {amount > 0 && (
+                        <div className="flex gap-2 flex-wrap">
+                          <button type="button" onClick={() => setSplitAmount(Math.floor(amount / 2))}
+                            className="text-[12px] px-2 py-1 rounded-md font-medium"
+                            style={{ background: 'var(--background)', color: 'var(--foreground)', border: '1px solid var(--border)' }}>
+                            Chia đôi: {Math.floor(amount / 2).toLocaleString('vi-VN')}
+                          </button>
+                          <button type="button" onClick={() => setSplitAmount(Math.floor(amount / 3))}
+                            className="text-[12px] px-2 py-1 rounded-md font-medium"
+                            style={{ background: 'var(--background)', color: 'var(--foreground)', border: '1px solid var(--border)' }}>
+                            Chia 3: {Math.floor(amount / 3).toLocaleString('vi-VN')}
+                          </button>
+                          <button type="button" onClick={() => setSplitAmount(Math.floor(amount / 4))}
+                            className="text-[12px] px-2 py-1 rounded-md font-medium"
+                            style={{ background: 'var(--background)', color: 'var(--foreground)', border: '1px solid var(--border)' }}>
+                            Chia 4: {Math.floor(amount / 4).toLocaleString('vi-VN')}
+                          </button>
+                        </div>
+                      )}
+                      {errors.splitAmount && <p className="text-sm" style={{ color: 'var(--destructive)' }}>{errors.splitAmount}</p>}
+                    </div>
+
+                    <div className="flex flex-col gap-2">
+                      <Label className="text-sm font-medium tracking-wide uppercase" style={{ color: 'var(--muted-foreground)' }}>
+                        Hạn trả (tuỳ chọn)
+                      </Label>
+                      <Input type="date" value={splitDueDate} onChange={e => setSplitDueDate(e.target.value)} />
+                    </div>
+                  </>
+                )}
+              </div>
+            )}
           </div>
         </div>
 
