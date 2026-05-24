@@ -32,12 +32,6 @@ export default function manifest(): MetadataRoute.Manifest {
         sizes: '180x180',
         type: 'image/png',
       },
-      // SVG fallback cho browser hiện đại (icon thu nhỏ, khác logo header)
-      {
-        src: '/logo-small.svg',
-        sizes: 'any',
-        type: 'image/svg+xml',
-      },
     ],
   };
 }
