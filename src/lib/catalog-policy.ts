@@ -13,7 +13,7 @@ export function sanitizeRemovedGoalIds(ids: string[]): string[] {
 }
 
 export function countTransactionsByGoal(transactions: Transaction[], goalId: string): number {
-  return transactions.filter(t => t.goal === goalId).length;
+  return transactions.filter(t => t.category === goalId).length;
 }
 
 export function countTransactionsBySource(transactions: Transaction[], sourceId: string): number {

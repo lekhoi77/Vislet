@@ -30,7 +30,6 @@ export function ProfileSwitcher({ onAddAccount }: ProfileSwitcherProps) {
       profiles: [],
       currentProfileId: null,
       transactions: [],
-      debts: [],
       customSources: [],
       customCategories: [],
       isLoaded: false,

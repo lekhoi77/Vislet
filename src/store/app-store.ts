@@ -372,6 +372,10 @@ export const useAppStore = create<AppState>((set, get) => ({
       note: input.note,
       category: input.category,
       due_date: input.dueDate ?? null,
+      reject_reason: null,
+      created_at: new Date().toISOString(),
+      accepted_at: null,
+      settled_at: null,
       manually_settled: false,
     };
 

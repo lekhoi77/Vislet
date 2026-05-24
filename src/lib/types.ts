@@ -41,6 +41,18 @@ export interface Transaction {
   autoKind?: AutoTxKind | null;
 }
 
+export interface Debt {
+  id: string;
+  type: 'owe' | 'lend';
+  person: string;
+  amount: number;
+  note?: string;
+  dueDate?: string | null;
+  settled: boolean;
+  settledAt?: string | null;
+  createdAt: string;
+}
+
 // ─── Shared Debts (multi-tenant) ───────────────────────────
 
 export type SharedDebtStatus =

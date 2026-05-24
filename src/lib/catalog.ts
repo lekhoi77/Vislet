@@ -1,4 +1,4 @@
-import type { CustomSource, CustomBudget } from './types';
+import type { CustomSource, CustomCategory as CustomBudget } from './types';
 import {
   DEFAULT_SOURCES,
   DEFAULT_GOALS,

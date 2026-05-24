@@ -17,7 +17,7 @@ export interface TourStep {
   title: string;
   body: React.ReactNode;
   icon: React.ComponentType<{ size?: number; className?: string; style?: React.CSSProperties }>;
-  tab?: 'overview' | 'transactions' | 'goals' | 'debts';
+  tab?: 'overview' | 'transactions' | 'categories' | 'debts';
   placement?: 'auto' | 'bottom' | 'top' | 'center';
 }
 
