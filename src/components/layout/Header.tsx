@@ -2,7 +2,7 @@
 
 import { ProfileSwitcher } from '@/components/profile/ProfileSwitcher';
 import { NotificationBell } from '@/components/notifications/NotificationBell';
-import { BookOpen, Calculator } from 'lucide-react';
+import { Calculator } from 'lucide-react';
 
 interface HeaderProps {
   onAddAccount: () => void;
@@ -39,34 +39,26 @@ export function Header({ onAddAccount, onOpenGuide, guidePulse, onOpenCalc, calc
             type="button"
             data-tour="calc"
             onClick={onOpenCalc}
-            className={`calc-trigger-btn${calcOpen ? ' calc-trigger-active' : ''}`}
+            className="relative flex items-center justify-center rounded-full transition-colors hover:bg-[var(--muted)]"
+            style={{ width: 36, height: 36 }}
             aria-label="Mở máy tính (phím C)"
             title="Máy tính — phím C"
           >
-            <Calculator size={16} />
+            <Calculator
+              size={18}
+              style={{ color: calcOpen ? 'var(--primary)' : 'var(--foreground)' }}
+            />
           </button>
-        )}
-
-        {/* Guide button */}
-        {onOpenGuide && (
-          <div className="relative">
-            <button
-              type="button"
-              data-tour="guide"
-              onClick={onOpenGuide}
-              className={`guide-btn ${guidePulse ? 'guide-btn-pulse' : ''}`}
-              aria-label="Mở sổ tay hướng dẫn"
-              title="Sổ tay hướng dẫn"
-            >
-              <BookOpen size={17} />
-            </button>
-          </div>
         )}
 
         <NotificationBell />
 
         <div data-tour="profile">
-          <ProfileSwitcher onAddAccount={onAddAccount} />
+          <ProfileSwitcher
+            onAddAccount={onAddAccount}
+            onOpenGuide={onOpenGuide}
+            guidePulse={guidePulse}
+          />
         </div>
       </div>
     </header>

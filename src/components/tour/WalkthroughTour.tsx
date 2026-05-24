@@ -68,16 +68,33 @@ export function WalkthroughTour({ open, onClose, onRequestTab }: WalkthroughTour
   // Run once per step: scroll to target, then measure twice for stability.
   useLayoutEffect(() => {
     if (!open) return;
+    let cancelled = false;
     let raf2 = 0;
-    const raf1 = requestAnimationFrame(() => {
+    const doMeasure = () => {
+      if (cancelled) return;
       measure(true);
-      raf2 = requestAnimationFrame(() => measure(false));
-    });
-    return () => {
-      cancelAnimationFrame(raf1);
-      if (raf2) cancelAnimationFrame(raf2);
+      raf2 = requestAnimationFrame(() => {
+        if (!cancelled) measure(false);
+      });
     };
-  }, [open, index, measure]);
+
+    if (step?.openProfileMenu) {
+      window.dispatchEvent(new CustomEvent('vislet:tour-open-profile'));
+      const timer = window.setTimeout(doMeasure, 50);
+      return () => {
+        cancelled = true;
+        window.clearTimeout(timer);
+        cancelAnimationFrame(raf2);
+      };
+    }
+
+    const raf1 = requestAnimationFrame(doMeasure);
+    return () => {
+      cancelled = true;
+      cancelAnimationFrame(raf1);
+      cancelAnimationFrame(raf2);
+    };
+  }, [open, index, measure, step]);
 
   // Re-measure (no scroll) on resize only. Skipping scroll listener avoids feedback
   // loop with scrollIntoView and surrounding scroll-driven re-renders.

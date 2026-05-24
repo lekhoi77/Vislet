@@ -2,7 +2,6 @@
 
 import type { ReactNode } from 'react';
 import { SheetHeader, SheetTitle } from '@/components/ui/sheet';
-import { SheetCloseButton } from '@/components/ui/sheet-close-button';
 import { cn } from '@/lib/utils';
 
 interface BottomSheetHeaderProps {
@@ -17,7 +16,8 @@ interface BottomSheetHeaderProps {
 }
 
 /**
- * Header chuẩn cho bottom sheet: tay cầm (tuỳ chọn) + tiêu đề + nút X cùng hàng.
+ * Header chuẩn cho bottom sheet: tay cầm (tuỳ chọn) + tiêu đề.
+ * Nút đóng do SheetContent render (góc trên phải).
  */
 export function BottomSheetHeader({
   title,
@@ -47,7 +47,7 @@ export function BottomSheetHeader({
           <div className="w-10 h-1 rounded-full" style={{ background: 'var(--border)' }} />
         </div>
       )}
-      <div className="flex items-center justify-between gap-3 px-5 pb-3 pt-0.5 min-h-[44px]">
+      <div className="flex items-center gap-3 px-5 pb-3 pt-0.5 min-h-[44px] pr-14">
         <SheetHeader className="p-0 flex-1 min-w-0">
           <SheetTitle
             className={cn(
@@ -59,7 +59,6 @@ export function BottomSheetHeader({
             {title}
           </SheetTitle>
         </SheetHeader>
-        <SheetCloseButton />
       </div>
     </div>
   );

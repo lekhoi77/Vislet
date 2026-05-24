@@ -19,6 +19,8 @@ export interface TourStep {
   icon: React.ComponentType<{ size?: number; className?: string; style?: React.CSSProperties }>;
   tab?: 'overview' | 'transactions' | 'categories' | 'debts';
   placement?: 'auto' | 'bottom' | 'top' | 'center';
+  /** Opens profile dropdown before highlighting (guide lives inside menu). */
+  openProfileMenu?: boolean;
 }
 
 export const TOUR_STEPS: TourStep[] = [
@@ -150,11 +152,12 @@ export const TOUR_STEPS: TourStep[] = [
   {
     id: 'guide',
     selector: '[data-tour="guide"]',
+    openProfileMenu: true,
     title: 'Mở lại hướng dẫn',
     icon: BookOpen,
     body: (
       <>
-        Bất cứ lúc nào cần xem lại, nhấn nút <b>sổ tay xanh</b> này trên thanh đầu. Chúc bạn dùng Vislet vui vẻ! 🎉
+        Bất cứ lúc nào cần xem lại, mở menu hồ sơ góc phải và nhấn nút <b>sổ tay xanh</b> cạnh email. Chúc bạn dùng Vislet vui vẻ! 🎉
       </>
     ),
   },

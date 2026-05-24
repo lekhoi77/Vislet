@@ -15,6 +15,7 @@ import {
   toSharedDebtPayment,
   toDebtNotification,
   toDebtContact,
+  SharedDebtRow,
 } from '@/lib/supabase';
 
 const CURRENT_KEY_PREFIX = 'viapp_current_';
@@ -353,7 +354,7 @@ export const useAppStore = create<AppState>((set, get) => ({
     const id = uuidv4();
     const status: 'pending' | 'active' = input.debtorType === 'linked' ? 'pending' : 'active';
 
-    const row = {
+    const row: SharedDebtRow = {
       id,
       creditor_user_id: user.id,
       creditor_profile_id: currentProfileId,

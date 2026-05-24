@@ -4,7 +4,8 @@ import { Transaction } from '@/lib/types';
 import { formatVND } from '@/lib/format';
 import { SOURCE_LABELS } from '@/lib/constants';
 import { useAppStore } from '@/store/app-store';
-import { Building2, Wallet, Smartphone, CircleDot, PieChart as PieIcon, List, Plus } from 'lucide-react';
+import { Building2, Wallet, Smartphone, CircleDot, PieChart as PieIcon, List } from 'lucide-react';
+import { BlockCardHeader } from '@/components/dashboard/BlockCardHeader';
 import { useState } from 'react';
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer, Legend } from 'recharts';
 
@@ -53,33 +54,24 @@ export function SourceBlocks({ transactions, title, onAdd, addLabel = 'Thêm ngu
     <div className="rounded-2xl overflow-hidden h-full flex flex-col"
       style={{ background: 'var(--card)', border: '1px solid var(--border)', boxShadow: 'var(--shadow-card)' }}>
 
-      {/* Header: title + add + toggle */}
-      <div className="flex items-center justify-between gap-2 px-3 pt-3 pb-2">
-        <div className="flex items-center gap-1.5 min-w-0">
-          {title && (
-            <p className="text-overline truncate">{title}</p>
-          )}
-          {onAdd && (
-            <button onClick={onAdd} aria-label={addLabel} className="add-btn-expand">
-              <Plus size={13} strokeWidth={2.5} style={{ flexShrink: 0 }} />
-              <span className="add-btn-label">{addLabel}</span>
-            </button>
-          )}
-        </div>
-        <div className="flex rounded-lg p-0.5 shrink-0" style={{ background: 'var(--muted)', gap: 2 }}>
-          {([{ v: false, icon: <List size={12} />, label: 'Danh sách' }, { v: true, icon: <PieIcon size={12} />, label: 'Tỷ trọng' }] as const).map(opt => (
-            <button key={String(opt.v)} onClick={() => setChartView(opt.v)}
-              className="view-toggle-btn flex items-center gap-1 text-sm font-medium px-2.5 py-1 rounded-md"
-              style={{
-                background: chartView === opt.v ? 'var(--background)' : 'transparent',
-                color: chartView === opt.v ? 'var(--foreground)' : 'var(--muted-foreground)',
-                boxShadow: chartView === opt.v ? '0 1px 3px rgba(0,0,0,0.08)' : 'none',
-              }}>
-              {opt.icon}{opt.label}
-            </button>
-          ))}
-        </div>
-      </div>
+      <BlockCardHeader title={title} onAdd={onAdd} addLabel={addLabel}>
+        {([{ v: false, icon: <List size={12} />, label: 'Danh sách' }, { v: true, icon: <PieIcon size={12} />, label: 'Tỷ trọng' }] as const).map(opt => (
+          <button
+            key={String(opt.v)}
+            type="button"
+            onClick={() => setChartView(opt.v)}
+            className="view-toggle-btn flex flex-1 items-center justify-center gap-1 text-sm font-medium px-2 py-1 rounded-md min-w-0 md:flex-initial md:px-2.5"
+            style={{
+              background: chartView === opt.v ? 'var(--background)' : 'transparent',
+              color: chartView === opt.v ? 'var(--foreground)' : 'var(--muted-foreground)',
+              boxShadow: chartView === opt.v ? '0 1px 3px rgba(0,0,0,0.08)' : 'none',
+            }}
+          >
+            {opt.icon}
+            {opt.label}
+          </button>
+        ))}
+      </BlockCardHeader>
 
       {chartView ? (
         <div className="flex-1 flex items-center justify-center px-2 pb-3">

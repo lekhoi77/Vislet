@@ -2,6 +2,7 @@
 
 import * as React from "react"
 import { AlertDialog as AlertDialogPrimitive } from "@base-ui/react/alert-dialog"
+import { XIcon } from "lucide-react"
 
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
@@ -38,12 +39,32 @@ function AlertDialogOverlay({
   )
 }
 
+function AlertDialogCloseButton({ className }: { className?: string }) {
+  return (
+    <AlertDialogPrimitive.Close
+      data-slot="alert-dialog-close"
+      className={cn(
+        "absolute top-3 right-3 z-20 flex h-9 w-9 shrink-0 items-center justify-center rounded-xl transition-colors",
+        "hover:bg-[var(--muted)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)]",
+        className
+      )}
+      style={{ color: "var(--foreground)" }}
+      aria-label="Đóng"
+    >
+      <XIcon className="size-4" strokeWidth={2} />
+    </AlertDialogPrimitive.Close>
+  )
+}
+
 function AlertDialogContent({
   className,
   size = "default",
+  showCloseButton = true,
+  children,
   ...props
 }: AlertDialogPrimitive.Popup.Props & {
   size?: "default" | "sm"
+  showCloseButton?: boolean
 }) {
   return (
     <AlertDialogPortal>
@@ -53,10 +74,14 @@ function AlertDialogContent({
         data-size={size}
         className={cn(
           "group/alert-dialog-content fixed top-1/2 left-1/2 z-50 grid w-full -translate-x-1/2 -translate-y-1/2 gap-4 rounded-xl bg-popover p-4 text-popover-foreground ring-1 ring-foreground/10 duration-100 outline-none data-[size=default]:max-w-xs data-[size=sm]:max-w-xs data-[size=default]:sm:max-w-sm data-open:animate-in data-open:fade-in-0 data-open:zoom-in-95 data-closed:animate-out data-closed:fade-out-0 data-closed:zoom-out-95",
+          showCloseButton && "relative",
           className
         )}
         {...props}
-      />
+      >
+        {children}
+        {showCloseButton && <AlertDialogCloseButton />}
+      </AlertDialogPrimitive.Popup>
     </AlertDialogPortal>
   )
 }

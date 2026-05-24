@@ -6,7 +6,8 @@ import { CATEGORY_LABELS, getCategoryColor } from '@/lib/constants';
 import { useAppStore } from '@/store/app-store';
 import { CategoryIcon } from '@/lib/icons';
 import { Separator } from '@/components/ui/separator';
-import { PiggyBank, Plane, Clock, BarChart2, List, PieChart as PieIcon, Plus } from 'lucide-react';
+import { PiggyBank, Plane, Clock, BarChart2, List, PieChart as PieIcon } from 'lucide-react';
+import { BlockCardHeader } from '@/components/dashboard/BlockCardHeader';
 import { useState } from 'react';
 import {
   PieChart, Pie, Cell, Tooltip, ResponsiveContainer, Legend,
@@ -108,33 +109,24 @@ export function CategoryBlocks({ transactions, month, year, title, onAdd, addLab
     <div className="rounded-2xl overflow-hidden h-full flex flex-col"
       style={{ background: 'var(--card)', border: '1px solid var(--border)', boxShadow: 'var(--shadow-card)' }}>
 
-      {/* Header: title + add + toggle */}
-      <div className="flex items-center justify-between gap-2 px-3 pt-3 pb-2">
-        <div className="flex items-center gap-1.5 min-w-0">
-          {title && (
-            <p className="text-overline truncate">{title}</p>
-          )}
-          {onAdd && (
-            <button onClick={onAdd} aria-label={addLabel} className="add-btn-expand">
-              <Plus size={13} strokeWidth={2.5} style={{ flexShrink: 0 }} />
-              <span className="add-btn-label">{addLabel}</span>
-            </button>
-          )}
-        </div>
-        <div className="flex rounded-lg p-0.5 shrink-0" style={{ background: 'var(--muted)', gap: 2 }}>
-          {viewOptions.map(opt => (
-            <button key={opt.v} onClick={() => setView(opt.v)}
-              className="view-toggle-btn flex items-center gap-1 text-sm font-medium px-2.5 py-1 rounded-md"
-              style={{
-                background: view === opt.v ? 'var(--background)' : 'transparent',
-                color: view === opt.v ? 'var(--foreground)' : 'var(--muted-foreground)',
-                boxShadow: view === opt.v ? '0 1px 3px rgba(0,0,0,0.08)' : 'none',
-              }}>
-              {opt.icon}{opt.label}
-            </button>
-          ))}
-        </div>
-      </div>
+      <BlockCardHeader title={title} onAdd={onAdd} addLabel={addLabel}>
+        {viewOptions.map(opt => (
+          <button
+            key={opt.v}
+            type="button"
+            onClick={() => setView(opt.v)}
+            className="view-toggle-btn flex flex-1 items-center justify-center gap-1 text-sm font-medium px-1.5 py-1 rounded-md min-w-0 md:flex-initial md:px-2.5"
+            style={{
+              background: view === opt.v ? 'var(--background)' : 'transparent',
+              color: view === opt.v ? 'var(--foreground)' : 'var(--muted-foreground)',
+              boxShadow: view === opt.v ? '0 1px 3px rgba(0,0,0,0.08)' : 'none',
+            }}
+          >
+            {opt.icon}
+            {opt.label}
+          </button>
+        ))}
+      </BlockCardHeader>
 
       {view === 'pie' && (
         <div className="flex-1 flex items-center justify-center px-2 pb-3">

@@ -58,7 +58,7 @@ function SheetContent({
         {...props}
       >
         {children}
-        {showCloseButton && side !== "bottom" && (
+        {showCloseButton && (
           <SheetCloseButton className="absolute top-3 right-3 z-20" />
         )}
       </SheetPrimitive.Popup>

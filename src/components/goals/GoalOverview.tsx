@@ -146,19 +146,26 @@ export function CategoryOverview({ transactions, month, year }: CategoryOverview
         </div>
       </div>
 
-      {/* View toggle */}
-      <div className="flex items-center justify-between gap-2">
+      <div className="flex flex-col gap-2.5 md:flex-row md:items-center md:justify-between md:gap-2">
         <p className="text-overline">Chi tiêu theo danh mục</p>
-        <div className="flex rounded-lg p-0.5 shrink-0" style={{ background: 'var(--muted)', gap: 2 }}>
+        <div
+          className="flex w-full rounded-lg p-0.5 md:w-auto md:shrink-0"
+          style={{ background: 'var(--muted)', gap: 2 }}
+        >
           {viewOptions.map(opt => (
-            <button key={opt.v} onClick={() => setView(opt.v)}
-              className="view-toggle-btn flex items-center gap-1 text-sm font-medium px-2.5 py-1.5 rounded-md"
+            <button
+              key={opt.v}
+              type="button"
+              onClick={() => setView(opt.v)}
+              className="view-toggle-btn flex flex-1 items-center justify-center gap-1 text-sm font-medium px-1.5 py-1.5 rounded-md min-w-0 md:flex-initial md:px-2.5"
               style={{
                 background: view === opt.v ? 'var(--background)' : 'transparent',
                 color: view === opt.v ? 'var(--foreground)' : 'var(--muted-foreground)',
                 boxShadow: view === opt.v ? '0 1px 3px rgba(0,0,0,0.08)' : 'none',
-              }}>
-              {opt.icon}{opt.label}
+              }}
+            >
+              {opt.icon}
+              {opt.label}
             </button>
           ))}
         </div>
