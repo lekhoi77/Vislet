@@ -1,4 +1,4 @@
-import { UserProfile, Transaction, Debt, CustomSource, CustomCategory } from './types';
+import { UserProfile, Transaction, CustomSource, CustomCategory } from './types';
 
 const KEYS = {
   profiles: 'viapp_profiles',
@@ -50,10 +50,10 @@ export const storage = {
     return safeSet(KEYS.tx(profileId), txs);
   },
 
-  getDebts(profileId: string): Debt[] {
-    return safeGet<Debt[]>(KEYS.debt(profileId), []);
+  getDebts(profileId: string): unknown[] {
+    return safeGet<unknown[]>(KEYS.debt(profileId), []);
   },
-  setDebts(profileId: string, debts: Debt[]): boolean {
+  setDebts(profileId: string, debts: unknown[]): boolean {
     return safeSet(KEYS.debt(profileId), debts);
   },
 

@@ -351,7 +351,7 @@ export const useAppStore = create<AppState>((set, get) => ({
 
     const me = profiles.find(p => p.id === currentProfileId);
     const id = uuidv4();
-    const status = input.debtorType === 'linked' ? 'pending' : 'active';
+    const status: 'pending' | 'active' = input.debtorType === 'linked' ? 'pending' : 'active';
 
     const row = {
       id,
