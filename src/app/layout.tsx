@@ -1,22 +1,23 @@
 import type { Metadata, Viewport } from 'next';
 import Script from 'next/script';
+import { APP_NAME, APP_SHORT_NAME } from '@/lib/constants';
 import './globals.css';
 
 const CLARITY_ID = 'wux9dhd9zc';
 const GTM_ID = 'GTM-T6TDDGKH';
 
 export const metadata: Metadata = {
-  title: 'Vislet — Quản lý tài chính cá nhân',
+  title: APP_NAME,
   description:
     'Theo dõi thu nhập, chi tiêu, danh mục tài chính và quản lý nợ một cách đơn giản.',
   keywords: ['tài chính', 'chi tiêu', 'thu nhập', 'quản lý nợ', 'tiết kiệm'],
-  applicationName: 'Vislet',
+  applicationName: APP_NAME,
   verification: {
     google: 'SsFk4Pz4lSXwswgMbPcgHROX7mS3yt45yerPf8CKCKM',
   },
   appleWebApp: {
     capable: true,
-    title: 'Vislet',
+    title: APP_SHORT_NAME,
     statusBarStyle: 'default',
   },
   // Icons are auto-wired via src/app/icon.tsx + src/app/apple-icon.tsx

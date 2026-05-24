@@ -1,10 +1,17 @@
 import type { ReactNode } from 'react';
 
-/** Logo chiếm ~82% canvas — khớp safe zone iOS / Android (tránh icon “phình” khi cài PWA). */
-export const APP_ICON_LOGO_SCALE = 0.82;
+/** Favicon / tab trình duyệt — full canvas để logo không bị tí xíu. */
+export const FAVICON_LOGO_SCALE = 1;
 
-export function renderAppIconImage(svgDataUrl: string, canvasSize: number): ReactNode {
-  const logoSize = Math.round(canvasSize * APP_ICON_LOGO_SCALE);
+/** Icon cài lên màn hình chính — có padding safe zone iOS / Android. */
+export const PWA_ICON_LOGO_SCALE = 0.82;
+
+export function renderAppIconImage(
+  svgDataUrl: string,
+  canvasSize: number,
+  scale: number = FAVICON_LOGO_SCALE,
+): ReactNode {
+  const logoSize = Math.round(canvasSize * scale);
 
   return (
     <div

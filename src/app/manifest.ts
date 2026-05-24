@@ -1,9 +1,10 @@
 import type { MetadataRoute } from 'next';
+import { APP_NAME, APP_SHORT_NAME } from '@/lib/constants';
 
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: 'Vislet — Quản lý tài chính cá nhân',
-    short_name: 'Vislet',
+    name: APP_NAME,
+    short_name: APP_SHORT_NAME,
     description:
       'Theo dõi thu nhập, chi tiêu, danh mục tài chính và quản lý nợ một cách đơn giản.',
     start_url: '/',
@@ -16,13 +17,13 @@ export default function manifest(): MetadataRoute.Manifest {
     icons: [
       // PNG icons sinh động qua src/app/icon.tsx (Next.js metadata API)
       {
-        src: '/icon',
+        src: '/pwa-icon',
         sizes: '512x512',
         type: 'image/png',
         purpose: 'any',
       },
       {
-        src: '/icon',
+        src: '/pwa-icon',
         sizes: '512x512',
         type: 'image/png',
         purpose: 'maskable',

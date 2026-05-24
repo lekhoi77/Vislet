@@ -1,5 +1,8 @@
 import type { CustomSource, CustomCategory } from './types';
 
+export const APP_NAME = 'Vislet - Thống kê thu chi cá nhân';
+export const APP_SHORT_NAME = 'Vislet';
+
 export const BUILT_IN_SOURCES = ['bank', 'cash', 'momo'] as const;
 export const BUILT_IN_CATEGORIES = ['none', 'saving', 'travel', 'soon'] as const;
 
