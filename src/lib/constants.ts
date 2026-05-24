@@ -1,7 +1,10 @@
 import type { CustomSource, CustomCategory } from './types';
 
 export const APP_NAME = 'Vislet - Thống kê thu chi cá nhân';
+/** Tên dưới icon màn hình chính + banner cài PWA (ngắn, ít xuống dòng). */
 export const APP_SHORT_NAME = 'Vislet';
+/** Hiển thị khi cài PWA (Chrome/Safari) — ngắn hơn APP_NAME để icon không lệch với chữ. */
+export const APP_INSTALL_NAME = 'Vislet · Thống kê thu chi';
 
 export const BUILT_IN_SOURCES = ['bank', 'cash', 'momo'] as const;
 export const BUILT_IN_CATEGORIES = ['none', 'saving', 'travel', 'soon'] as const;

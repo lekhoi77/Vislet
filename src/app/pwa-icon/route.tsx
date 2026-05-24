@@ -1,6 +1,6 @@
 import { ImageResponse } from 'next/og';
 import { appIconSvgDataUrl } from '@/lib/app-icon-svg';
-import { PWA_ICON_LOGO_SCALE, renderAppIconImage } from '@/lib/app-icon-render';
+import { PWA_ICON_LOGO_SCALE, pwaIconRenderOptions, renderAppIconImage } from '@/lib/app-icon-render';
 
 const SIZE = 512;
 
@@ -8,7 +8,14 @@ const SIZE = 512;
 
 export async function GET() {
   return new ImageResponse(
-    <>{renderAppIconImage(appIconSvgDataUrl(), SIZE, PWA_ICON_LOGO_SCALE)}</>,
+    <>
+      {renderAppIconImage(
+        appIconSvgDataUrl(),
+        SIZE,
+        PWA_ICON_LOGO_SCALE,
+        pwaIconRenderOptions,
+      )}
+    </>,
     { width: SIZE, height: SIZE },
   );
 }

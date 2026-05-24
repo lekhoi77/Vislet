@@ -1,9 +1,9 @@
 import type { MetadataRoute } from 'next';
-import { APP_NAME, APP_SHORT_NAME } from '@/lib/constants';
+import { APP_INSTALL_NAME, APP_SHORT_NAME } from '@/lib/constants';
 
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: APP_NAME,
+    name: APP_INSTALL_NAME,
     short_name: APP_SHORT_NAME,
     description:
       'Theo dõi thu nhập, chi tiêu, danh mục tài chính và quản lý nợ một cách đơn giản.',
