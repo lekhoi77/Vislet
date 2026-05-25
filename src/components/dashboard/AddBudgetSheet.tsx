@@ -8,9 +8,10 @@ import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { useAppStore } from '@/store/app-store';
 import { CategoryIcon, CATEGORY_ICON_NAMES } from '@/lib/icons';
-import { Plus, Trash2 } from 'lucide-react';
+import { Plus, Trash2, Pencil, Check, X, ChevronUp, ChevronDown } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
+import type { CustomCategory } from '@/lib/types';
 
 interface AddCategorySheetProps {
   open: boolean;
@@ -18,9 +19,12 @@ interface AddCategorySheetProps {
 }
 
 export function AddCategorySheet({ open, onClose }: AddCategorySheetProps) {
-  const { customCategories, addCustomCategory, removeCustomCategory } = useAppStore();
+  const { customCategories, addCustomCategory, removeCustomCategory, updateCustomCategory, reorderCustomCategories } = useAppStore();
   const [label, setLabel] = useState('');
   const [icon, setIcon] = useState('ShoppingCart');
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editLabel, setEditLabel] = useState('');
+  const [editIcon, setEditIcon] = useState('ShoppingCart');
 
   const handleAdd = async () => {
     if (!label.trim()) return;
@@ -34,12 +38,44 @@ export function AddCategorySheet({ open, onClose }: AddCategorySheetProps) {
     }
   };
 
+  const startEdit = (c: CustomCategory) => {
+    setEditingId(c.id);
+    setEditLabel(c.label);
+    setEditIcon(c.icon);
+  };
+
+  const cancelEdit = () => setEditingId(null);
+
+  const saveEdit = async () => {
+    if (!editLabel.trim() || !editingId) return;
+    try {
+      await updateCustomCategory(editingId, editLabel, editIcon);
+      setEditingId(null);
+      toast.success('Đã cập nhật');
+    } catch {
+      toast.error('Không thể cập nhật');
+    }
+  };
+
+  const moveUp = (idx: number) => {
+    if (idx === 0) return;
+    const ids = customCategories.map(c => c.id);
+    [ids[idx - 1], ids[idx]] = [ids[idx], ids[idx - 1]];
+    reorderCustomCategories(ids);
+  };
+
+  const moveDown = (idx: number) => {
+    if (idx === customCategories.length - 1) return;
+    const ids = customCategories.map(c => c.id);
+    [ids[idx], ids[idx + 1]] = [ids[idx + 1], ids[idx]];
+    reorderCustomCategories(ids);
+  };
+
   const { expanded, sheetStyle, handleProps } = useDraggableSheet('add-category-expanded', true);
 
   return (
     <Sheet open={open} onOpenChange={v => !v && onClose()}>
       <SheetContent
-       
         side="bottom"
         className="rounded-t-2xl gap-0 flex flex-col"
         style={{ padding: 0, background: 'var(--background)', ...sheetStyle }}
@@ -89,10 +125,7 @@ export function AddCategorySheet({ open, onClose }: AddCategorySheetProps) {
                   key={name}
                   type="button"
                   onClick={() => setIcon(name)}
-                  className={cn(
-                    'flex items-center justify-center h-11 rounded-xl transition-all',
-                    icon === name ? 'ring-2' : 'hover:bg-[var(--muted)]'
-                  )}
+                  className={cn('flex items-center justify-center h-11 rounded-xl transition-all')}
                   style={{
                     background: icon === name ? 'var(--primary-soft)' : 'var(--muted)',
                     outline: icon === name ? '2px solid var(--primary)' : 'none',
@@ -123,24 +156,88 @@ export function AddCategorySheet({ open, onClose }: AddCategorySheetProps) {
               </Label>
               <div className="rounded-xl overflow-hidden" style={{ border: '1px solid var(--border)' }}>
                 {customCategories.map((c, i) => (
-                  <div
-                    key={c.id}
-                    className="flex items-center justify-between px-4 py-3"
-                    style={{ borderTop: i > 0 ? '1px solid var(--border)' : 'none', background: 'var(--card)' }}
-                  >
-                    <div className="flex items-center gap-2.5">
-                      <div className="w-8 h-8 flex items-center justify-center rounded-lg" style={{ background: 'var(--muted)' }}>
-                        <CategoryIcon name={c.icon} size={16} style={{ color: 'var(--primary)' }} />
+                  <div key={c.id} style={{ borderTop: i > 0 ? '1px solid var(--border)' : 'none', background: 'var(--card)' }}>
+                    {editingId === c.id ? (
+                      /* ── Edit mode ── */
+                      <div className="flex flex-col gap-3 px-4 py-3">
+                        <Input
+                          value={editLabel}
+                          onChange={e => setEditLabel(e.target.value)}
+                          maxLength={30}
+                          autoFocus
+                          onKeyDown={e => { if (e.key === 'Enter') saveEdit(); if (e.key === 'Escape') cancelEdit(); }}
+                        />
+                        <div className="grid grid-cols-6 gap-1.5">
+                          {CATEGORY_ICON_NAMES.map(name => (
+                            <button
+                              key={name}
+                              type="button"
+                              onClick={() => setEditIcon(name)}
+                              className="flex items-center justify-center h-9 rounded-lg transition-all"
+                              style={{
+                                background: editIcon === name ? 'var(--primary-soft)' : 'var(--muted)',
+                                outline: editIcon === name ? '2px solid var(--primary)' : 'none',
+                              }}
+                            >
+                              <CategoryIcon name={name} size={15} style={{ color: editIcon === name ? 'var(--primary)' : 'var(--muted-foreground)' }} />
+                            </button>
+                          ))}
+                        </div>
+                        <div className="flex gap-2">
+                          <Button onClick={saveEdit} disabled={!editLabel.trim()} className="flex-1 h-9 rounded-lg text-xs font-semibold flex items-center gap-1.5"
+                            style={{ background: 'var(--primary)', color: 'var(--primary-foreground)' }}>
+                            <Check size={13} /> Lưu
+                          </Button>
+                          <Button onClick={cancelEdit} className="flex-1 h-9 rounded-lg text-xs font-semibold flex items-center gap-1.5"
+                            style={{ background: 'var(--muted)', color: 'var(--foreground)' }}>
+                            <X size={13} /> Hủy
+                          </Button>
+                        </div>
                       </div>
-                      <span className="text-sm font-medium" style={{ color: 'var(--foreground)' }}>{c.label}</span>
-                    </div>
-                    <button
-                      onClick={() => { removeCustomCategory(c.id); toast.success('Đã xoá'); }}
-                      className="p-1.5 rounded-lg hover:bg-[var(--muted)] transition-colors"
-                      style={{ color: 'var(--destructive)' }}
-                    >
-                      <Trash2 size={14} />
-                    </button>
+                    ) : (
+                      /* ── Normal row ── */
+                      <div className="flex items-center px-3 py-2.5 gap-1">
+                        {/* Reorder buttons */}
+                        <div className="flex flex-col mr-1">
+                          <button
+                            onClick={() => moveUp(i)}
+                            disabled={i === 0}
+                            className="p-0.5 rounded transition-colors disabled:opacity-20"
+                            style={{ color: 'var(--muted-foreground)' }}
+                          >
+                            <ChevronUp size={13} />
+                          </button>
+                          <button
+                            onClick={() => moveDown(i)}
+                            disabled={i === customCategories.length - 1}
+                            className="p-0.5 rounded transition-colors disabled:opacity-20"
+                            style={{ color: 'var(--muted-foreground)' }}
+                          >
+                            <ChevronDown size={13} />
+                          </button>
+                        </div>
+
+                        <div className="w-8 h-8 flex items-center justify-center rounded-lg shrink-0" style={{ background: 'var(--muted)' }}>
+                          <CategoryIcon name={c.icon} size={16} style={{ color: 'var(--primary)' }} />
+                        </div>
+                        <span className="text-sm font-medium flex-1 min-w-0 truncate ml-2" style={{ color: 'var(--foreground)' }}>{c.label}</span>
+
+                        <button
+                          onClick={() => startEdit(c)}
+                          className="p-1.5 rounded-lg hover:bg-[var(--muted)] transition-colors"
+                          style={{ color: 'var(--muted-foreground)' }}
+                        >
+                          <Pencil size={13} />
+                        </button>
+                        <button
+                          onClick={() => { removeCustomCategory(c.id); toast.success('Đã xoá'); }}
+                          className="p-1.5 rounded-lg hover:bg-[var(--muted)] transition-colors"
+                          style={{ color: 'var(--destructive)' }}
+                        >
+                          <Trash2 size={14} />
+                        </button>
+                      </div>
+                    )}
                   </div>
                 ))}
               </div>

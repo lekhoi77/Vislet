@@ -74,8 +74,12 @@ interface AppState {
 
   addCustomSource: (label: string, icon?: string) => Promise<void>;
   removeCustomSource: (id: string) => Promise<void>;
+  updateCustomSource: (id: string, label: string, icon: string) => Promise<void>;
+  reorderCustomSources: (orderedIds: string[]) => void;
   addCustomCategory: (label: string, icon: string) => Promise<void>;
   removeCustomCategory: (id: string) => Promise<void>;
+  updateCustomCategory: (id: string, label: string, icon: string) => Promise<void>;
+  reorderCustomCategories: (orderedIds: string[]) => void;
 
   // Shared debts
   createSharedDebt: (input: NewSharedDebtInput) => Promise<SharedDebt>;
@@ -325,6 +329,17 @@ export const useAppStore = create<AppState>((set, get) => ({
     if (error) { console.error('removeCustomSource:', error); return; }
     set({ customSources: customSources.filter(s => s.id !== id) });
   },
+  updateCustomSource: async (id, label, icon) => {
+    const { customSources } = get();
+    const { error } = await supabase.from('sources').update({ label: label.trim(), icon }).eq('id', id);
+    if (error) throw error;
+    set({ customSources: customSources.map(s => s.id === id ? { ...s, label: label.trim(), icon } : s) });
+  },
+  reorderCustomSources: (orderedIds) => {
+    const { customSources } = get();
+    const map = new Map(customSources.map(s => [s.id, s]));
+    set({ customSources: orderedIds.map(id => map.get(id)!).filter(Boolean) });
+  },
 
   addCustomCategory: async (label, icon) => {
     const { currentProfileId, customCategories } = get();
@@ -342,6 +357,21 @@ export const useAppStore = create<AppState>((set, get) => ({
     const { error } = await supabase.from('categories').delete().eq('id', id);
     if (error) { console.error('removeCustomCategory:', error); return; }
     set({ customCategories: customCategories.filter(c => c.id !== id) });
+  },
+  updateCustomCategory: async (id, label, icon) => {
+    const { customCategories } = get();
+    const { error } = await supabase.from('categories').update({ label: label.trim(), icon }).eq('id', id);
+    if (error) throw error;
+    set({ customCategories: customCategories.map(c => c.id === id ? { ...c, label: label.trim(), icon } : c) });
+  },
+  reorderCustomCategories: (orderedIds) => {
+    const { customCategories } = get();
+    const map = new Map(customCategories.map(c => [c.id, c]));
+    const reordered = orderedIds.map(id => map.get(id)!).filter(Boolean);
+    set({ customCategories: reordered });
+    reordered.forEach((c, idx) => {
+      supabase.from('categories').update({ sort_order: idx }).eq('id', c.id);
+    });
   },
 
   // ── Shared Debts ────────────────────────────────────────

@@ -202,10 +202,10 @@ export function CategoryOverview({ transactions, month, year }: CategoryOverview
           style={{ background: 'var(--card)', border: '1px solid var(--border)', boxShadow: 'var(--shadow-card)' }}>
           {hasBars ? (
             <ResponsiveContainer width="100%" height={300}>
-              <BarChart data={barData} margin={{ top: 12, right: 12, left: 0, bottom: 0 }}>
+              <BarChart data={barData} margin={{ top: 12, right: 16, left: 0, bottom: 0 }} barCategoryGap="35%">
                 <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
                 <XAxis dataKey="label" tick={{ fontSize: 12, fill: 'var(--muted-foreground)' }} axisLine={false} tickLine={false} />
-                <YAxis tick={{ fontSize: 11, fill: 'var(--muted-foreground)' }} tickFormatter={(v) => formatVNDShort(Number(v))} axisLine={false} tickLine={false} width={50} />
+                <YAxis tick={{ fontSize: 11, fill: 'var(--muted-foreground)' }} tickFormatter={(v) => formatVNDShort(Number(v))} axisLine={false} tickLine={false} width={52} />
                 <Tooltip
                   formatter={(v) => formatVND(Number(v))}
                   contentStyle={{ borderRadius: 10, border: '1px solid var(--border)', background: 'var(--card)', fontSize: 12 }}
@@ -213,10 +213,10 @@ export function CategoryOverview({ transactions, month, year }: CategoryOverview
                   cursor={{ fill: 'var(--muted)' }}
                 />
                 <Legend iconType="circle" iconSize={8}
-                  wrapperStyle={{ fontSize: 12, paddingTop: 8 }}
+                  wrapperStyle={{ fontSize: 12, paddingTop: 8, textAlign: 'center' }}
                   formatter={(v) => <span style={{ fontWeight: 600, color: 'var(--foreground)' }}>{v}</span>} />
                 {allCategories.map(c => (
-                  <Bar key={c.id} dataKey={c.label} fill={getCategoryColor(c.id, customCategories)} radius={[4, 4, 0, 0]} />
+                  <Bar key={c.id} dataKey={c.label} fill={getCategoryColor(c.id, customCategories)} radius={[4, 4, 0, 0]} maxBarSize={32} />
                 ))}
               </BarChart>
             </ResponsiveContainer>
