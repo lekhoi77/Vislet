@@ -50,21 +50,36 @@ export function ExpenseHeatmap({ transactions, month, year, onEdit }: ExpenseHea
     const totalAmount = amounts.reduce((s, a) => s + a, 0);
     const activeDays = amounts.length;
 
+    // Rank-based quantile: sắp xếp ngày có chi tăng dần → mỗi ngày được map sang
+    // level theo percentile của nó. Tránh hiện tượng 1 outlier (vd tiền nhà 4.8M)
+    // dìm hết các ngày khác xuống level 1 dù chênh nhau 10 lần.
+    // Phân bổ: <25% → 1, <50% → 2, <75% → 3, >=75% → 4.
+    const sortedAmounts = [...amounts].sort((a, b) => a - b);
+    const rankOf = new Map<number, number>();
+    sortedAmounts.forEach((amt, idx) => {
+      // Dùng max index để các ngày cùng số tiền có cùng rank
+      const existing = rankOf.get(amt);
+      if (existing === undefined || idx > existing) rankOf.set(amt, idx);
+    });
+    const n = sortedAmounts.length;
+    const amountToLevel = (amount: number): number => {
+      if (amount <= 0 || n === 0) return 0;
+      if (n === 1) return 4; // 1 ngày duy nhất → max color
+      const rank = rankOf.get(amount) ?? 0;
+      const pct = rank / (n - 1); // 0..1
+      if (pct >= 0.75) return 4;
+      if (pct >= 0.5)  return 3;
+      if (pct >= 0.25) return 2;
+      return 1;
+    };
+
     const cells: DayCell[] = [];
     for (let i = 0; i < firstWeekday; i++) {
       cells.push({ day: null, amount: 0, level: -1 });
     }
     for (let d = 1; d <= daysInMonth; d++) {
       const amount = dayAmounts[d] || 0;
-      let level = 0;
-      if (amount > 0 && maxAmount > 0) {
-        const ratio = amount / maxAmount;
-        if (ratio > 0.75) level = 4;
-        else if (ratio > 0.5) level = 3;
-        else if (ratio > 0.25) level = 2;
-        else level = 1;
-      }
-      cells.push({ day: d, amount, level });
+      cells.push({ day: d, amount, level: amountToLevel(amount) });
     }
     return { days: cells, maxAmount, totalAmount, activeDays };
   }, [transactions, month, year]);
