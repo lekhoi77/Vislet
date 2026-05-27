@@ -5,6 +5,7 @@ import {
   SharedDebt, DebtNotification, DebtContact, UserSearchResult,
 } from '@/lib/types';
 import { AVATAR_COLORS } from '@/lib/constants';
+import { DEFAULT_SOURCES, DEFAULT_GOALS, DEFAULT_SOURCE_IDS, DEFAULT_GOAL_IDS } from '@/lib/defaults';
 import {
   supabase,
   toProfile,
@@ -109,13 +110,42 @@ interface AppState {
 async function fetchProfileData(profileId: string) {
   const [txRes, srcRes, catRes] = await Promise.all([
     supabase.from('transactions').select('*').eq('profile_id', profileId).order('date', { ascending: false }),
-    supabase.from('sources').select('*').eq('profile_id', profileId).eq('is_builtin', false).order('created_at', { ascending: true }),
-    supabase.from('categories').select('*').eq('profile_id', profileId).eq('is_builtin', false).order('created_at', { ascending: true }),
+    supabase.from('sources').select('*').eq('profile_id', profileId).order('created_at', { ascending: true }),
+    supabase.from('categories').select('*').eq('profile_id', profileId).order('sort_order', { ascending: true }).order('created_at', { ascending: true }),
   ]);
+
+  let sources = (srcRes.data ?? []).map(toCustomSource);
+  let categories = (catRes.data ?? []).map(toCustomCategory);
+
+  // One-time migration: seed defaults for profiles created before this feature
+  const sourceIds = new Set(sources.map(s => s.id));
+  const categoryIds = new Set(categories.map(c => c.id));
+  const hasAnySrcSeed = DEFAULT_SOURCE_IDS.some(id => sourceIds.has(id));
+  const hasAnyCatSeed = DEFAULT_GOAL_IDS.some(id => categoryIds.has(id));
+
+  if (!hasAnySrcSeed) {
+    await supabase.from('sources').insert(
+      DEFAULT_SOURCES.map(s => ({ id: s.id, profile_id: profileId, label: s.label, icon: s.icon, is_builtin: true }))
+    );
+    sources = [
+      ...DEFAULT_SOURCES.map(s => ({ id: s.id, label: s.label, icon: s.icon, createdAt: '' })),
+      ...sources,
+    ];
+  }
+  if (!hasAnyCatSeed) {
+    await supabase.from('categories').insert(
+      DEFAULT_GOALS.map((g, idx) => ({ id: g.id, profile_id: profileId, label: g.label, icon: g.icon, is_builtin: true, sort_order: idx }))
+    );
+    categories = [
+      ...DEFAULT_GOALS.map(g => ({ id: g.id, label: g.label, icon: g.icon, createdAt: '' })),
+      ...categories,
+    ];
+  }
+
   return {
     transactions: (txRes.data ?? []).map(toTransaction),
-    customSources: (srcRes.data ?? []).map(toCustomSource),
-    customCategories: (catRes.data ?? []).map(toCustomCategory),
+    customSources: sources,
+    customCategories: categories,
   };
 }
 
@@ -223,6 +253,16 @@ export const useAppStore = create<AppState>((set, get) => ({
 
     if (error) { console.error('createProfile:', error); return; }
 
+    // Seed default sources and categories for new profile
+    await Promise.all([
+      supabase.from('sources').insert(
+        DEFAULT_SOURCES.map(s => ({ id: s.id, profile_id: id, label: s.label, icon: s.icon, is_builtin: true }))
+      ),
+      supabase.from('categories').insert(
+        DEFAULT_GOALS.map((g, idx) => ({ id: g.id, profile_id: id, label: g.label, icon: g.icon, is_builtin: true, sort_order: idx }))
+      ),
+    ]);
+
     const newProfile: UserProfile = {
       id, name: name.trim(),
       avatarColor: AVATAR_COLORS[colorIndex],
@@ -236,8 +276,8 @@ export const useAppStore = create<AppState>((set, get) => ({
       profiles: [...profiles, newProfile],
       currentProfileId: id,
       transactions: [],
-      customSources: [],
-      customCategories: [],
+      customSources: DEFAULT_SOURCES.map(s => ({ id: s.id, label: s.label, icon: s.icon, createdAt: '' })),
+      customCategories: DEFAULT_GOALS.map(g => ({ id: g.id, label: g.label, icon: g.icon, createdAt: '' })),
     });
   },
 

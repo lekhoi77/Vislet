@@ -215,7 +215,9 @@ export function AddSourceSheet({ open, onClose }: AddSourceSheetProps) {
                         <div className="w-8 h-8 flex items-center justify-center rounded-lg shrink-0" style={{ background: 'var(--muted)' }}>
                           <AppIcon name={(s as { icon?: string }).icon ?? 'Wallet'} size={16} style={{ color: 'var(--primary)' }} />
                         </div>
-                        <span className="text-sm font-medium flex-1 min-w-0 truncate ml-2" style={{ color: 'var(--foreground)' }}>{s.label}</span>
+                        <div className="flex flex-col flex-1 min-w-0 ml-2">
+                          <span className="text-sm font-medium truncate" style={{ color: 'var(--foreground)' }}>{s.label}</span>
+                        </div>
 
                         <button
                           onClick={() => startEdit(s)}

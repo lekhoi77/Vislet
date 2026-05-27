@@ -1,7 +1,7 @@
 'use client';
 
 import { useMemo, useState } from 'react';
-import { Transaction, SharedDebt } from '@/lib/types';
+import { Transaction, SharedDebt, isConfirmedDebt } from '@/lib/types';
 import { DayDetailSheet } from './DayDetailSheet';
 
 interface CalendarBlockProps {
@@ -17,10 +17,11 @@ const WEEKDAY_LABELS = ['T2', 'T3', 'T4', 'T5', 'T6', 'T7', 'CN'];
 interface DayCell {
   day: number | null;
   isToday: boolean;
-  hasIncome: boolean;
-  hasExpense: boolean;
+  incomeCount: number;
+  expenseCount: number;
   hasDebt: boolean;
 }
+
 
 export function CalendarBlock({ transactions, sharedDebts, month, year, onEdit }: CalendarBlockProps) {
   const [selectedDay, setSelectedDay] = useState<number | null>(null);
@@ -33,7 +34,7 @@ export function CalendarBlock({ transactions, sharedDebts, month, year, onEdit }
 
     const cells: DayCell[] = [];
     for (let i = 0; i < firstWeekday; i++) {
-      cells.push({ day: null, isToday: false, hasIncome: false, hasExpense: false, hasDebt: false });
+      cells.push({ day: null, isToday: false, incomeCount: 0, expenseCount: 0, hasDebt: false });
     }
 
     for (let d = 1; d <= daysInMonth; d++) {
@@ -42,18 +43,19 @@ export function CalendarBlock({ transactions, sharedDebts, month, year, onEdit }
         now.getMonth() === month - 1 &&
         now.getDate() === d;
 
-      let hasIncome = false;
-      let hasExpense = false;
+      let incomeCount = 0;
+      let expenseCount = 0;
       for (const tx of transactions) {
         const td = new Date(tx.date);
         if (td.getFullYear() !== year || td.getMonth() !== month - 1 || td.getDate() !== d) continue;
-        if (tx.type === 'income') hasIncome = true;
-        else if (tx.type === 'expense') hasExpense = true;
-        if (hasIncome && hasExpense) break;
+        if (tx.type === 'income') incomeCount += 1;
+        else if (tx.type === 'expense') expenseCount += 1;
       }
 
       let hasDebt = false;
       for (const debt of sharedDebts) {
+        // Chỉ tính nợ đã được xác nhận thực sự — bỏ qua pending/rejected/cancelled
+        if (!isConfirmedDebt(debt.status)) continue;
         // Sync với dashboard: ưu tiên dueDate, fallback về createdAt
         const dateStr = debt.dueDate ?? debt.createdAt;
         if (!dateStr) continue;
@@ -64,7 +66,7 @@ export function CalendarBlock({ transactions, sharedDebts, month, year, onEdit }
         }
       }
 
-      cells.push({ day: d, isToday, hasIncome, hasExpense, hasDebt });
+      cells.push({ day: d, isToday, incomeCount, expenseCount, hasDebt });
     }
     return cells;
   }, [transactions, sharedDebts, month, year]);
@@ -111,7 +113,9 @@ export function CalendarBlock({ transactions, sharedDebts, month, year, onEdit }
           if (c.day === null) {
             return <div key={i} aria-hidden />;
           }
-          const hasAny = c.hasIncome || c.hasExpense || c.hasDebt;
+          const hasAny = c.incomeCount > 0 || c.expenseCount > 0 || c.hasDebt;
+          const totalDots = c.incomeCount + c.expenseCount + (c.hasDebt ? 1 : 0);
+          const isCrowded = totalDots > 6;
           return (
             <button
               key={i}
@@ -134,15 +138,15 @@ export function CalendarBlock({ transactions, sharedDebts, month, year, onEdit }
               >
                 {c.day}
               </span>
-              <div className="flex gap-1 mt-1.5 min-h-[8px]">
-                {c.hasIncome && (
-                  <span style={{ width: 7, height: 7, borderRadius: '50%', background: 'var(--income)' }} />
-                )}
-                {c.hasExpense && (
-                  <span style={{ width: 7, height: 7, borderRadius: '50%', background: 'var(--orange)' }} />
-                )}
+              <div className={`cal-dots flex flex-wrap justify-center items-center mt-1 min-h-[6px] px-0.5${isCrowded ? ' is-crowded' : ''}`}>
+                {Array.from({ length: c.incomeCount }).map((_, k) => (
+                  <span key={`inc-${k}`} className="cal-dot" style={{ background: 'var(--income)' }} />
+                ))}
+                {Array.from({ length: c.expenseCount }).map((_, k) => (
+                  <span key={`exp-${k}`} className="cal-dot" style={{ background: 'var(--orange)' }} />
+                ))}
                 {c.hasDebt && (
-                  <span style={{ width: 7, height: 7, borderRadius: '50%', background: 'hsl(262, 60%, 55%)' }} />
+                  <span className="cal-dot" style={{ background: 'hsl(262, 60%, 55%)' }} />
                 )}
               </div>
             </button>

@@ -134,59 +134,61 @@ export function TransactionItem({ tx, onEdit, highlightQuery = '' }: Transaction
         >
           <BottomSheetHeader title="Chi tiết giao dịch" showHandle withBorder={false} />
 
-          <div className="flex flex-col gap-3 mb-6 px-5 pb-12">
-            <div className="flex items-center justify-between">
-              <span className="text-sm" style={{ color: 'var(--muted-foreground)' }}>Nội dung</span>
-              <span className="text-sm font-medium" style={{ color: 'var(--foreground)' }}>{tx.title}</span>
-            </div>
-            <div className="flex items-center justify-between">
-              <span className="text-sm" style={{ color: 'var(--muted-foreground)' }}>Số tiền</span>
-              <span className="text-base font-bold amount" style={{ color: isIncome ? 'var(--up)' : 'var(--down)' }}>
-                {amountStr}
-              </span>
-            </div>
-            <div className="flex items-center justify-between">
-              <span className="text-sm" style={{ color: 'var(--muted-foreground)' }}>Nguồn tiền</span>
-              <span className="text-sm font-medium" style={{ color: 'var(--foreground)' }}>{sourceLabel}</span>
-            </div>
-            {hasCategory && (
+          <div className="flex flex-col gap-5 px-5 pb-6">
+            <div className="flex flex-col gap-3">
               <div className="flex items-center justify-between">
-                <span className="text-sm" style={{ color: 'var(--muted-foreground)' }}>Danh mục</span>
-                <span className="text-sm font-medium" style={{ color: 'var(--foreground)' }}>{categoryLabel}</span>
+                <span className="text-sm" style={{ color: 'var(--muted-foreground)' }}>Nội dung</span>
+                <span className="text-sm font-medium" style={{ color: 'var(--foreground)' }}>{tx.title}</span>
               </div>
-            )}
-            <div className="flex items-center justify-between">
-              <span className="text-sm" style={{ color: 'var(--muted-foreground)' }}>Ngày</span>
-              <span className="text-sm font-medium" style={{ color: 'var(--foreground)' }}>{formatDate(tx.date)}</span>
+              <div className="flex items-center justify-between">
+                <span className="text-sm" style={{ color: 'var(--muted-foreground)' }}>Số tiền</span>
+                <span className="text-base font-bold amount" style={{ color: isIncome ? 'var(--up)' : 'var(--down)' }}>
+                  {amountStr}
+                </span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-sm" style={{ color: 'var(--muted-foreground)' }}>Nguồn tiền</span>
+                <span className="text-sm font-medium" style={{ color: 'var(--foreground)' }}>{sourceLabel}</span>
+              </div>
+              {hasCategory && (
+                <div className="flex items-center justify-between">
+                  <span className="text-sm" style={{ color: 'var(--muted-foreground)' }}>Danh mục</span>
+                  <span className="text-sm font-medium" style={{ color: 'var(--foreground)' }}>{categoryLabel}</span>
+                </div>
+              )}
+              <div className="flex items-center justify-between">
+                <span className="text-sm" style={{ color: 'var(--muted-foreground)' }}>Ngày</span>
+                <span className="text-sm font-medium" style={{ color: 'var(--foreground)' }}>{formatDate(tx.date)}</span>
+              </div>
+              {tx.note && (
+                <div className="flex flex-col gap-1">
+                  <span className="text-sm" style={{ color: 'var(--muted-foreground)' }}>Ghi chú</span>
+                  <span className="text-sm" style={{ color: 'var(--foreground)' }}>{tx.note}</span>
+                </div>
+              )}
             </div>
-            {tx.note && (
-              <div className="flex flex-col gap-1">
-                <span className="text-sm" style={{ color: 'var(--muted-foreground)' }}>Ghi chú</span>
-                <span className="text-sm" style={{ color: 'var(--foreground)' }}>{tx.note}</span>
-              </div>
-            )}
-          </div>
 
-          <div className="flex gap-3 px-5">
-            <Button
-              variant="outline"
-              className="flex-1 h-11 gap-2"
-              onClick={() => {
-                setShowDetail(false);
-                onEdit(tx);
-              }}
-            >
-              <Pencil size={15} />
-              Sửa
-            </Button>
-            <Button
-              className="flex-1 h-11 gap-2"
-              style={{ background: 'var(--destructive)', color: '#fff' }}
-              onClick={() => setShowDelete(true)}
-            >
-              <Trash2 size={15} />
-              Xoá
-            </Button>
+            <div className="flex gap-3">
+              <Button
+                variant="outline"
+                className="flex-1 h-11 gap-2"
+                onClick={() => {
+                  setShowDetail(false);
+                  onEdit(tx);
+                }}
+              >
+                <Pencil size={15} />
+                Sửa
+              </Button>
+              <Button
+                className="flex-1 h-11 gap-2"
+                style={{ background: 'var(--destructive)', color: '#fff' }}
+                onClick={() => setShowDelete(true)}
+              >
+                <Trash2 size={15} />
+                Xoá
+              </Button>
+            </div>
           </div>
         </SheetContent>
       </Sheet>

@@ -63,6 +63,14 @@ export type SharedDebtStatus =
   | 'rejected'          // B từ chối
   | 'cancelled';        // A huỷ trước khi B accept
 
+/** Status nào được coi là khoản nợ "có thực" — đã được B xác nhận hoặc đã/đang thanh toán.
+ *  Dùng để lọc khi đưa nợ vào dashboard/lịch (tránh hiện nợ chưa ai xác nhận). */
+export const CONFIRMED_DEBT_STATUSES: SharedDebtStatus[] = ['active', 'pending_confirm', 'settled'];
+
+export function isConfirmedDebt(status: SharedDebtStatus): boolean {
+  return CONFIRMED_DEBT_STATUSES.includes(status);
+}
+
 export type DebtorType = 'linked' | 'unlinked';
 export type SharedDebtDirection = 'forward' | 'reverse';
 

@@ -305,6 +305,7 @@ const SHORTCUT_HINTS = [
   { scope: 'Máy tính',    key: 'S',        desc: 'Lưu slot' },
   { scope: 'Máy tính',    key: 'Enter / =',desc: 'Bằng (=)' },
   { scope: 'Máy tính',    key: '⌫',        desc: 'Xóa ký tự' },
+  { scope: 'Máy tính',    key: 'Del',      desc: 'Xóa hết (AC)' },
 ];
 
 export function CalculatorPanel({ open, onClose }: CalculatorPanelProps) {
@@ -387,6 +388,7 @@ export function CalculatorPanel({ open, onClose }: CalculatorPanelProps) {
       else if (k === '/')                                  { e.preventDefault(); dispatch({ type: 'OP', op: '÷' }); }
       else if (k === 'Enter' || k === '=')                { e.preventDefault(); dispatch({ type: 'EQUALS' }); }
       else if (k === 'Backspace')                         { e.preventDefault(); dispatch({ type: 'BS' }); }
+      else if (k === 'Delete')                            { e.preventDefault(); dispatch({ type: 'AC' }); }
       else if (k === 'Escape')                            { e.preventDefault(); onClose(); }
       else if (k === '%')                                 { e.preventDefault(); dispatch({ type: 'PCT' }); }
       else if ((k === 's' || k === 'S') && !e.ctrlKey && !e.metaKey) { e.preventDefault(); handleSave(); }

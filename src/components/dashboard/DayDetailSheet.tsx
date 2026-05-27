@@ -1,7 +1,7 @@
 'use client';
 
 import { useMemo } from 'react';
-import { Transaction, SharedDebt } from '@/lib/types';
+import { Transaction, SharedDebt, isConfirmedDebt } from '@/lib/types';
 import { useAuthStore } from '@/store/auth-store';
 import { formatVND } from '@/lib/format';
 import { resolveSourceLabel, resolveCategoryLabel } from '@/lib/constants';
@@ -61,6 +61,8 @@ export function DayDetailSheet({
   const dayDebts = useMemo(() => {
     if (!date) return [];
     return sharedDebts.filter(d => {
+      // Chỉ hiển thị nợ đã xác nhận thực sự — không hiện pending/rejected/cancelled
+      if (!isConfirmedDebt(d.status)) return false;
       const dateStr = d.dueDate ?? d.createdAt;
       return dateStr && isSameDay(dateStr, date);
     });

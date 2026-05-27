@@ -2,11 +2,7 @@
 
 import { useState, useMemo } from 'react';
 import { Transaction } from '@/lib/types';
-import {
-  BUILT_IN_SOURCES, BUILT_IN_CATEGORIES,
-  SOURCE_LABELS, CATEGORY_LABELS,
-  resolveSourceLabel, resolveCategoryLabel,
-} from '@/lib/constants';
+import { resolveSourceLabel, resolveCategoryLabel } from '@/lib/constants';
 import { useAppStore } from '@/store/app-store';
 import { matchesQuery } from '@/lib/search';
 import { TransactionList } from './TransactionList';
@@ -110,14 +106,8 @@ export function TransactionPane({ transactions, onEdit }: TransactionPaneProps) 
   const activeCount = countActiveFilters(filter);
 
   // Build source + category options
-  const sourceOptions = [
-    ...BUILT_IN_SOURCES.map(s => ({ value: s, label: SOURCE_LABELS[s] ?? s })),
-    ...customSources.map(s => ({ value: s.id, label: s.label })),
-  ];
-  const categoryOptions = [
-    ...BUILT_IN_CATEGORIES.map(c => ({ value: c, label: CATEGORY_LABELS[c] ?? c })),
-    ...customCategories.map(c => ({ value: c.id, label: c.label })),
-  ];
+  const sourceOptions = customSources.map(s => ({ value: s.id, label: s.label }));
+  const categoryOptions = customCategories.map(c => ({ value: c.id, label: c.label }));
 
   // Apply filters
   const filtered = useMemo(() => {

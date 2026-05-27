@@ -2,18 +2,12 @@
 
 import { Transaction } from '@/lib/types';
 import { formatVND } from '@/lib/format';
-import { SOURCE_LABELS } from '@/lib/constants';
 import { useAppStore } from '@/store/app-store';
-import { Building2, Wallet, Smartphone, CircleDot, PieChart as PieIcon, List } from 'lucide-react';
+import { PieChart as PieIcon, List } from 'lucide-react';
+import { AppIcon } from '@/lib/icons';
 import { BlockCardHeader } from '@/components/dashboard/BlockCardHeader';
 import { useState } from 'react';
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer, Legend } from 'recharts';
-
-const BUILT_IN_ICONS: Record<string, React.ReactNode> = {
-  bank: <Building2 size={16} />,
-  cash: <Wallet size={16} />,
-  momo: <Smartphone size={16} />,
-};
 
 const PASTEL = [
   '#A8D8EA', '#FFD3B6', '#DCEDC1', '#D4A5F5',
@@ -31,12 +25,11 @@ export function SourceBlocks({ transactions, title, onAdd, addLabel = 'Thêm ngu
   const { customSources } = useAppStore();
   const [chartView, setChartView] = useState(false);
 
-  const allSources = [
-    { id: 'bank', label: SOURCE_LABELS.bank, icon: BUILT_IN_ICONS.bank },
-    { id: 'cash', label: SOURCE_LABELS.cash, icon: BUILT_IN_ICONS.cash },
-    { id: 'momo', label: SOURCE_LABELS.momo, icon: BUILT_IN_ICONS.momo },
-    ...customSources.map(s => ({ id: s.id, label: s.label, icon: <CircleDot size={16} /> })),
-  ];
+  const allSources = customSources.map(s => ({
+    id: s.id,
+    label: s.label,
+    icon: <AppIcon name={s.icon} size={16} />,
+  }));
 
   const getBalance = (sourceId: string) => {
     const inc = transactions.filter(t => t.source === sourceId && t.type === 'income').reduce((s, t) => s + t.amount, 0);

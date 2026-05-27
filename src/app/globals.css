@@ -418,6 +418,15 @@ button:active:not(:disabled),
   flex-shrink: 0;
 }
 
+.cal-dots.is-crowded .cal-dot {
+  width: 5px;
+  height: 5px;
+}
+.cal-dots.is-crowded {
+  gap: 2px;
+  row-gap: 1px;
+}
+
 @media (max-width: 767px) {
   .cal-dots {
     gap: 2px;
@@ -433,6 +442,11 @@ button:active:not(:disabled),
     width: 4px;
     height: 4px;
   }
+
+  .cal-dots.is-crowded {
+    gap: 1px;
+    row-gap: 1px;
+  }
 }
 
 @media (max-width: 380px) {
@@ -441,8 +455,13 @@ button:active:not(:disabled),
     height: 4px;
   }
 
-  .cal-dots.is-crowded {
+  .cal-dots {
     gap: 1px;
+  }
+
+  .cal-dots.is-crowded .cal-dot {
+    width: 3px;
+    height: 3px;
   }
 }
 

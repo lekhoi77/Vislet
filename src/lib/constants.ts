@@ -12,14 +12,14 @@ export const BUILT_IN_CATEGORIES = ['none', 'saving', 'travel', 'soon'] as const
 // ─── Label resolvers (hỗ trợ cả built-in và custom) ─────────
 
 export function resolveSourceLabel(sourceId: string, customSources: CustomSource[] = []): string {
-  return SOURCE_LABELS[sourceId]
-    ?? customSources.find(s => s.id === sourceId)?.label
+  return customSources.find(s => s.id === sourceId)?.label
+    ?? SOURCE_LABELS[sourceId]
     ?? sourceId;
 }
 
 export function resolveCategoryLabel(categoryId: string, customCategories: CustomCategory[] = []): string {
-  return CATEGORY_LABELS[categoryId]
-    ?? customCategories.find(c => c.id === categoryId)?.label
+  return customCategories.find(c => c.id === categoryId)?.label
+    ?? CATEGORY_LABELS[categoryId]
     ?? categoryId;
 }
 
@@ -94,7 +94,7 @@ const BUILT_IN_CATEGORY_COLOR: Record<string, string> = {
 /** Trả về màu nhất quán cho một categoryId (built-in hoặc custom) */
 export function getCategoryColor(categoryId: string, customCategories: CustomCategory[]): string {
   if (BUILT_IN_CATEGORY_COLOR[categoryId]) return BUILT_IN_CATEGORY_COLOR[categoryId];
-  const idx = customCategories.findIndex(c => c.id === categoryId);
-  // custom categories bắt đầu từ index 4 trở đi
+  const customOnly = customCategories.filter(c => !BUILT_IN_CATEGORY_COLOR[c.id] && c.id !== 'none');
+  const idx = customOnly.findIndex(c => c.id === categoryId);
   return CATEGORY_COLORS[(4 + Math.max(0, idx)) % CATEGORY_COLORS.length];
 }

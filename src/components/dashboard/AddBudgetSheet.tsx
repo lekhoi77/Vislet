@@ -12,6 +12,7 @@ import { Plus, Trash2, Pencil, Check, X, ChevronUp, ChevronDown } from 'lucide-r
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import type { CustomCategory } from '@/lib/types';
+import { PROTECTED_GOAL_ID } from '@/lib/catalog-policy';
 
 interface AddCategorySheetProps {
   open: boolean;
@@ -19,7 +20,9 @@ interface AddCategorySheetProps {
 }
 
 export function AddCategorySheet({ open, onClose }: AddCategorySheetProps) {
-  const { customCategories, addCustomCategory, removeCustomCategory, updateCustomCategory, reorderCustomCategories } = useAppStore();
+  const { customCategories: rawCategories, addCustomCategory, removeCustomCategory, updateCustomCategory, reorderCustomCategories } = useAppStore();
+  // Ẩn 'none' (Chưa phân loại) — chỉ là marker hệ thống, không phải danh mục thực sự
+  const customCategories = rawCategories.filter(c => c.id !== PROTECTED_GOAL_ID);
   const [label, setLabel] = useState('');
   const [icon, setIcon] = useState('ShoppingCart');
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -57,18 +60,24 @@ export function AddCategorySheet({ open, onClose }: AddCategorySheetProps) {
     }
   };
 
+  const applyReorder = (newOrderedIds: string[]) => {
+    // Gắn lại các id ẩn (vd 'none') vào đầu để không bị mất khỏi store
+    const hiddenIds = rawCategories.map(c => c.id).filter(id => !newOrderedIds.includes(id));
+    reorderCustomCategories([...hiddenIds, ...newOrderedIds]);
+  };
+
   const moveUp = (idx: number) => {
     if (idx === 0) return;
     const ids = customCategories.map(c => c.id);
     [ids[idx - 1], ids[idx]] = [ids[idx], ids[idx - 1]];
-    reorderCustomCategories(ids);
+    applyReorder(ids);
   };
 
   const moveDown = (idx: number) => {
     if (idx === customCategories.length - 1) return;
     const ids = customCategories.map(c => c.id);
     [ids[idx], ids[idx + 1]] = [ids[idx + 1], ids[idx]];
-    reorderCustomCategories(ids);
+    applyReorder(ids);
   };
 
   const { expanded, sheetStyle, handleProps } = useDraggableSheet('add-category-expanded', true);
@@ -220,7 +229,9 @@ export function AddCategorySheet({ open, onClose }: AddCategorySheetProps) {
                         <div className="w-8 h-8 flex items-center justify-center rounded-lg shrink-0" style={{ background: 'var(--muted)' }}>
                           <CategoryIcon name={c.icon} size={16} style={{ color: 'var(--primary)' }} />
                         </div>
-                        <span className="text-sm font-medium flex-1 min-w-0 truncate ml-2" style={{ color: 'var(--foreground)' }}>{c.label}</span>
+                        <div className="flex flex-col flex-1 min-w-0 ml-2">
+                          <span className="text-sm font-medium truncate" style={{ color: 'var(--foreground)' }}>{c.label}</span>
+                        </div>
 
                         <button
                           onClick={() => startEdit(c)}

@@ -15,7 +15,7 @@ import { Button } from '@/components/ui/button';
 import { AmountInput } from '@/components/shared/AmountInput';
 import { useAppStore } from '@/store/app-store';
 import { Transaction, TransactionSource, TransactionCategory, TransactionType } from '@/lib/types';
-import { Building2, Wallet, Smartphone, PiggyBank, Plane, Clock, TrendingUp, TrendingDown, ArrowRight, CircleDot, Tag } from 'lucide-react';
+import { Building2, Wallet, Smartphone, PiggyBank, Plane, Clock, TrendingUp, TrendingDown, ArrowRight, CircleDot, Tag, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { formatVND } from '@/lib/format';
@@ -109,6 +109,7 @@ export function TransactionForm({ open, type, editingTx, onClose }: TransactionF
   const [splitDebtor, setSplitDebtor] = useState<PickedDebtor | null>(null);
   const [splitAmount, setSplitAmount] = useState<number>(0);
   const [splitDueDate, setSplitDueDate] = useState<string>('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
     if (open) {
@@ -133,6 +134,7 @@ export function TransactionForm({ open, type, editingTx, onClose }: TransactionF
       setSplitAmount(0);
       setSplitDueDate('');
       setErrors({});
+      setIsSubmitting(false);
     }
   }, [open, editingTx]);
 
@@ -153,7 +155,9 @@ export function TransactionForm({ open, type, editingTx, onClose }: TransactionF
   };
 
   const handleSubmit = useCallback(async () => {
+    if (isSubmitting) return;
     if (!validate()) return;
+    setIsSubmitting(true);
     const txData = {
       type,
       title: title.trim(),
@@ -195,9 +199,10 @@ export function TransactionForm({ open, type, editingTx, onClose }: TransactionF
       onClose();
     } catch (err) {
       toast.error(`Lỗi: ${(err as Error).message ?? 'Không thể lưu giao dịch'}`);
+      setIsSubmitting(false);
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [type, title, amount, source, category, note, date, editingTx, onClose, splitEnabled, splitDebtor, splitAmount, splitDueDate]);
+  }, [type, title, amount, source, category, note, date, editingTx, onClose, splitEnabled, splitDebtor, splitAmount, splitDueDate, isSubmitting]);
 
   // Enter = submit (trừ khi đang gõ trong textarea)
   const handleSubmitRef = useRef(handleSubmit);
@@ -414,25 +419,36 @@ export function TransactionForm({ open, type, editingTx, onClose }: TransactionF
                         <span className="absolute right-3 top-1/2 -translate-y-1/2 text-sm font-medium" style={{ color: 'var(--muted-foreground)' }}>VNĐ</span>
                       </div>
                       {/* Gợi ý chia */}
-                      {amount > 0 && (
-                        <div className="flex gap-2 flex-wrap">
-                          <button type="button" onClick={() => setSplitAmount(Math.floor(amount / 2))}
-                            className="text-[12px] px-2 py-1 rounded-md font-medium"
-                            style={{ background: 'var(--background)', color: 'var(--foreground)', border: '1px solid var(--border)' }}>
-                            Chia đôi: {Math.floor(amount / 2).toLocaleString('vi-VN')}
-                          </button>
-                          <button type="button" onClick={() => setSplitAmount(Math.floor(amount / 3))}
-                            className="text-[12px] px-2 py-1 rounded-md font-medium"
-                            style={{ background: 'var(--background)', color: 'var(--foreground)', border: '1px solid var(--border)' }}>
-                            Chia 3: {Math.floor(amount / 3).toLocaleString('vi-VN')}
-                          </button>
-                          <button type="button" onClick={() => setSplitAmount(Math.floor(amount / 4))}
-                            className="text-[12px] px-2 py-1 rounded-md font-medium"
-                            style={{ background: 'var(--background)', color: 'var(--foreground)', border: '1px solid var(--border)' }}>
-                            Chia 4: {Math.floor(amount / 4).toLocaleString('vi-VN')}
-                          </button>
-                        </div>
-                      )}
+                      {amount > 0 && (() => {
+                        const presets = [
+                          { label: 'Chia đôi', value: Math.floor(amount / 2) },
+                          { label: 'Chia 3',   value: Math.floor(amount / 3) },
+                          { label: 'Chia 4',   value: Math.floor(amount / 4) },
+                          { label: 'Họ trả hết', value: amount },
+                        ];
+                        return (
+                          <div className="flex gap-2 flex-wrap">
+                            {presets.map(p => {
+                              const isActive = splitAmount === p.value && splitAmount > 0;
+                              return (
+                                <button
+                                  key={p.label}
+                                  type="button"
+                                  onClick={() => setSplitAmount(p.value)}
+                                  className="text-[12px] px-2 py-1 rounded-md font-medium transition-colors"
+                                  style={{
+                                    background: isActive ? 'var(--primary-soft)' : 'var(--background)',
+                                    color: isActive ? 'var(--primary)' : 'var(--foreground)',
+                                    border: `1px solid ${isActive ? 'var(--primary-muted)' : 'var(--border)'}`,
+                                  }}
+                                >
+                                  {p.label}: {p.value.toLocaleString('vi-VN')}
+                                </button>
+                              );
+                            })}
+                          </div>
+                        );
+                      })()}
                       {errors.splitAmount && <p className="text-sm" style={{ color: 'var(--destructive)' }}>{errors.splitAmount}</p>}
                     </div>
 
@@ -454,15 +470,19 @@ export function TransactionForm({ open, type, editingTx, onClose }: TransactionF
           <Button
             id="tx-submit"
             onClick={handleSubmit}
-            className="w-full h-12 rounded-xl text-sm font-semibold tracking-wide"
+            disabled={isSubmitting}
+            className="w-full h-12 rounded-xl text-sm font-semibold tracking-wide flex items-center justify-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed"
             style={{
               background: isIncome ? 'var(--primary)' : 'var(--orange)',
               color: isIncome ? 'var(--primary-foreground)' : 'var(--orange-foreground)',
             }}
           >
-            {editingTx
-              ? (isIncome ? 'CẬP NHẬT THU NHẬP' : 'CẬP NHẬT CHI TIÊU')
-              : (isIncome ? 'LƯU THU NHẬP' : 'LƯU CHI TIÊU')
+            {isSubmitting && <Loader2 size={16} className="animate-spin" />}
+            {isSubmitting
+              ? 'ĐANG LƯU...'
+              : editingTx
+                ? (isIncome ? 'CẬP NHẬT THU NHẬP' : 'CẬP NHẬT CHI TIÊU')
+                : (isIncome ? 'LƯU THU NHẬP' : 'LƯU CHI TIÊU')
             }
           </Button>
         </div>

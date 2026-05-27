@@ -146,9 +146,6 @@ export function SummaryCards({ transactions, month, year, isLoading }: SummaryCa
   const income = filtered.filter(t => t.type === 'income').reduce((s, t) => s + t.amount, 0);
   const expense = filtered.filter(t => t.type === 'expense').reduce((s, t) => s + t.amount, 0);
   const balance = income - expense;
-  const incomeCount = filtered.filter(t => t.type === 'income').length;
-  const expenseCount = filtered.filter(t => t.type === 'expense').length;
-
   // Today vs yesterday delta (only relevant when viewing current month)
   const now = new Date();
   const isCurrentMonth = month === now.getMonth() + 1 && year === now.getFullYear();
@@ -206,21 +203,19 @@ export function SummaryCards({ transactions, month, year, isLoading }: SummaryCa
 
         {/* Income + Expense */}
         <div className="grid grid-cols-2 gap-3">
-          <div className="flex flex-col gap-0.5 p-3 rounded-2xl" style={card()}>
+          <div className="flex flex-col gap-1 p-3 rounded-2xl justify-center" style={card()}>
             <div className="flex items-center gap-1">
               <div style={{ width: 5, height: 5, borderRadius: '50%', background: 'var(--income)', flexShrink: 0 }} />
               <span className="text-[14px] font-semibold uppercase tracking-wide truncate" style={{ color: 'var(--muted-foreground)' }}>Thu</span>
             </div>
-            <p className="text-sm font-bold amount" style={{ color: 'var(--income)', lineHeight: 1.2 }}>{formatVND(income)}</p>
-            <p className="text-[14px]" style={{ color: 'var(--muted-foreground)' }}>{incomeCount} GD</p>
+            <p className="text-lg font-bold amount" style={{ color: 'var(--income)', lineHeight: 1.2, letterSpacing: '-0.01em' }}>{formatVND(income)}</p>
           </div>
-          <div className="flex flex-col gap-0.5 p-3 rounded-2xl" style={card()}>
+          <div className="flex flex-col gap-1 p-3 rounded-2xl justify-center" style={card()}>
             <div className="flex items-center gap-1">
               <div style={{ width: 5, height: 5, borderRadius: '50%', background: 'var(--expense)', flexShrink: 0 }} />
               <span className="text-[14px] font-semibold uppercase tracking-wide truncate" style={{ color: 'var(--muted-foreground)' }}>Chi</span>
             </div>
-            <p className="text-sm font-bold amount" style={{ color: 'var(--expense)', lineHeight: 1.2 }}>{formatVND(expense)}</p>
-            <p className="text-[14px]" style={{ color: 'var(--muted-foreground)' }}>{expenseCount} GD</p>
+            <p className="text-lg font-bold amount" style={{ color: 'var(--expense)', lineHeight: 1.2, letterSpacing: '-0.01em' }}>{formatVND(expense)}</p>
           </div>
         </div>
       </div>

@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { Transaction } from '@/lib/types';
 import { formatVND, formatVNDShort } from '@/lib/format';
-import { CATEGORY_LABELS, getCategoryColor } from '@/lib/constants';
+import { getCategoryColor } from '@/lib/constants';
 import { useAppStore } from '@/store/app-store';
 import { CategoryIcon } from '@/lib/icons';
 import { PiggyBank, Plane, Clock, Tag, BarChart2, List, PieChart as PieIcon } from 'lucide-react';
@@ -33,13 +33,7 @@ export function CategoryOverview({ transactions, month, year }: CategoryOverview
   const { customCategories } = useAppStore();
   const [view, setView] = useState<ViewMode>('list');
 
-  const allCategories = [
-    { id: 'saving', label: CATEGORY_LABELS['saving'] },
-    { id: 'travel', label: CATEGORY_LABELS['travel'] },
-    { id: 'soon', label: CATEGORY_LABELS['soon'] },
-    { id: 'none', label: CATEGORY_LABELS['none'] },
-    ...customCategories.map(c => ({ id: c.id, label: c.label })),
-  ];
+  const allCategories = customCategories.map(c => ({ id: c.id, label: c.label }));
 
   const monthTxs = transactions.filter(tx => {
     const d = new Date(tx.date);

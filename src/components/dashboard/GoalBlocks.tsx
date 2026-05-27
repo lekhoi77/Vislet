@@ -2,11 +2,11 @@
 
 import { Transaction } from '@/lib/types';
 import { formatVND, formatVNDShort } from '@/lib/format';
-import { CATEGORY_LABELS, getCategoryColor } from '@/lib/constants';
+import { getCategoryColor } from '@/lib/constants';
 import { useAppStore } from '@/store/app-store';
 import { CategoryIcon } from '@/lib/icons';
 import { Separator } from '@/components/ui/separator';
-import { PiggyBank, Plane, Clock, BarChart2, List, PieChart as PieIcon } from 'lucide-react';
+import { BarChart2, List, PieChart as PieIcon } from 'lucide-react';
 import { BlockCardHeader } from '@/components/dashboard/BlockCardHeader';
 import { useState } from 'react';
 import {
@@ -14,11 +14,6 @@ import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid,
 } from 'recharts';
 
-const BUILT_IN_CATEGORIES = [
-  { id: 'saving', label: CATEGORY_LABELS['saving'], icon: <PiggyBank size={16} /> },
-  { id: 'travel', label: CATEGORY_LABELS['travel'], icon: <Plane size={16} /> },
-  { id: 'soon',   label: CATEGORY_LABELS['soon'],   icon: <Clock size={16} /> },
-];
 
 type ViewMode = 'list' | 'pie' | 'bars';
 
@@ -36,14 +31,13 @@ export function CategoryBlocks({ transactions, month, year, title, onAdd, addLab
   const { customCategories } = useAppStore();
   const [view, setView] = useState<ViewMode>('list');
 
-  const allCategories = [
-    ...BUILT_IN_CATEGORIES,
-    ...customCategories.map(c => ({
+  const allCategories = customCategories
+    .filter(c => c.id !== 'none')
+    .map(c => ({
       id: c.id,
       label: c.label,
       icon: <CategoryIcon name={c.icon} size={16} />,
-    })),
-  ];
+    }));
 
   // ── Reset hàng tháng: chỉ tính chi tiêu trong tháng đang xem ─
   const monthTxs = transactions.filter(tx => {
@@ -156,33 +150,12 @@ export function CategoryBlocks({ transactions, month, year, title, onAdd, addLab
       )}
 
       {view === 'bars' && (
-        <div className="flex-1 flex flex-col px-2 pb-3 min-h-0">
-          {hasBars ? (
-            <ResponsiveContainer width="100%" height={220}>
-              <BarChart data={barData} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
-                <XAxis dataKey="label" tick={{ fontSize: 11, fill: 'var(--muted-foreground)' }} axisLine={false} tickLine={false} />
-                <YAxis tick={{ fontSize: 10, fill: 'var(--muted-foreground)' }} tickFormatter={(v) => formatVNDShort(Number(v))} axisLine={false} tickLine={false} width={40} />
-                <Tooltip
-                  formatter={(v) => formatVND(Number(v))}
-                  contentStyle={{ borderRadius: 10, border: '1px solid var(--border)', background: 'var(--card)', fontSize: 12 }}
-                  itemStyle={{ fontWeight: 600 }}
-                  cursor={{ fill: 'var(--muted)' }}
-                />
-                <Legend iconType="circle" iconSize={7}
-                  wrapperStyle={{ fontSize: 11 }}
-                  formatter={(v) => <span style={{ fontWeight: 600, color: 'var(--foreground)' }}>{v}</span>} />
-                {allCategories.map(c => (
-                  <Bar key={c.id} dataKey={c.label} fill={getCategoryColor(c.id, customCategories)} radius={[4, 4, 0, 0]} />
-                ))}
-              </BarChart>
-            </ResponsiveContainer>
-          ) : (
-            <div className="flex-1 flex items-center justify-center">
-              <p className="text-sm" style={{ color: 'var(--muted-foreground)' }}>Chưa có dữ liệu các tháng gần đây</p>
-            </div>
-          )}
-        </div>
+        <BarsView
+          hasBars={hasBars}
+          barData={barData}
+          allCategories={allCategories}
+          customCategories={customCategories}
+        />
       )}
 
       {view === 'list' && (
@@ -221,3 +194,122 @@ export function CategoryBlocks({ transactions, month, year, title, onAdd, addLab
 
 // Backward-compat alias
 export const GoalBlocks = CategoryBlocks;
+
+// ─────────────────────────────────────────────────────────────
+// BarsView — chart "So sánh" + custom legend với hover tooltip
+// ─────────────────────────────────────────────────────────────
+
+interface BarsViewProps {
+  hasBars: boolean;
+  barData: Record<string, string | number>[];
+  allCategories: { id: string; label: string; icon: React.ReactNode }[];
+  customCategories: import('@/lib/types').CustomCategory[];
+}
+
+function BarsView({ hasBars, barData, allCategories, customCategories }: BarsViewProps) {
+  const [hoveredCat, setHoveredCat] = useState<string | null>(null);
+
+  if (!hasBars) {
+    return (
+      <div className="flex-1 flex items-center justify-center px-2 pb-3 min-h-0">
+        <p className="text-sm" style={{ color: 'var(--muted-foreground)' }}>Chưa có dữ liệu các tháng gần đây</p>
+      </div>
+    );
+  }
+
+  const hoveredEntry = hoveredCat ? allCategories.find(c => c.id === hoveredCat) : null;
+  const hoveredColor = hoveredCat ? getCategoryColor(hoveredCat, customCategories) : null;
+
+  return (
+    <div className="flex-1 flex flex-col items-center justify-center px-2 pb-3 min-h-0 relative">
+      {/* Chart centered vertically inside the block */}
+      <div className="w-full" style={{ maxWidth: 560 }}>
+        <ResponsiveContainer width="100%" height={220}>
+          <BarChart data={barData} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
+            <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
+            <XAxis dataKey="label" tick={{ fontSize: 11, fill: 'var(--muted-foreground)' }} axisLine={false} tickLine={false} />
+            <YAxis tick={{ fontSize: 10, fill: 'var(--muted-foreground)' }} tickFormatter={(v) => formatVNDShort(Number(v))} axisLine={false} tickLine={false} width={40} />
+            <Tooltip
+              formatter={(v) => formatVND(Number(v))}
+              contentStyle={{ borderRadius: 10, border: '1px solid var(--border)', background: 'var(--card)', fontSize: 12 }}
+              itemStyle={{ fontWeight: 600 }}
+              cursor={{ fill: 'var(--muted)' }}
+            />
+            {allCategories.map(c => {
+              const color = getCategoryColor(c.id, customCategories);
+              const isDim = hoveredCat && hoveredCat !== c.id;
+              return (
+                <Bar
+                  key={c.id}
+                  dataKey={c.label}
+                  fill={color}
+                  fillOpacity={isDim ? 0.25 : 1}
+                  radius={[4, 4, 0, 0]}
+                />
+              );
+            })}
+          </BarChart>
+        </ResponsiveContainer>
+      </div>
+
+      {/* Custom Legend — hover hiện breakdown của category đó qua các tháng */}
+      <div className="w-full mt-2 flex flex-wrap items-center justify-center gap-x-3 gap-y-1.5 px-2 relative">
+        {allCategories.map(c => {
+          const color = getCategoryColor(c.id, customCategories);
+          const isActive = hoveredCat === c.id;
+          return (
+            <button
+              key={c.id}
+              type="button"
+              onMouseEnter={() => setHoveredCat(c.id)}
+              onMouseLeave={() => setHoveredCat(null)}
+              onClick={() => setHoveredCat(prev => prev === c.id ? null : c.id)}
+              className="flex items-center gap-1.5 px-1.5 py-0.5 rounded-md transition-colors"
+              style={{
+                background: isActive ? 'var(--muted)' : 'transparent',
+                opacity: hoveredCat && !isActive ? 0.5 : 1,
+              }}
+            >
+              <span style={{ width: 8, height: 8, borderRadius: '50%', background: color, flexShrink: 0 }} />
+              <span className="text-xs font-semibold" style={{ color: 'var(--foreground)' }}>{c.label}</span>
+            </button>
+          );
+        })}
+
+        {/* Floating breakdown popup */}
+        {hoveredEntry && hoveredColor && (
+          <div
+            className="absolute z-10 rounded-xl px-3 py-2 pointer-events-none"
+            style={{
+              bottom: 'calc(100% + 6px)',
+              left: '50%',
+              transform: 'translateX(-50%)',
+              background: 'var(--card)',
+              border: '1px solid var(--border)',
+              boxShadow: 'var(--shadow-float)',
+              minWidth: 180,
+            }}
+          >
+            <div className="flex items-center gap-1.5 mb-1.5 pb-1.5" style={{ borderBottom: '1px solid var(--border)' }}>
+              <span style={{ width: 8, height: 8, borderRadius: '50%', background: hoveredColor }} />
+              <span className="text-xs font-bold" style={{ color: 'var(--foreground)' }}>{hoveredEntry.label}</span>
+            </div>
+            <div className="flex flex-col gap-0.5">
+              {barData.map(row => {
+                const v = Number(row[hoveredEntry.label] ?? 0);
+                return (
+                  <div key={String(row.label)} className="flex items-center justify-between gap-3 text-xs">
+                    <span style={{ color: 'var(--muted-foreground)' }}>{String(row.label)}</span>
+                    <span className="font-semibold tabular-nums" style={{ color: v > 0 ? hoveredColor : 'var(--muted-foreground)' }}>
+                      {v > 0 ? formatVND(v) : '—'}
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
