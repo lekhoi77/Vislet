@@ -8,11 +8,16 @@ import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { useAppStore } from '@/store/app-store';
 import { CategoryIcon, CATEGORY_ICON_NAMES } from '@/lib/icons';
-import { Plus, Trash2, Pencil, Check, X, ChevronUp, ChevronDown } from 'lucide-react';
+import { Plus, Trash2, Pencil, Check, X, ChevronUp, ChevronDown, AlertTriangle } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import type { CustomCategory } from '@/lib/types';
 import { PROTECTED_GOAL_ID } from '@/lib/catalog-policy';
+import {
+  AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogTitle,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogCancel, AlertDialogAction,
+} from '@/components/ui/alert-dialog';
+import { formatVND } from '@/lib/format';
 
 interface AddCategorySheetProps {
   open: boolean;
@@ -20,7 +25,7 @@ interface AddCategorySheetProps {
 }
 
 export function AddCategorySheet({ open, onClose }: AddCategorySheetProps) {
-  const { customCategories: rawCategories, addCustomCategory, removeCustomCategory, updateCustomCategory, reorderCustomCategories } = useAppStore();
+  const { customCategories: rawCategories, transactions, addCustomCategory, removeCustomCategory, updateCustomCategory, reorderCustomCategories } = useAppStore();
   // Ẩn 'none' (Chưa phân loại) — chỉ là marker hệ thống, không phải danh mục thực sự
   const customCategories = rawCategories.filter(c => c.id !== PROTECTED_GOAL_ID);
   const [label, setLabel] = useState('');
@@ -28,6 +33,35 @@ export function AddCategorySheet({ open, onClose }: AddCategorySheetProps) {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editLabel, setEditLabel] = useState('');
   const [editIcon, setEditIcon] = useState('ShoppingCart');
+  const [pendingDelete, setPendingDelete] = useState<CustomCategory | null>(null);
+
+  const getCategoryUsage = (id: string) => {
+    const txs = transactions.filter(t => t.category === id);
+    const total = txs.reduce((s, t) => s + t.amount, 0);
+    return { count: txs.length, total };
+  };
+
+  const performDelete = async (id: string) => {
+    try {
+      await removeCustomCategory(id);
+      toast.success('Đã xoá');
+    } catch (err) {
+      toast.error(`Không thể xoá: ${(err as Error).message ?? 'Lỗi không xác định'}`);
+    } finally {
+      setPendingDelete(null);
+    }
+  };
+
+  const handleDeleteClick = (c: CustomCategory) => {
+    const usage = getCategoryUsage(c.id);
+    if (usage.count > 0) {
+      setPendingDelete(c);
+    } else {
+      void performDelete(c.id);
+    }
+  };
+
+  const pendingUsage = pendingDelete ? getCategoryUsage(pendingDelete.id) : null;
 
   const handleAdd = async () => {
     if (!label.trim()) return;
@@ -241,14 +275,7 @@ export function AddCategorySheet({ open, onClose }: AddCategorySheetProps) {
                           <Pencil size={13} />
                         </button>
                         <button
-                          onClick={async () => {
-                            try {
-                              await removeCustomCategory(c.id);
-                              toast.success('Đã xoá');
-                            } catch (err) {
-                              toast.error(`Không thể xoá: ${(err as Error).message ?? 'Lỗi không xác định'}`);
-                            }
-                          }}
+                          onClick={() => handleDeleteClick(c)}
                           className="p-1.5 rounded-lg hover:bg-[var(--muted)] transition-colors"
                           style={{ color: 'var(--destructive)' }}
                         >
@@ -270,6 +297,34 @@ export function AddCategorySheet({ open, onClose }: AddCategorySheetProps) {
           </Button>
         </div>
       </SheetContent>
+
+      <AlertDialog open={pendingDelete !== null} onOpenChange={v => !v && setPendingDelete(null)}>
+        <AlertDialogContent className="rounded-2xl">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2">
+              <AlertTriangle size={18} style={{ color: 'var(--destructive)' }} />
+              Xoá danh mục có giao dịch?
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              Danh mục <strong style={{ color: 'var(--foreground)' }}>&quot;{pendingDelete?.label}&quot;</strong> đang
+              được dùng trong <strong style={{ color: 'var(--foreground)' }}>{pendingUsage?.count ?? 0}</strong> giao
+              dịch (tổng <strong style={{ color: 'var(--foreground)' }}>{formatVND(pendingUsage?.total ?? 0)}</strong>).
+            </AlertDialogDescription>
+            <p className="text-sm mt-2" style={{ color: 'var(--muted-foreground)' }}>
+              Các giao dịch sẽ vẫn còn, nhưng nhãn danh mục của chúng sẽ hiển thị mã thay vì tên. Bạn có chắc muốn xoá?
+            </p>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Huỷ</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => pendingDelete && void performDelete(pendingDelete.id)}
+              style={{ background: 'var(--destructive)', color: '#fff' }}
+            >
+              Vẫn xoá
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </Sheet>
   );
 }

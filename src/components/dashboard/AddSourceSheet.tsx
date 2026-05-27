@@ -8,10 +8,15 @@ import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { useAppStore } from '@/store/app-store';
 import { AppIcon, SOURCE_ICON_NAMES } from '@/lib/icons';
-import { Plus, Trash2, Pencil, Check, X, ChevronUp, ChevronDown } from 'lucide-react';
+import { Plus, Trash2, Pencil, Check, X, ChevronUp, ChevronDown, AlertTriangle } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import type { CustomSource } from '@/lib/types';
+import {
+  AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogTitle,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogCancel, AlertDialogAction,
+} from '@/components/ui/alert-dialog';
+import { formatVND } from '@/lib/format';
 
 interface AddSourceSheetProps {
   open: boolean;
@@ -19,12 +24,42 @@ interface AddSourceSheetProps {
 }
 
 export function AddSourceSheet({ open, onClose }: AddSourceSheetProps) {
-  const { customSources, addCustomSource, removeCustomSource, updateCustomSource, reorderCustomSources } = useAppStore();
+  const { customSources, transactions, addCustomSource, removeCustomSource, updateCustomSource, reorderCustomSources } = useAppStore();
   const [label, setLabel] = useState('');
   const [icon, setIcon] = useState('Wallet');
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editLabel, setEditLabel] = useState('');
   const [editIcon, setEditIcon] = useState('Wallet');
+  const [pendingDelete, setPendingDelete] = useState<CustomSource | null>(null);
+
+  const getSourceUsage = (id: string) => {
+    const txs = transactions.filter(t => t.source === id);
+    const income = txs.filter(t => t.type === 'income').reduce((s, t) => s + t.amount, 0);
+    const expense = txs.filter(t => t.type === 'expense').reduce((s, t) => s + t.amount, 0);
+    return { count: txs.length, balance: income - expense };
+  };
+
+  const performDelete = async (id: string) => {
+    try {
+      await removeCustomSource(id);
+      toast.success('Đã xoá');
+    } catch (err) {
+      toast.error(`Không thể xoá: ${(err as Error).message ?? 'Lỗi không xác định'}`);
+    } finally {
+      setPendingDelete(null);
+    }
+  };
+
+  const handleDeleteClick = (s: CustomSource) => {
+    const usage = getSourceUsage(s.id);
+    if (usage.count > 0) {
+      setPendingDelete(s);
+    } else {
+      void performDelete(s.id);
+    }
+  };
+
+  const pendingUsage = pendingDelete ? getSourceUsage(pendingDelete.id) : null;
 
   const handleAdd = () => {
     if (!label.trim() || label.trim().length > 30) return;
@@ -227,14 +262,7 @@ export function AddSourceSheet({ open, onClose }: AddSourceSheetProps) {
                           <Pencil size={13} />
                         </button>
                         <button
-                          onClick={async () => {
-                            try {
-                              await removeCustomSource(s.id);
-                              toast.success('Đã xoá');
-                            } catch (err) {
-                              toast.error(`Không thể xoá: ${(err as Error).message ?? 'Lỗi không xác định'}`);
-                            }
-                          }}
+                          onClick={() => handleDeleteClick(s)}
                           className="p-1.5 rounded-lg hover:bg-[var(--muted)] transition-colors"
                           style={{ color: 'var(--destructive)' }}
                         >
@@ -256,6 +284,36 @@ export function AddSourceSheet({ open, onClose }: AddSourceSheetProps) {
           </Button>
         </div>
       </SheetContent>
+
+      <AlertDialog open={pendingDelete !== null} onOpenChange={v => !v && setPendingDelete(null)}>
+        <AlertDialogContent className="rounded-2xl">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2">
+              <AlertTriangle size={18} style={{ color: 'var(--destructive)' }} />
+              Xoá nguồn tiền có giao dịch?
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              Nguồn <strong style={{ color: 'var(--foreground)' }}>&quot;{pendingDelete?.label}&quot;</strong> đang
+              có <strong style={{ color: 'var(--foreground)' }}>{pendingUsage?.count ?? 0}</strong> giao dịch,
+              số dư <strong style={{ color: (pendingUsage?.balance ?? 0) < 0 ? 'var(--down)' : 'var(--foreground)' }}>
+                {formatVND(pendingUsage?.balance ?? 0)}
+              </strong>.
+            </AlertDialogDescription>
+            <p className="text-sm mt-2" style={{ color: 'var(--muted-foreground)' }}>
+              Các giao dịch sẽ vẫn còn, nhưng nhãn nguồn tiền của chúng sẽ hiển thị mã thay vì tên. Bạn có chắc muốn xoá?
+            </p>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Huỷ</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => pendingDelete && void performDelete(pendingDelete.id)}
+              style={{ background: 'var(--destructive)', color: '#fff' }}
+            >
+              Vẫn xoá
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </Sheet>
   );
 }
