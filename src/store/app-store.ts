@@ -366,7 +366,9 @@ export const useAppStore = create<AppState>((set, get) => ({
   removeCustomSource: async (id) => {
     const { customSources } = get();
     const { error } = await supabase.from('sources').delete().eq('id', id);
-    if (error) { console.error('removeCustomSource:', error); return; }
+    if (error) { console.error('removeCustomSource:', error); throw error; }
+    // Xoá khỏi state bất kể DB có row hay không — vì có trường hợp default
+    // được seed vào local state nhưng insert vào DB fail silently lúc trước.
     set({ customSources: customSources.filter(s => s.id !== id) });
   },
   updateCustomSource: async (id, label, icon) => {
@@ -395,7 +397,9 @@ export const useAppStore = create<AppState>((set, get) => ({
   removeCustomCategory: async (id) => {
     const { customCategories } = get();
     const { error } = await supabase.from('categories').delete().eq('id', id);
-    if (error) { console.error('removeCustomCategory:', error); return; }
+    if (error) { console.error('removeCustomCategory:', error); throw error; }
+    // Xoá khỏi state bất kể DB có row hay không — vì có trường hợp default
+    // được seed vào local state nhưng insert vào DB fail silently lúc trước.
     set({ customCategories: customCategories.filter(c => c.id !== id) });
   },
   updateCustomCategory: async (id, label, icon) => {

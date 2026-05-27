@@ -227,7 +227,14 @@ export function AddSourceSheet({ open, onClose }: AddSourceSheetProps) {
                           <Pencil size={13} />
                         </button>
                         <button
-                          onClick={() => { removeCustomSource(s.id); toast.success('Đã xoá'); }}
+                          onClick={async () => {
+                            try {
+                              await removeCustomSource(s.id);
+                              toast.success('Đã xoá');
+                            } catch (err) {
+                              toast.error(`Không thể xoá: ${(err as Error).message ?? 'Lỗi không xác định'}`);
+                            }
+                          }}
                           className="p-1.5 rounded-lg hover:bg-[var(--muted)] transition-colors"
                           style={{ color: 'var(--destructive)' }}
                         >
