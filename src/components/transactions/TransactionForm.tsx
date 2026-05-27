@@ -15,11 +15,11 @@ import { Button } from '@/components/ui/button';
 import { AmountInput } from '@/components/shared/AmountInput';
 import { useAppStore } from '@/store/app-store';
 import { Transaction, TransactionSource, TransactionCategory, TransactionType } from '@/lib/types';
-import { Building2, Wallet, Smartphone, PiggyBank, Plane, Clock, TrendingUp, TrendingDown, ArrowRight, CircleDot, Tag, Loader2 } from 'lucide-react';
+import { TrendingUp, TrendingDown, ArrowRight, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { formatVND } from '@/lib/format';
-import { CategoryIcon } from '@/lib/icons';
+import { CategoryIcon, AppIcon } from '@/lib/icons';
 
 interface TransactionFormProps {
   open: boolean;
@@ -27,19 +27,6 @@ interface TransactionFormProps {
   editingTx?: Transaction | null;
   onClose: () => void;
 }
-
-const BUILT_IN_SOURCES: { value: TransactionSource; label: string; icon: React.ReactNode }[] = [
-  { value: 'bank', label: 'Ngân hàng', icon: <Building2 size={15} /> },
-  { value: 'cash', label: 'Tiền mặt', icon: <Wallet size={15} /> },
-  { value: 'momo', label: 'MoMo', icon: <Smartphone size={15} /> },
-];
-
-const BUILT_IN_CATEGORIES: { value: TransactionCategory; label: string; icon?: React.ReactNode }[] = [
-  { value: 'none', label: 'Không phân loại', icon: <Tag size={14} /> },
-  { value: 'saving', label: 'Tiết kiệm', icon: <PiggyBank size={14} /> },
-  { value: 'travel', label: 'Du lịch', icon: <Plane size={14} /> },
-  { value: 'soon', label: 'Sắp dùng', icon: <Clock size={14} /> },
-];
 
 function SelectGroup<T extends string>({
   options,
@@ -86,15 +73,19 @@ import { Users } from 'lucide-react';
 export function TransactionForm({ open, type, editingTx, onClose }: TransactionFormProps) {
   const { addTransaction, updateTransaction, createSharedDebt, transactions, customSources, customCategories } = useAppStore();
 
-  const SOURCES = [
-    ...BUILT_IN_SOURCES,
-    ...customSources.map(s => ({ value: s.id, label: s.label, icon: <CircleDot size={15} /> })),
-  ];
+  // customSources/customCategories đã chứa cả defaults (bank/cash/momo, saving/...)
+  // được seed trong fetchProfileData — không prepend BUILT_IN nữa, sẽ duplicate.
+  const SOURCES = customSources.map(s => ({
+    value: s.id,
+    label: s.label,
+    icon: <AppIcon name={s.icon} size={15} />,
+  }));
 
-  const CATEGORIES = [
-    ...BUILT_IN_CATEGORIES,
-    ...customCategories.map(c => ({ value: c.id, label: c.label, icon: <CategoryIcon name={c.icon} size={14} /> })),
-  ];
+  const CATEGORIES = customCategories.map(c => ({
+    value: c.id,
+    label: c.label,
+    icon: <CategoryIcon name={c.icon} size={14} />,
+  }));
 
   const [title, setTitle] = useState('');
   const [amount, setAmount] = useState(0);
@@ -124,8 +115,9 @@ export function TransactionForm({ open, type, editingTx, onClose }: TransactionF
       } else {
         setTitle('');
         setAmount(0);
-        setSource('bank');
-        setCategory('none');
+        // Fallback nếu user đã xoá default 'bank'/'none' — pick first available
+        setSource((customSources.find(s => s.id === 'bank')?.id ?? customSources[0]?.id ?? 'bank') as TransactionSource);
+        setCategory((customCategories.find(c => c.id === 'none')?.id ?? customCategories[0]?.id ?? 'none') as TransactionCategory);
         setNote('');
         setDate(todayStr);
       }
