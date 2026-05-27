@@ -5,7 +5,7 @@ import {
   SharedDebt, DebtNotification, DebtContact, UserSearchResult,
 } from '@/lib/types';
 import { AVATAR_COLORS } from '@/lib/constants';
-import { DEFAULT_SOURCES, DEFAULT_GOALS, DEFAULT_SOURCE_IDS, DEFAULT_GOAL_IDS } from '@/lib/defaults';
+import { DEFAULT_SOURCES, DEFAULT_GOALS } from '@/lib/defaults';
 import {
   supabase,
   toProfile,
@@ -21,6 +21,45 @@ import {
 
 const CURRENT_KEY_PREFIX = 'viapp_current_';
 const CURRENT_KEY_LEGACY = 'viapp_current';
+
+/** Default IDs (bank/cash/saving/...) là chuỗi text, không phải UUID — nên insert
+ *  vào DB (cột UUID) sẽ luôn fail. Chúng chỉ tồn tại trong local state.
+ *  → Khi xoá, BỎ QUA call Supabase để tránh lỗi 22P02 (invalid uuid syntax). */
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+function isPersistedId(id: string): boolean {
+  return UUID_RE.test(id);
+}
+
+/** Track which default (non-UUID) ids the user has removed/edited per profile.
+ *  Stored in localStorage so deletions persist across refresh.
+ *  Key: viapp_removed_defaults_<profileId>_<kind> → string[] of removed ids
+ *  Key: viapp_overrides_<profileId>_<kind> → Record<id, {label, icon}> */
+const RM_KEY = (profileId: string, kind: 'src' | 'cat') => `viapp_removed_${kind}_${profileId}`;
+const OV_KEY = (profileId: string, kind: 'src' | 'cat') => `viapp_overrides_${kind}_${profileId}`;
+
+function getRemovedDefaultIds(profileId: string, kind: 'src' | 'cat'): Set<string> {
+  try {
+    const raw = localStorage.getItem(RM_KEY(profileId, kind));
+    const arr = raw ? (JSON.parse(raw) as string[]) : [];
+    return new Set(arr);
+  } catch { return new Set(); }
+}
+function addRemovedDefaultId(profileId: string, kind: 'src' | 'cat', id: string): void {
+  const set = getRemovedDefaultIds(profileId, kind);
+  set.add(id);
+  try { localStorage.setItem(RM_KEY(profileId, kind), JSON.stringify([...set])); } catch { /* noop */ }
+}
+function getDefaultOverrides(profileId: string, kind: 'src' | 'cat'): Record<string, { label: string; icon: string }> {
+  try {
+    const raw = localStorage.getItem(OV_KEY(profileId, kind));
+    return raw ? JSON.parse(raw) : {};
+  } catch { return {}; }
+}
+function setDefaultOverride(profileId: string, kind: 'src' | 'cat', id: string, label: string, icon: string): void {
+  const cur = getDefaultOverrides(profileId, kind);
+  cur[id] = { label, icon };
+  try { localStorage.setItem(OV_KEY(profileId, kind), JSON.stringify(cur)); } catch { /* noop */ }
+}
 
 function getStoredProfileId(userId: string): string | null {
   try {
@@ -117,30 +156,32 @@ async function fetchProfileData(profileId: string) {
   let sources = (srcRes.data ?? []).map(toCustomSource);
   let categories = (catRes.data ?? []).map(toCustomCategory);
 
-  // One-time migration: seed defaults for profiles created before this feature
-  const sourceIds = new Set(sources.map(s => s.id));
-  const categoryIds = new Set(categories.map(c => c.id));
-  const hasAnySrcSeed = DEFAULT_SOURCE_IDS.some(id => sourceIds.has(id));
-  const hasAnyCatSeed = DEFAULT_GOAL_IDS.some(id => categoryIds.has(id));
+  // Seed defaults LOCAL-ONLY (DB id column is UUID — text ids như 'saving' không
+  // bao giờ insert được). Lọc theo removed-default list để delete persist qua refresh.
+  // Áp dụng label/icon override nếu user đã sửa.
+  const removedSrc = getRemovedDefaultIds(profileId, 'src');
+  const removedCat = getRemovedDefaultIds(profileId, 'cat');
+  const overrideSrc = getDefaultOverrides(profileId, 'src');
+  const overrideCat = getDefaultOverrides(profileId, 'cat');
 
-  if (!hasAnySrcSeed) {
-    await supabase.from('sources').insert(
-      DEFAULT_SOURCES.map(s => ({ id: s.id, profile_id: profileId, label: s.label, icon: s.icon, is_builtin: true }))
-    );
-    sources = [
-      ...DEFAULT_SOURCES.map(s => ({ id: s.id, label: s.label, icon: s.icon, createdAt: '' })),
-      ...sources,
-    ];
-  }
-  if (!hasAnyCatSeed) {
-    await supabase.from('categories').insert(
-      DEFAULT_GOALS.map((g, idx) => ({ id: g.id, profile_id: profileId, label: g.label, icon: g.icon, is_builtin: true, sort_order: idx }))
-    );
-    categories = [
-      ...DEFAULT_GOALS.map(g => ({ id: g.id, label: g.label, icon: g.icon, createdAt: '' })),
-      ...categories,
-    ];
-  }
+  const defaultSrcRows = DEFAULT_SOURCES
+    .filter(s => !removedSrc.has(s.id))
+    .map(s => {
+      const ov = overrideSrc[s.id];
+      return { id: s.id, label: ov?.label ?? s.label, icon: ov?.icon ?? s.icon, createdAt: '' };
+    });
+  const defaultCatRows = DEFAULT_GOALS
+    .filter(g => !removedCat.has(g.id))
+    .map(g => {
+      const ov = overrideCat[g.id];
+      return { id: g.id, label: ov?.label ?? g.label, icon: ov?.icon ?? g.icon, createdAt: '' };
+    });
+
+  // Loại trùng ID (phòng trường hợp legacy DB từng insert được trước đây)
+  const dbSrcIds = new Set(sources.map(s => s.id));
+  const dbCatIds = new Set(categories.map(c => c.id));
+  sources = [...defaultSrcRows.filter(d => !dbSrcIds.has(d.id)), ...sources];
+  categories = [...defaultCatRows.filter(d => !dbCatIds.has(d.id)), ...categories];
 
   return {
     transactions: (txRes.data ?? []).map(toTransaction),
@@ -253,15 +294,8 @@ export const useAppStore = create<AppState>((set, get) => ({
 
     if (error) { console.error('createProfile:', error); return; }
 
-    // Seed default sources and categories for new profile
-    await Promise.all([
-      supabase.from('sources').insert(
-        DEFAULT_SOURCES.map(s => ({ id: s.id, profile_id: id, label: s.label, icon: s.icon, is_builtin: true }))
-      ),
-      supabase.from('categories').insert(
-        DEFAULT_GOALS.map((g, idx) => ({ id: g.id, profile_id: id, label: g.label, icon: g.icon, is_builtin: true, sort_order: idx }))
-      ),
-    ]);
+    // Defaults là local-only (DB schema dùng UUID, text id không insert được).
+    // Chúng được seed lại từ fetchProfileData mỗi lần load.
 
     const newProfile: UserProfile = {
       id, name: name.trim(),
@@ -364,17 +398,25 @@ export const useAppStore = create<AppState>((set, get) => ({
     set({ customSources: [...customSources, { id, label: label.trim(), icon, createdAt: new Date().toISOString() }] });
   },
   removeCustomSource: async (id) => {
-    const { customSources } = get();
-    const { error } = await supabase.from('sources').delete().eq('id', id);
-    if (error) { console.error('removeCustomSource:', error); throw error; }
-    // Xoá khỏi state bất kể DB có row hay không — vì có trường hợp default
-    // được seed vào local state nhưng insert vào DB fail silently lúc trước.
+    const { customSources, currentProfileId } = get();
+    if (isPersistedId(id)) {
+      const { error } = await supabase.from('sources').delete().eq('id', id);
+      if (error) { console.error('removeCustomSource:', error); throw error; }
+    } else if (currentProfileId) {
+      // Default local-only — nhớ id đã xoá để không seed lại lần sau
+      addRemovedDefaultId(currentProfileId, 'src', id);
+    }
     set({ customSources: customSources.filter(s => s.id !== id) });
   },
   updateCustomSource: async (id, label, icon) => {
-    const { customSources } = get();
-    const { error } = await supabase.from('sources').update({ label: label.trim(), icon }).eq('id', id);
-    if (error) throw error;
+    const { customSources, currentProfileId } = get();
+    if (isPersistedId(id)) {
+      const { error } = await supabase.from('sources').update({ label: label.trim(), icon }).eq('id', id);
+      if (error) throw error;
+    } else if (currentProfileId) {
+      // Default local-only — lưu override để persist qua refresh
+      setDefaultOverride(currentProfileId, 'src', id, label.trim(), icon);
+    }
     set({ customSources: customSources.map(s => s.id === id ? { ...s, label: label.trim(), icon } : s) });
   },
   reorderCustomSources: (orderedIds) => {
@@ -395,17 +437,23 @@ export const useAppStore = create<AppState>((set, get) => ({
     set({ customCategories: [...customCategories, { id, label: label.trim(), icon, createdAt: new Date().toISOString() }] });
   },
   removeCustomCategory: async (id) => {
-    const { customCategories } = get();
-    const { error } = await supabase.from('categories').delete().eq('id', id);
-    if (error) { console.error('removeCustomCategory:', error); throw error; }
-    // Xoá khỏi state bất kể DB có row hay không — vì có trường hợp default
-    // được seed vào local state nhưng insert vào DB fail silently lúc trước.
+    const { customCategories, currentProfileId } = get();
+    if (isPersistedId(id)) {
+      const { error } = await supabase.from('categories').delete().eq('id', id);
+      if (error) { console.error('removeCustomCategory:', error); throw error; }
+    } else if (currentProfileId) {
+      addRemovedDefaultId(currentProfileId, 'cat', id);
+    }
     set({ customCategories: customCategories.filter(c => c.id !== id) });
   },
   updateCustomCategory: async (id, label, icon) => {
-    const { customCategories } = get();
-    const { error } = await supabase.from('categories').update({ label: label.trim(), icon }).eq('id', id);
-    if (error) throw error;
+    const { customCategories, currentProfileId } = get();
+    if (isPersistedId(id)) {
+      const { error } = await supabase.from('categories').update({ label: label.trim(), icon }).eq('id', id);
+      if (error) throw error;
+    } else if (currentProfileId) {
+      setDefaultOverride(currentProfileId, 'cat', id, label.trim(), icon);
+    }
     set({ customCategories: customCategories.map(c => c.id === id ? { ...c, label: label.trim(), icon } : c) });
   },
   reorderCustomCategories: (orderedIds) => {
