@@ -61,6 +61,32 @@ export default function HomePage() {
   const [month, setMonth] = useState(now.getMonth() + 1);
   const [year, setYear] = useState(now.getFullYear());
 
+  // Auto-advance to current month when day rolls over (e.g. tab left open past midnight),
+  // but only if user is still viewing what was the "current" month — don't yank them away
+  // from a month they navigated to manually.
+  const todayRef = useRef({ m: now.getMonth() + 1, y: now.getFullYear() });
+  const viewRef = useRef({ m: month, y: year });
+  useEffect(() => { viewRef.current = { m: month, y: year }; }, [month, year]);
+  useEffect(() => {
+    const check = () => {
+      const n = new Date();
+      const nm = n.getMonth() + 1, ny = n.getFullYear();
+      const { m: pm, y: py } = todayRef.current;
+      if (nm === pm && ny === py) return;
+      const { m: vm, y: vy } = viewRef.current;
+      if (vm === pm && vy === py) {
+        setMonth(nm);
+        setYear(ny);
+        setContentKey(k => k + 1);
+      }
+      todayRef.current = { m: nm, y: ny };
+    };
+    const id = setInterval(check, 60_000);
+    const onVis = () => { if (document.visibilityState === 'visible') check(); };
+    document.addEventListener('visibilitychange', onVis);
+    return () => { clearInterval(id); document.removeEventListener('visibilitychange', onVis); };
+  }, []);
+
   // Debt filter tab
   const [debtFilter, setDebtFilter] = useState<DebtFilter>('owed_to_me');
 
