@@ -4,12 +4,12 @@ import { useEffect, useState, useCallback, useRef } from 'react';
 import { useAppStore } from '@/store/app-store';
 import { useAuthStore } from '@/store/auth-store';
 import { LoginScreen } from '@/components/auth/LoginScreen';
-import { Header } from '@/components/layout/Header';
 import { TabNav } from '@/components/layout/TabNav';
+import { ProfileSwitcher } from '@/components/profile/ProfileSwitcher';
+import { NotificationBell } from '@/components/notifications/NotificationBell';
 import { FAB } from '@/components/layout/FAB';
 import { OnboardingScreen } from '@/components/profile/OnboardingScreen';
 import { TransactionForm } from '@/components/transactions/TransactionForm';
-import { TransactionList } from '@/components/transactions/TransactionList';
 import { TransactionPane } from '@/components/transactions/TransactionPane';
 import { DebtForm } from '@/components/debts/DebtForm';
 import { SharedDebtCard } from '@/components/debts/SharedDebtCard';
@@ -17,22 +17,43 @@ import { DebtStats } from '@/components/debts/DebtStats';
 import { SummaryCards } from '@/components/dashboard/SummaryCards';
 import { SourceBlocks } from '@/components/dashboard/SourceBlocks';
 import { GoalBlocks } from '@/components/dashboard/GoalBlocks';
-import { RecentTransactions } from '@/components/dashboard/RecentTransactions';
 import { MonthSelector } from '@/components/dashboard/MonthSelector';
 import { GoalOverview } from '@/components/goals/GoalOverview';
-import { ExpenseBreakdown } from '@/components/dashboard/ExpenseBreakdown';
 import { CalendarBlock } from '@/components/dashboard/CalendarBlock';
 import { ExpenseHeatmap } from '@/components/dashboard/ExpenseHeatmap';
+import { TrendStatsCard } from '@/components/dashboard/TrendStatsCard';
 import { AddSourceSheet } from '@/components/dashboard/AddSourceSheet';
 import { AddBudgetSheet } from '@/components/dashboard/AddBudgetSheet';
 import { WalkthroughTour } from '@/components/tour/WalkthroughTour';
 import { CalculatorPanel } from '@/components/calculator/Calculator';
 import { Transaction, TransactionType } from '@/lib/types';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Separator } from '@/components/ui/separator';
 import { EmptyState } from '@/components/shared/EmptyState';
-import { Handshake, LayoutDashboard, ArrowLeftRight, Tags, Plus } from 'lucide-react';
+import { Handshake, LayoutDashboard, ArrowLeftRight, Tags, Plus, Calculator } from 'lucide-react';
 import { Toaster } from '@/components/ui/sonner';
+
+const GREETINGS = [
+  'Nay lỡ tiêu lố chưa',
+  'Hôm nay tài chính ổn áp chứ',
+  'Nay có tốn xiền trà sữa hông',
+  'Ví nay còn dày hông dạ',
+  'Sáng giờ có tốn đồng nào chưa',
+  'Nay lượn lờ chốt đơn gì chưa',
+  'Chốt sổ hôm nay chưa nè',
+  'Gần cuối tháng rồi, sắp cháy túi chưa',
+  'Tháng này ráng giữ tiền nha',
+  'Nay có mua gì dỗ dành bản thân không',
+  'Cuối ngày rồi, dòm lại ví xíu hông',
+  'Mở app lên là chuẩn bị tốn tiền nữa hả',
+  'Tiền tháng này đi đâu hết rồi',
+  'Nay lỡ quẹt thẻ gắt quá không',
+  'Hôm nay tiền bạc rủng rỉnh không',
+  'Xài xong nhớ ghi sổ liền tay nha',
+  'Mới lương về hay gì mà vô app đây',
+  'Tháng này dư dả hông',
+  'Nay có đi đu đưa đâu tốn kém không',
+  'Thấy tiền nong dạo này sao rồi',
+];
 
 type ActiveTab = 'overview' | 'transactions' | 'categories' | 'debts';
 type DebtFilter = 'owed_by_me' | 'owed_to_me' | 'settled';
@@ -40,7 +61,7 @@ type DebtFilter = 'owed_by_me' | 'owed_to_me' | 'settled';
 const OPEN_DEBT_STATUSES = ['pending', 'active', 'pending_confirm'] as const;
 
 export default function HomePage() {
-  const { initApp, isLoaded, profiles, transactions, sharedDebts, refreshSharedDebts, fetchNotifications } = useAppStore();
+  const { initApp, isLoaded, profiles, currentProfileId, transactions, sharedDebts } = useAppStore();
   const { user, isAuthLoading, initAuth } = useAuthStore();
 
   const [activeTab, setActiveTab] = useState<ActiveTab>('overview');
@@ -281,29 +302,31 @@ export default function HomePage() {
     { value: 'debts' as ActiveTab, label: 'Nợ', icon: Handshake },
   ];
 
-  return (
-    <div className="app-container">
-      <Header
-        onAddAccount={() => setShowLoginOverlay(true)}
-        onOpenGuide={handleOpenTour}
-        guidePulse={guidePulse}
-        onOpenCalc={() => setCalcOpen(v => !v)}
-        calcOpen={calcOpen}
-      />
+  const currentProfile = profiles.find(p => p.id === currentProfileId);
+  const greetingName = currentProfile?.name ?? '';
+  const greetingSeed = greetingName.split('').reduce((sum, ch) => sum + ch.charCodeAt(0), 0);
+  const greeting = GREETINGS[greetingSeed % GREETINGS.length];
 
-      <div className="md:flex md:pb-4" style={{ minHeight: 'calc(100dvh - 56px)' }}>
+  return (
+    <div className="app-container relative">
+      {/* Ambient green gradient backdrop */}
+      <div className="app-backdrop" aria-hidden />
+
+      <div className="relative z-10" style={{ minHeight: '100dvh' }}>
         {/* Desktop floating sidebar */}
         <aside
           className="hidden md:flex flex-col w-56 shrink-0 fixed overflow-y-auto rounded-2xl"
           style={{
-            top: 64,
-            left: 16,
-            height: 'calc(100dvh - 72px)',
+            top: 24,
+            left: 24,
+            height: 'calc(100dvh - 48px)',
             background: 'var(--card)',
-            border: '1px solid var(--border-subtle)',
-            boxShadow: 'var(--shadow-float)',
+            boxShadow: '0 1px 2px rgba(16, 24, 40, 0.04), 0 8px 24px rgba(16, 24, 40, 0.06), 0 0 0 1px rgba(16, 24, 40, 0.05)',
           }}
         >
+          <div className="px-4 pt-5 pb-3">
+            <img src="/logo-text.svg" alt="Vislet" style={{ height: 52, width: 'auto' }} />
+          </div>
           <nav className="flex flex-col gap-1 p-3 flex-1">
             {DESKTOP_TABS.map(({ value, label, icon: Icon }) => {
               const isActive = activeTab === value;
@@ -324,7 +347,7 @@ export default function HomePage() {
               );
             })}
           </nav>
-          <div data-tour="fab" className="p-3 flex flex-col gap-2" style={{ borderTop: '1px solid var(--border-subtle)' }}>
+          <div data-tour="fab" className="relative z-10 p-3 flex flex-col gap-2" style={{ borderTop: '1px solid var(--border-subtle)' }}>
             {activeTab === 'debts' ? (
               <button
                 onClick={() => setDebtFormOpen(true)}
@@ -366,11 +389,64 @@ export default function HomePage() {
           </div>
         </aside>
 
-        {/* Content area — offset for fixed sidebar on desktop */}
-        <div className="flex-1 min-w-0 md:pl-[240px] md:pr-4">
+        {/* Content area — offset for fixed sidebar on desktop (24+224+24 = 272) */}
+        <div className="flex-1 min-w-0 md:pl-[272px] md:pr-6 md:pb-6">
+          {/* Greeting + top-right actions (replaces old Header) */}
+          <div className="flex items-start justify-between gap-3 px-5 md:px-0 pt-5 md:pt-6 pb-3 md:pb-5">
+            <div className="min-w-0">
+              <h1 className="font-semibold leading-tight text-xl md:text-2xl">
+                Hi, <span style={{ color: 'var(--primary)' }}>{greetingName}</span>{' '}
+                <span aria-hidden>🐱</span>
+              </h1>
+              <p className="text-xs md:text-sm mt-0.5 md:mt-1" style={{ color: 'var(--muted-foreground)' }}>
+                {greeting}?
+              </p>
+            </div>
+
+            <div className="flex items-center gap-1.5 md:gap-2 shrink-0">
+              <button
+                type="button"
+                data-tour="calc"
+                onClick={() => setCalcOpen(v => !v)}
+                className="hidden md:flex items-center justify-center rounded-xl transition-colors hover:bg-[var(--muted)]"
+                style={{
+                  width: 40,
+                  height: 40,
+                  background: 'var(--card)',
+                  boxShadow: '0 0 0 1px rgba(16, 24, 40, 0.06), 0 1px 2px rgba(16, 24, 40, 0.04)',
+                }}
+                aria-label="Mở máy tính (phím C)"
+                title="Máy tính — phím C"
+              >
+                <Calculator
+                  size={18}
+                  style={{ color: calcOpen ? 'var(--primary)' : 'var(--foreground)' }}
+                />
+              </button>
+
+              <div
+                className="flex items-center justify-center rounded-xl"
+                style={{
+                  background: 'var(--card)',
+                  boxShadow: '0 0 0 1px rgba(16, 24, 40, 0.06), 0 1px 2px rgba(16, 24, 40, 0.04)',
+                }}
+              >
+                <NotificationBell />
+              </div>
+
+              <div data-tour="profile">
+                <ProfileSwitcher
+                  onAddAccount={() => setShowLoginOverlay(true)}
+                  onOpenGuide={handleOpenTour}
+                  guidePulse={guidePulse}
+                />
+              </div>
+            </div>
+          </div>
+
           <TabNav value={activeTab} onChange={handleTabChange} />
 
-          <main className="pb-[120px] md:pb-10">
+          <main className="content-card mx-4 mt-6 md:mt-0 md:mx-0 mb-4 md:mb-0 pb-[120px] md:pb-6 overflow-hidden">
         {/* ─── OVERVIEW TAB ─── */}
         {activeTab === 'overview' && (
           <div key={`overview-${contentKey}`} className="page-appear flex flex-col gap-6 p-5 pt-5">
@@ -378,7 +454,14 @@ export default function HomePage() {
               <MonthSelector month={month} year={year} onPrev={handlePrevMonth} onNext={handleNextMonth} onSelect={handleSelectMonth} onToday={handleToday} />
             </div>
             <div data-tour="summary">
-              <SummaryCards transactions={transactions} month={month} year={year} />
+              <SummaryCards
+                transactions={transactions}
+                month={month}
+                year={year}
+                sharedDebts={sharedDebts}
+                currentUserId={user?.id ?? ''}
+                onSeeAllDebts={() => handleTabChange('debts')}
+              />
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div data-tour="sources" className="flex flex-col md:h-[440px]">
@@ -400,11 +483,18 @@ export default function HomePage() {
                 />
               </div>
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div data-tour="calendar">
+            <div className="grid grid-cols-1 xl:grid-cols-3 gap-4">
+              <TrendStatsCard
+                transactions={transactions}
+                month={month}
+                year={year}
+              />
+              <div data-tour="calendar" className="xl:h-full">
                 <CalendarBlock transactions={transactions} sharedDebts={sharedDebts} month={month} year={year} onEdit={handleEditTx} />
               </div>
-              <ExpenseHeatmap transactions={transactions} month={month} year={year} onEdit={handleEditTx} />
+              <div className="xl:h-full">
+                <ExpenseHeatmap transactions={transactions} month={month} year={year} onEdit={handleEditTx} />
+              </div>
             </div>
           </div>
         )}

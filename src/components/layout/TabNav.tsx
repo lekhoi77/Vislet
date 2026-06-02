@@ -21,7 +21,7 @@ export function TabNav({ value, onChange }: TabNavProps) {
     <div
       className="sticky z-40 md:hidden"
       style={{
-        top: 56,
+        top: 0,
         background: 'var(--card)',
         borderBottom: '1px solid var(--border)',
       }}

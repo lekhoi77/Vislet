@@ -1,224 +1,309 @@
 'use client';
 
-import { useEffect, useState, useMemo } from 'react';
-import { Transaction } from '@/lib/types';
-import { formatCurrentDateTime, formatVND, formatVNDShort } from '@/lib/format';
-import { useAppStore } from '@/store/app-store';
+import { Transaction, SharedDebt, SharedDebtStatus } from '@/lib/types';
+import { formatVND, formatVNDShort } from '@/lib/format';
 import { SummaryCardSkeleton } from './SummaryCardSkeleton';
+import { Wallet, TrendingUp, TrendingDown, Handshake, ArrowUpRight, ArrowDownRight, ChevronRight } from 'lucide-react';
 
 interface SummaryCardsProps {
   transactions: Transaction[];
   month: number;
   year: number;
+  sharedDebts: SharedDebt[];
+  currentUserId: string;
+  onSeeAllDebts?: () => void;
   isLoading?: boolean;
 }
 
-function card(extra?: React.CSSProperties): React.CSSProperties {
-  return {
-    background: 'var(--card)',
-    border: '1px solid var(--border)',
-    boxShadow: 'var(--shadow-card)',
-    ...extra,
-  };
+const OPEN_DEBT_STATUSES: SharedDebtStatus[] = ['pending', 'active', 'pending_confirm'];
+
+function monthPrev(m: number, y: number): { m: number; y: number } {
+  return m === 1 ? { m: 12, y: y - 1 } : { m: m - 1, y };
 }
 
-// ── Greeting pool ──────────────────────────────────────────────
-// Tất cả câu KHÔNG có dấu câu cuối — sẽ tự thêm ", Tên?"
+function pctDelta(curr: number, prev: number): number | null {
+  if (prev === 0) return null;
+  return ((curr - prev) / Math.abs(prev)) * 100;
+}
 
-const GREETINGS = [
-  'Nay lỡ tiêu lố chưa',
-  'Hôm nay tài chính ổn áp chứ',
-  'Nay có tốn xiền trà sữa hông',
-  'Ví nay còn dày hông dạ',
-  'Sáng giờ có tốn đồng nào chưa',
-  'Nay lượn lờ chốt đơn gì chưa',
-  'Chốt sổ hôm nay chưa nè',
-  'Gần cuối tháng rồi, sắp cháy túi chưa',
-  'Tháng này ráng giữ tiền nha',
-  'Nay có mua gì dỗ dành bản thân không',
-  'Cuối ngày rồi, dòm lại ví xíu hông',
-  'Mở app lên là chuẩn bị tốn tiền nữa hả',
-  'Tiền tháng này đi đâu hết rồi',
-  'Nay lỡ quẹt thẻ gắt quá không',
-  'Hôm nay tiền bạc rủng rỉnh không',
-  'Xài xong nhớ ghi sổ liền tay nha',
-  'Mới lương về hay gì mà vô app đây',
-  'Tháng này dư dả hông',
-  'Nay có đi đu đưa đâu tốn kém không',
-  'Thấy tiền nong dạo này sao rồi'
-];
+function sumByType(txs: Transaction[], m: number, y: number, type: 'income' | 'expense'): number {
+  return txs.reduce((s, t) => {
+    if (t.type !== type) return s;
+    const d = new Date(t.date);
+    if (d.getMonth() + 1 !== m || d.getFullYear() !== y) return s;
+    return s + t.amount;
+  }, 0);
+}
 
-function LiveDateTime() {
-  const [now, setNow] = useState(() => new Date());
+function debtSortTime(d: SharedDebt): number {
+  return new Date(d.settledAt ?? d.acceptedAt ?? d.createdAt).getTime();
+}
 
-  useEffect(() => {
-    const tick = () => setNow(new Date());
-    tick();
-    const id = setInterval(tick, 60_000);
-    return () => clearInterval(id);
-  }, []);
+const STATUS_LABEL: Record<SharedDebtStatus, string> = {
+  pending: 'Chờ',
+  active: 'Đang nợ',
+  pending_confirm: 'Chờ xác nhận',
+  settled: 'Đã trả',
+  rejected: 'Từ chối',
+  cancelled: 'Đã huỷ',
+};
 
+function statusColor(s: SharedDebtStatus): { bg: string; fg: string } {
+  switch (s) {
+    case 'active':         return { bg: 'var(--primary-soft)', fg: 'var(--primary)' };
+    case 'pending':        return { bg: 'hsl(45, 100%, 94%)', fg: 'hsl(40, 80%, 38%)' };
+    case 'pending_confirm':return { bg: 'hsl(45, 100%, 94%)', fg: 'hsl(40, 80%, 38%)' };
+    case 'settled':        return { bg: 'var(--muted)', fg: 'var(--muted-foreground)' };
+    default:               return { bg: 'var(--muted)', fg: 'var(--muted-foreground)' };
+  }
+}
+
+// ─── Reusable card shell ──────────────────────────────────────
+const CARD_STYLE: React.CSSProperties = {
+  background: 'var(--card)',
+  border: '1px solid var(--border)',
+  boxShadow: 'var(--shadow-card)',
+};
+
+// ─── Stat card (cards 1-3) ────────────────────────────────────
+interface StatCardProps {
+  icon: React.ReactNode;
+  label: string;
+  value: string;
+  valueColor?: string;
+  iconColor?: string;
+  iconBg?: string;
+  deltaPct: number | null;
+  /** When true, an UP delta is "bad" (e.g. expense growing). Inverts chip color. */
+  invertDelta?: boolean;
+}
+
+function DeltaChip({ pct, invert }: { pct: number; invert?: boolean }) {
+  const isUp = pct >= 0;
+  // A rise in expense is "down" semantically; flip for invertDelta cards
+  const isGood = invert ? !isUp : isUp;
+  const color = isGood ? 'var(--up)' : 'var(--down)';
+  const bg = isGood ? 'hsl(145, 55%, 94%)' : 'hsl(0, 70%, 95%)';
+  const Icon = isUp ? ArrowUpRight : ArrowDownRight;
   return (
-    <p className="text-sm" style={{ color: 'var(--muted-foreground)' }}>
-      {formatCurrentDateTime(now)}
-    </p>
+    <span
+      className="inline-flex items-center gap-0.5 rounded-full px-1.5 py-0.5 text-xs font-semibold"
+      style={{ background: bg, color }}
+    >
+      <Icon size={12} />
+      {Math.abs(pct).toFixed(0)}%
+    </span>
   );
 }
 
-function DeltaRow({ label, delta }: { label: string; delta: number; isExpense?: boolean }) {
-  const isZero = delta === 0;
-  const isUp = delta > 0;
-  let color = 'var(--muted-foreground)';
-  if (!isZero) {
-    color = isUp ? 'var(--up)' : 'var(--down)';
-  }
+function StatCard({ icon, label, value, valueColor, iconColor, iconBg, deltaPct, invertDelta }: StatCardProps) {
   return (
-    <div className="flex items-center justify-between gap-2">
-      <span className="text-sm leading-tight" style={{ color: 'var(--muted-foreground)' }}>{label}</span>
-      <span className="text-sm font-semibold shrink-0" style={{ color }}>
-        {isZero ? '—' : `${isUp ? '↑' : '↓'} ${formatVNDShort(Math.abs(delta))}`}
-      </span>
+    <div className="flex flex-col gap-3 p-4 rounded-2xl" style={CARD_STYLE}>
+      <div className="flex items-center gap-2">
+        <div
+          className="flex items-center justify-center rounded-full"
+          style={{ width: 28, height: 28, background: iconBg ?? 'var(--primary-soft)', color: iconColor ?? 'var(--primary)' }}
+        >
+          {icon}
+        </div>
+        <span className="text-sm font-medium" style={{ color: 'var(--muted-foreground)' }}>{label}</span>
+      </div>
+      <div>
+        <p
+          className="text-xl md:text-2xl font-bold amount"
+          style={{ color: valueColor ?? 'var(--foreground)', lineHeight: 1.2, letterSpacing: '-0.01em' }}
+        >
+          {value}
+        </p>
+        <div className="flex items-center gap-1.5 mt-3">
+          {deltaPct !== null ? (
+            <>
+              <DeltaChip pct={deltaPct} invert={invertDelta} />
+              <span className="text-xs" style={{ color: 'var(--muted-foreground)' }}>vs tháng trước</span>
+            </>
+          ) : (
+            <span className="text-xs" style={{ color: 'var(--muted-foreground)' }}>—</span>
+          )}
+        </div>
+      </div>
     </div>
   );
 }
 
-// ── Greeting card (left panel) ─────────────────────────────────
-interface GreetingCardProps {
-  profileName?: string;
-  deltaIncome: number;
-  deltaExpense: number;
-  isCurrentMonth: boolean;
+// ─── Debt card (card 4) ───────────────────────────────────────
+interface DebtCardProps {
+  debts: SharedDebt[];
+  currentUserId: string;
+  onSeeAll?: () => void;
 }
 
-function GreetingCard({ profileName, deltaIncome, deltaExpense, isCurrentMonth }: GreetingCardProps) {
-  // Pick one greeting per mount — won't re-randomise on re-renders
-  const greeting = useMemo(() => GREETINGS[Math.floor(Math.random() * GREETINGS.length)], []);
+function counterpartyName(d: SharedDebt, currentUserId: string): string {
+  if (d.creditorUserId === currentUserId) return d.debtorName || 'Người dùng';
+  return d.creditorName || 'Người dùng';
+}
+
+function DebtCard({ debts, currentUserId, onSeeAll }: DebtCardProps) {
+  const openDebts = debts.filter(d => OPEN_DEBT_STATUSES.includes(d.status));
+  const totalOpen = openDebts.reduce((s, d) => s + d.remainingAmount, 0);
+
+  const recent = [...debts]
+    .filter(d => !['settled', 'rejected', 'cancelled'].includes(d.status))
+    .sort((a, b) => debtSortTime(b) - debtSortTime(a))
+    .slice(0, 3);
 
   return (
-    <>
-      {/* Google Font — Playwrite England SemiJoined */}
-      <style>{`@import url('https://fonts.googleapis.com/css2?family=Playwrite+England+SemiJoined&display=swap');`}</style>
-
-      <div className="flex flex-col justify-between p-4 rounded-2xl" style={card({ minHeight: 148 })}>
-        <div>
-          <LiveDateTime />
-          <p className="text-base font-bold leading-snug mt-1" style={{ color: 'var(--foreground)' }}>
-            {greeting}
-            {profileName ? (
-              <>
-                {', '}
-                <span
-                  style={{
-                    fontFamily: "'Playwrite England SemiJoined', cursive",
-                    fontWeight: 400,
-                    fontSize: '1.125rem',
-                    background: 'linear-gradient(90deg, var(--primary) 0%, var(--orange) 100%)',
-                    WebkitBackgroundClip: 'text',
-                    WebkitTextFillColor: 'transparent',
-                    backgroundClip: 'text',
-                  }}
-                >
-                  {profileName}?
-                </span>
-              </>
-            ) : '?'}
-          </p>
+    <div
+      className="col-span-1 md:col-span-2 flex flex-col md:grid md:grid-cols-[1fr_1.2fr] gap-3 md:gap-4 p-4 rounded-2xl"
+      style={CARD_STYLE}
+    >
+      {/* ── Left: stat header ── */}
+      <div className="flex flex-col gap-2 md:justify-center">
+        <div className="flex items-center gap-2">
+          <div
+            className="flex items-center justify-center rounded-full"
+            style={{ width: 28, height: 28, background: 'var(--primary-soft)', color: 'var(--primary)' }}
+          >
+            <Handshake size={15} />
+          </div>
+          <span className="text-sm font-medium" style={{ color: 'var(--muted-foreground)' }}>Nợ còn lại</span>
         </div>
-        <div className="flex flex-col gap-1.5 mt-3">
-          <DeltaRow label="Thu nhập hôm nay" delta={isCurrentMonth ? deltaIncome : 0} />
-          <DeltaRow label="Chi tiêu hôm nay" delta={isCurrentMonth ? deltaExpense : 0} />
-        </div>
+        <p
+          className="text-xl md:text-2xl font-bold amount"
+          style={{ color: 'var(--foreground)', lineHeight: 1.2, letterSpacing: '-0.01em' }}
+        >
+          {formatVND(totalOpen)}
+        </p>
+        <span className="text-xs" style={{ color: 'var(--muted-foreground)' }}>
+          {openDebts.length} khoản đang mở
+        </span>
+        {/* Mobile-only see-all link (list is hidden on mobile) */}
+        {onSeeAll && debts.length > 0 && (
+          <button
+            type="button"
+            onClick={onSeeAll}
+            className="md:hidden flex items-center gap-0.5 text-xs font-medium mt-1 transition-colors hover:opacity-80"
+            style={{ color: 'var(--primary)' }}
+          >
+            Xem tất cả <ChevronRight size={12} />
+          </button>
+        )}
       </div>
-    </>
+
+      {/* ── Right: recent debts list (desktop only) ── */}
+      <div className="hidden md:flex flex-col gap-2 min-w-0">
+        <div className="flex items-center justify-end">
+          {onSeeAll && debts.length > 0 && (
+            <button
+              type="button"
+              onClick={onSeeAll}
+              className="flex items-center gap-0.5 text-xs font-medium transition-colors hover:opacity-80"
+              style={{ color: 'var(--primary)' }}
+            >
+              Xem tất cả <ChevronRight size={12} />
+            </button>
+          )}
+        </div>
+
+        {recent.length === 0 ? (
+          <p className="text-xs py-3 text-center" style={{ color: 'var(--muted-foreground)' }}>
+            Chưa có khoản nợ nào
+          </p>
+        ) : (
+          <ul className="flex flex-col gap-1.5">
+            {recent.map(d => {
+              const name = counterpartyName(d, currentUserId);
+              const initial = name.charAt(0).toUpperCase();
+              const colors = statusColor(d.status);
+              return (
+                <li key={d.id} className="flex items-center gap-2 min-w-0">
+                  <div
+                    className="flex items-center justify-center rounded-full shrink-0 text-xs font-semibold"
+                    style={{ width: 24, height: 24, background: 'var(--muted)', color: 'var(--foreground)' }}
+                  >
+                    {initial}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs font-medium truncate" style={{ color: 'var(--foreground)' }}>{name}</p>
+                    <p className="text-xs amount" style={{ color: 'var(--muted-foreground)' }}>
+                      {formatVNDShort(d.remainingAmount)}
+                    </p>
+                  </div>
+                  <span
+                    className="text-[10px] font-semibold px-1.5 py-0.5 rounded-md shrink-0"
+                    style={{ background: colors.bg, color: colors.fg }}
+                  >
+                    {STATUS_LABEL[d.status]}
+                  </span>
+                </li>
+              );
+            })}
+          </ul>
+        )}
+      </div>
+    </div>
   );
 }
 
-// ── Main export ────────────────────────────────────────────────
-export function SummaryCards({ transactions, month, year, isLoading }: SummaryCardsProps) {
-  const { profiles, currentProfileId } = useAppStore();
-  const profile = profiles.find(p => p.id === currentProfileId);
-
-  const filtered = transactions.filter(tx => {
-    const d = new Date(tx.date);
-    return d.getMonth() + 1 === month && d.getFullYear() === year;
-  });
-
-  const income = filtered.filter(t => t.type === 'income').reduce((s, t) => s + t.amount, 0);
-  const expense = filtered.filter(t => t.type === 'expense').reduce((s, t) => s + t.amount, 0);
-  const balance = income - expense;
-  // Today vs yesterday delta (only relevant when viewing current month)
-  const now = new Date();
-  const isCurrentMonth = month === now.getMonth() + 1 && year === now.getFullYear();
-  const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
-  const dayMs = 86_400_000;
-
-  const sumDay = (type: 'income' | 'expense', start: number) =>
-    transactions
-      .filter(t => { const ts = new Date(t.date).getTime(); return t.type === type && ts >= start && ts < start + dayMs; })
-      .reduce((s, t) => s + t.amount, 0);
-
-  const deltaIncome = isCurrentMonth ? sumDay('income', todayStart) - sumDay('income', todayStart - dayMs) : 0;
-  const deltaExpense = isCurrentMonth ? sumDay('expense', todayStart) - sumDay('expense', todayStart - dayMs) : 0;
-
+// ─── Main export ───────────────────────────────────────────────
+export function SummaryCards({
+  transactions,
+  month,
+  year,
+  sharedDebts,
+  currentUserId,
+  onSeeAllDebts,
+  isLoading,
+}: SummaryCardsProps) {
   if (isLoading) {
     return (
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-2 md:grid-cols-5 gap-3 items-stretch">
         <SummaryCardSkeleton />
-        <div className="flex flex-col gap-3">
-          <SummaryCardSkeleton />
-          <div className="grid grid-cols-2 gap-3">
-            <SummaryCardSkeleton />
-            <SummaryCardSkeleton />
-          </div>
-        </div>
+        <SummaryCardSkeleton />
+        <SummaryCardSkeleton />
+        <div className="col-span-2 md:col-span-2"><SummaryCardSkeleton hasList /></div>
       </div>
     );
   }
 
+  const income = sumByType(transactions, month, year, 'income');
+  const expense = sumByType(transactions, month, year, 'expense');
+  const balance = income - expense;
+
+  const { m: pm, y: py } = monthPrev(month, year);
+  const incomePrev = sumByType(transactions, pm, py, 'income');
+  const expensePrev = sumByType(transactions, pm, py, 'expense');
+  const balancePrev = incomePrev - expensePrev;
+
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-      {/* ── Left: greeting + today delta ── */}
-      <GreetingCard
-        profileName={profile?.name}
-        deltaIncome={deltaIncome}
-        deltaExpense={deltaExpense}
-        isCurrentMonth={isCurrentMonth}
+    <div className="grid grid-cols-2 md:grid-cols-5 gap-3 items-stretch">
+      <StatCard
+        icon={<Wallet size={15} />}
+        label="Số dư tháng"
+        value={formatVND(Math.max(0, balance))}
+        deltaPct={pctDelta(balance, balancePrev)}
       />
-
-      {/* ── Right: balance + income/expense ── */}
-      <div className="flex flex-col gap-3">
-        {/* Balance */}
-        <div className="flex flex-col gap-0.5 p-4 rounded-2xl flex-1 justify-center" style={card()}>
-          <div className="flex items-center gap-1.5">
-            <div style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--primary)' }} />
-            <span className="text-overline">Số dư</span>
-          </div>
-          <p
-            className="text-xl font-bold amount"
-            style={{ color: 'var(--foreground)', lineHeight: 1.2, letterSpacing: '-0.01em' }}
-          >
-            {formatVND(Math.max(0, balance))}
-          </p>
-        </div>
-
-        {/* Income + Expense */}
-        <div className="grid grid-cols-2 gap-3">
-          <div className="flex flex-col gap-1 p-3 rounded-2xl justify-center" style={card()}>
-            <div className="flex items-center gap-1">
-              <div style={{ width: 5, height: 5, borderRadius: '50%', background: 'var(--income)', flexShrink: 0 }} />
-              <span className="text-[14px] font-semibold uppercase tracking-wide truncate" style={{ color: 'var(--muted-foreground)' }}>Thu</span>
-            </div>
-            <p className="text-lg font-bold amount" style={{ color: 'var(--income)', lineHeight: 1.2, letterSpacing: '-0.01em' }}>{formatVND(income)}</p>
-          </div>
-          <div className="flex flex-col gap-1 p-3 rounded-2xl justify-center" style={card()}>
-            <div className="flex items-center gap-1">
-              <div style={{ width: 5, height: 5, borderRadius: '50%', background: 'var(--expense)', flexShrink: 0 }} />
-              <span className="text-[14px] font-semibold uppercase tracking-wide truncate" style={{ color: 'var(--muted-foreground)' }}>Chi</span>
-            </div>
-            <p className="text-lg font-bold amount" style={{ color: 'var(--expense)', lineHeight: 1.2, letterSpacing: '-0.01em' }}>{formatVND(expense)}</p>
-          </div>
-        </div>
-      </div>
+      <StatCard
+        icon={<TrendingUp size={15} />}
+        label="Thu nhập"
+        value={formatVND(income)}
+        valueColor="var(--income)"
+        deltaPct={pctDelta(income, incomePrev)}
+      />
+      <StatCard
+        icon={<TrendingDown size={15} />}
+        label="Chi tiêu"
+        value={formatVND(expense)}
+        valueColor="var(--orange)"
+        iconColor="var(--orange)"
+        iconBg="var(--orange-soft)"
+        deltaPct={pctDelta(expense, expensePrev)}
+        invertDelta
+      />
+      <DebtCard
+        debts={sharedDebts}
+        currentUserId={currentUserId}
+        onSeeAll={onSeeAllDebts}
+      />
     </div>
   );
 }

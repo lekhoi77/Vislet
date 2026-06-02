@@ -159,7 +159,7 @@ export function CategoryBlocks({ transactions, month, year, title, onAdd, addLab
       )}
 
       {view === 'list' && (
-        <div className="flex-1 md:overflow-y-auto">
+        <div className="flex-1 overflow-y-auto max-h-[360px] md:max-h-none">
           {balances.map((c, i) => {
             const pct = total > 0 ? (c.balance / total) * 100 : 0;
             return (

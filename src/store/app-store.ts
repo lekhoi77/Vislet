@@ -71,6 +71,20 @@ function setStoredProfileId(userId: string, profileId: string): void {
   try { localStorage.setItem(CURRENT_KEY_PREFIX + userId, profileId); } catch { /* noop */ }
 }
 
+async function getCurrentUser() {
+  try {
+    const { data: { session }, error } = await supabase.auth.getSession();
+    if (error) {
+      console.error('getCurrentUser(getSession):', error);
+      return null;
+    }
+    return session?.user ?? null;
+  } catch (error) {
+    console.error('getCurrentUser:', error);
+    return null;
+  }
+}
+
 interface NewSharedDebtInput {
   // Tx of A (current user) — đã có sẵn nếu tạo từ TransactionForm split.
   // Nếu null → đây là "ghi nợ" thuần (không gắn expense, A không thực sự bỏ tiền ra).
@@ -249,7 +263,7 @@ export const useAppStore = create<AppState>((set, get) => ({
   initApp: async () => {
     set({ isLoading: true });
 
-    const { data: { user } } = await supabase.auth.getUser();
+    const user = await getCurrentUser();
     if (!user) {
       set({ profiles: [], currentProfileId: null, isLoaded: true, isLoading: false });
       return;
@@ -278,7 +292,7 @@ export const useAppStore = create<AppState>((set, get) => ({
   },
 
   createProfile: async (name: string) => {
-    const { data: { user } } = await supabase.auth.getUser();
+    const user = await getCurrentUser();
     if (!user) return;
 
     const { profiles } = get();
@@ -319,7 +333,7 @@ export const useAppStore = create<AppState>((set, get) => ({
     const { profiles } = get();
     if (!profiles.find(p => p.id === id)) return;
     set({ isLoading: true });
-    const { data: { user } } = await supabase.auth.getUser();
+    const user = await getCurrentUser();
     const profileData = await fetchProfileData(id);
     if (user) setStoredProfileId(user.id, id);
     set({ currentProfileId: id, ...profileData, isLoading: false });
@@ -328,7 +342,7 @@ export const useAppStore = create<AppState>((set, get) => ({
   deleteProfile: async (id: string) => {
     const { profiles, currentProfileId } = get();
     if (profiles.length <= 1) return;
-    const { data: { user } } = await supabase.auth.getUser();
+    const user = await getCurrentUser();
     const { error } = await supabase.from('profiles').delete().eq('id', id);
     if (error) { console.error('deleteProfile:', error); return; }
     const newProfiles = profiles.filter(p => p.id !== id);
@@ -468,7 +482,7 @@ export const useAppStore = create<AppState>((set, get) => ({
 
   // ── Shared Debts ────────────────────────────────────────
   createSharedDebt: async (input) => {
-    const { data: { user } } = await supabase.auth.getUser();
+    const user = await getCurrentUser();
     const { currentProfileId, profiles, sharedDebts } = get();
     if (!user || !currentProfileId) throw new Error('Chưa đăng nhập');
 
@@ -532,7 +546,7 @@ export const useAppStore = create<AppState>((set, get) => ({
   },
 
   acceptSharedDebt: async (id) => {
-    const { data: { user } } = await supabase.auth.getUser();
+    const user = await getCurrentUser();
     const { sharedDebts, profiles, currentProfileId } = get();
     if (!user) return;
     const debt = sharedDebts.find(d => d.id === id);
@@ -651,7 +665,7 @@ export const useAppStore = create<AppState>((set, get) => ({
   },
 
   confirmPayment: async (paymentId) => {
-    const { data: { user } } = await supabase.auth.getUser();
+    const user = await getCurrentUser();
     const { sharedDebts, profiles, currentProfileId } = get();
     if (!user || !currentProfileId) return;
 
@@ -821,7 +835,7 @@ export const useAppStore = create<AppState>((set, get) => ({
   },
 
   refreshSharedDebts: async () => {
-    const { data: { user } } = await supabase.auth.getUser();
+    const user = await getCurrentUser();
     if (!user) return;
     const data = await fetchUserScopedData(user.id);
     set({ sharedDebts: data.sharedDebts, notifications: data.notifications, debtContacts: data.debtContacts });
@@ -829,7 +843,7 @@ export const useAppStore = create<AppState>((set, get) => ({
 
   // ── Notifications ───────────────────────────────────────
   fetchNotifications: async () => {
-    const { data: { user } } = await supabase.auth.getUser();
+    const user = await getCurrentUser();
     if (!user) return;
     const { data } = await supabase
       .from('debt_notifications')
@@ -847,7 +861,7 @@ export const useAppStore = create<AppState>((set, get) => ({
   },
 
   markAllNotifsRead: async () => {
-    const { data: { user } } = await supabase.auth.getUser();
+    const user = await getCurrentUser();
     const { notifications } = get();
     if (!user) return;
     await supabase.from('debt_notifications').update({ is_read: true }).eq('recipient_user_id', user.id).eq('is_read', false);
@@ -871,7 +885,7 @@ export const useAppStore = create<AppState>((set, get) => ({
   },
 
   refreshContacts: async () => {
-    const { data: { user } } = await supabase.auth.getUser();
+    const user = await getCurrentUser();
     if (!user) return;
     const { data } = await supabase.from('debt_contacts').select('*')
       .eq('owner_user_id', user.id)
@@ -881,7 +895,7 @@ export const useAppStore = create<AppState>((set, get) => ({
   },
 
   recordContact: async (input) => {
-    const { data: { user } } = await supabase.auth.getUser();
+    const user = await getCurrentUser();
     if (!user) return;
 
     // Upsert: nếu tồn tại update last_used_at, không thì insert

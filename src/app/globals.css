@@ -48,16 +48,16 @@
   --orange-muted: hsl(26, 75%, 82%);
 
   /* ─── DEBT (Purple) ─── */
-  --debt:               hsl(262, 60%, 55%);
-  --debt-soft:          hsl(262, 60%, 95%);
+  --debt: hsl(262, 60%, 55%);
+  --debt-soft: hsl(262, 60%, 95%);
 
   /* ─── BACKGROUND ─── */
-  --background: hsl(0, 0%, 100%);
-  --background-subtle: hsl(150, 10%, 97.5%);
-  --page-bg: hsl(145, 35%, 96%);
+  --background: #F9F9F9;
+  --background-subtle: #F9F9F9;
+  --page-bg: transparent;
 
   /* ─── SURFACE ─── */
-  --card: hsl(0, 0%, 100%);
+  --card: #F9F9F9;
   --card-foreground: hsl(220, 15%, 15%);
   --popover: hsl(0, 0%, 100%);
   --popover-foreground: hsl(220, 15%, 12%);
@@ -78,11 +78,11 @@
   --accent-foreground: hsl(145, 45%, 30%);
 
   /* ─── SEMANTIC ─── */
-  --income:             hsl(145, 55%, 38%);
-  --expense:            hsl(24, 90%, 50%);
-  --up:                 hsl(145, 55%, 38%);
-  --down:               hsl(0, 70%, 50%);
-  --destructive:        hsl(0, 70%, 50%);
+  --income: hsl(145, 55%, 38%);
+  --expense: hsl(24, 90%, 50%);
+  --up: hsl(145, 55%, 38%);
+  --down: hsl(0, 70%, 50%);
+  --destructive: hsl(0, 70%, 50%);
   --destructive-foreground: hsl(0, 0%, 100%);
 
   /* ─── SPACING SCALE (8px grid) ─── */
@@ -141,7 +141,7 @@
 
   body {
     font-family: 'Lexend', sans-serif;
-    background: var(--page-bg);
+    background: linear-gradient(182deg, #FBFBFB 5.89%, #CAE4D1 98.53%);
     color: var(--foreground);
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
@@ -150,6 +150,55 @@
   html {
     font-family: 'Lexend', sans-serif;
   }
+}
+
+/* ─── APP BACKDROP (green gradient bleed) ───
+   Two blurred green blobs anchored left + right edges for ambient glow.
+   Sits behind everything; pointer-events:none so it never blocks clicks. */
+.app-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  overflow: hidden;
+}
+
+.app-backdrop::before,
+.app-backdrop::after {
+  content: '';
+  position: absolute;
+  background-image: url('/green-gradient.svg');
+  background-repeat: no-repeat;
+  background-size: contain;
+}
+
+/* bottom-left blob — bleeds up from under the sidebar */
+.app-backdrop::before {
+  left: -300px;
+  bottom: -360px;
+  width: 700px;
+  height: 760px;
+  opacity: 0.9;
+}
+
+/* bottom-right blob — bleeds up from under the main container */
+.app-backdrop::after {
+  right: -220px;
+  bottom: -380px;
+  width: 760px;
+  height: 820px;
+  opacity: 1;
+}
+
+/* ─── INNER CONTENT CARD ───
+   Same fill as page background; contrast comes from a soft shadow ring. */
+.content-card {
+  background: #F9F9F9;
+  border-radius: 24px;
+  box-shadow:
+    0 1px 2px rgba(16, 24, 40, 0.04),
+    0 8px 24px rgba(16, 24, 40, 0.06),
+    0 0 0 1px rgba(16, 24, 40, 0.05);
 }
 
 /* ─── SKELETON ANIMATION ─── */
@@ -422,6 +471,7 @@ button:active:not(:disabled),
   width: 5px;
   height: 5px;
 }
+
 .cal-dots.is-crowded {
   gap: 2px;
   row-gap: 1px;
@@ -646,7 +696,7 @@ button:active:not(:disabled),
     max-height: none;
     /* Tighter spring for the scale animation */
     transition: transform 0.22s cubic-bezier(0.25, 0.1, 0.25, 1),
-                opacity  0.2s ease;
+      opacity 0.2s ease;
     /* Float above most content, below header */
     border: 1px solid var(--border-subtle);
   }
@@ -844,6 +894,7 @@ button:active:not(:disabled),
   background: var(--muted);
   color: var(--foreground);
 }
+
 .calc-btn-num:hover {
   filter: brightness(0.95);
 }
@@ -854,6 +905,7 @@ button:active:not(:disabled),
   color: var(--muted-foreground);
   font-size: 14px;
 }
+
 .calc-btn-fn:hover {
   filter: brightness(0.93);
 }
@@ -865,6 +917,7 @@ button:active:not(:disabled),
   border: 1.5px solid var(--primary-muted);
   font-size: 20px;
 }
+
 .calc-btn-op:hover {
   filter: brightness(0.95);
 }
@@ -875,6 +928,7 @@ button:active:not(:disabled),
   color: var(--primary-foreground);
   border-color: var(--primary);
 }
+
 .calc-btn-op-active:hover {
   filter: brightness(1.06);
 }
@@ -885,6 +939,7 @@ button:active:not(:disabled),
   color: var(--primary-foreground);
   font-size: 20px;
 }
+
 .calc-btn-eq:hover {
   filter: brightness(1.07);
 }
@@ -894,6 +949,7 @@ button:active:not(:disabled),
   background: var(--muted);
   color: var(--orange, hsl(24, 90%, 52%));
 }
+
 .calc-btn-bs:hover {
   filter: brightness(0.93);
 }

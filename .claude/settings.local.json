@@ -16,7 +16,17 @@
       "Bash(git -C C:/Users/kvxl/Desktop/Vislet add src/app/globals.css src/app/page.tsx src/components/dashboard/CalendarBlock.tsx src/components/dashboard/ExpenseHeatmap.tsx src/components/layout/FAB.tsx src/components/layout/Header.tsx src/components/layout/TabNav.tsx src/components/tour/ .claude/launch.json .claude/settings.local.json)",
       "Bash(git -C C:/Users/kvxl/Desktop/Vislet status)",
       "PowerShell(git -C C:/Users/kvxl/Desktop/Vislet add src/app/layout.tsx)",
-      "Bash(npx next *)"
+      "Bash(npx next *)",
+      "Bash(git rm *)",
+      "Bash(git pull *)",
+      "PowerShell(git pull origin main 2>&1)",
+      "PowerShell(git push origin main)",
+      "Bash(git push *)",
+      "Bash(node -e \"console.log\\(require\\('lucide-react/package.json'\\).version\\)\")",
+      "Bash(git branch *)",
+      "PowerShell(cd C:\\\\Users\\\\kvxl\\\\Desktop\\\\Vislet; Get-ChildItem -Directory | Where-Object { $_.Name -notmatch \"node_modules|.next|.git|.claude\" })",
+      "PowerShell(Get-NetTCPConnection -State Listen -LocalPort 3000,52938 -ErrorAction SilentlyContinue)",
+      "PowerShell(Get-Process -Name node -ErrorAction SilentlyContinue)"
     ]
   }
 }

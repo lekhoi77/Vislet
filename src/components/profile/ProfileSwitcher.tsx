@@ -51,10 +51,10 @@ export function ProfileSwitcher({ onAddAccount, onOpenGuide, guidePulse }: Profi
   return (
     <DropdownMenu open={menuOpen} onOpenChange={setMenuOpen}>
       <DropdownMenuTrigger
-        className="flex items-center gap-2 rounded-full px-3 py-1.5 transition-colors hover:bg-[var(--muted)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)]"
+        className="flex items-center gap-2 rounded-full p-1 md:px-3 md:py-1.5 transition-colors hover:bg-[var(--muted)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)]"
         aria-label="Chuyển profile"
       >
-        <Avatar style={{ width: 28, height: 28 }}>
+        <Avatar style={{ width: 32, height: 32 }}>
           <AvatarFallback
             style={{
               background: current.avatarColor,
@@ -67,12 +67,12 @@ export function ProfileSwitcher({ onAddAccount, onOpenGuide, guidePulse }: Profi
           </AvatarFallback>
         </Avatar>
         <span
-          className="text-sm font-medium max-w-[80px] truncate"
+          className="hidden md:inline text-sm font-medium max-w-[80px] truncate"
           style={{ color: 'var(--foreground)' }}
         >
           {current.name}
         </span>
-        <ChevronDown size={14} style={{ color: 'var(--muted-foreground)' }} />
+        <ChevronDown size={14} className="hidden md:inline" style={{ color: 'var(--muted-foreground)' }} />
       </DropdownMenuTrigger>
       <DropdownMenuContent
         align="end"
