@@ -84,6 +84,14 @@ export function CategoryIcon({ name, size = 16, className, style }: { name: stri
 // Alias dùng chung cho cả source lẫn category
 export const AppIcon = CategoryIcon;
 
+// Icon hay dùng nhất — hiển thị mặc định trong picker (hàng đầu)
+export const CATEGORY_ICON_NAMES_POPULAR = [
+  'Utensils','Coffee','ShoppingCart','Car','Home',
+  'Stethoscope','GraduationCap','Gamepad2','Music','Plane',
+  'PiggyBank','Briefcase','Heart','Baby','Gift',
+  'Wifi','Fuel','Scissors',
+];
+
 // Danh sách hiển thị trong picker — đã được biên tập theo nhóm chi tiêu thực tế ở VN.
 // Thứ tự xếp theo cụm chủ đề để người dùng quét mắt dễ tìm.
 export const CATEGORY_ICON_NAMES = [

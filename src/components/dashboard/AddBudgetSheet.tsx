@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { useAppStore } from '@/store/app-store';
-import { CategoryIcon, CATEGORY_ICON_NAMES } from '@/lib/icons';
+import { CategoryIcon, CATEGORY_ICON_NAMES, CATEGORY_ICON_NAMES_POPULAR } from '@/lib/icons';
 import { Plus, Trash2, Pencil, Check, X, ChevronUp, ChevronDown, AlertTriangle } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
@@ -33,6 +33,8 @@ export function AddCategorySheet({ open, onClose }: AddCategorySheetProps) {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editLabel, setEditLabel] = useState('');
   const [editIcon, setEditIcon] = useState('ShoppingCart');
+  const [showAllIcons, setShowAllIcons] = useState(false);
+  const [showAllEditIcons, setShowAllEditIcons] = useState(false);
   const [pendingDelete, setPendingDelete] = useState<CustomCategory | null>(null);
 
   const getCategoryUsage = (id: string) => {
@@ -81,13 +83,14 @@ export function AddCategorySheet({ open, onClose }: AddCategorySheetProps) {
     setEditIcon(c.icon);
   };
 
-  const cancelEdit = () => setEditingId(null);
+  const cancelEdit = () => { setEditingId(null); setShowAllEditIcons(false); };
 
   const saveEdit = async () => {
     if (!editLabel.trim() || !editingId) return;
     try {
       await updateCustomCategory(editingId, editLabel, editIcon);
       setEditingId(null);
+      setShowAllEditIcons(false);
       toast.success('Đã cập nhật');
     } catch {
       toast.error('Không thể cập nhật');
@@ -163,7 +166,7 @@ export function AddCategorySheet({ open, onClose }: AddCategorySheetProps) {
               Chọn icon
             </Label>
             <div className="grid grid-cols-6 gap-2">
-              {CATEGORY_ICON_NAMES.map(name => (
+              {(showAllIcons ? CATEGORY_ICON_NAMES : CATEGORY_ICON_NAMES_POPULAR).map(name => (
                 <button
                   key={name}
                   type="button"
@@ -179,6 +182,14 @@ export function AddCategorySheet({ open, onClose }: AddCategorySheetProps) {
                 </button>
               ))}
             </div>
+            <button
+              type="button"
+              onClick={() => setShowAllIcons(v => !v)}
+              className="text-xs font-medium mt-0.5 self-start transition-colors"
+              style={{ color: 'var(--primary)' }}
+            >
+              {showAllIcons ? 'Thu gọn ↑' : `Xem tất cả (${CATEGORY_ICON_NAMES.length}) →`}
+            </button>
           </div>
 
           {/* Add button */}
@@ -210,21 +221,31 @@ export function AddCategorySheet({ open, onClose }: AddCategorySheetProps) {
                           autoFocus
                           onKeyDown={e => { if (e.key === 'Enter') saveEdit(); if (e.key === 'Escape') cancelEdit(); }}
                         />
-                        <div className="grid grid-cols-6 gap-1.5">
-                          {CATEGORY_ICON_NAMES.map(name => (
-                            <button
-                              key={name}
-                              type="button"
-                              onClick={() => setEditIcon(name)}
-                              className="flex items-center justify-center h-9 rounded-lg transition-all"
-                              style={{
-                                background: editIcon === name ? 'var(--primary-soft)' : 'var(--muted)',
-                                outline: editIcon === name ? '2px solid var(--primary)' : 'none',
-                              }}
-                            >
-                              <CategoryIcon name={name} size={15} style={{ color: editIcon === name ? 'var(--primary)' : 'var(--muted-foreground)' }} />
-                            </button>
-                          ))}
+                        <div className="flex flex-col gap-1.5">
+                          <div className="grid grid-cols-6 gap-1.5">
+                            {(showAllEditIcons ? CATEGORY_ICON_NAMES : CATEGORY_ICON_NAMES_POPULAR).map(name => (
+                              <button
+                                key={name}
+                                type="button"
+                                onClick={() => setEditIcon(name)}
+                                className="flex items-center justify-center h-9 rounded-lg transition-all"
+                                style={{
+                                  background: editIcon === name ? 'var(--primary-soft)' : 'var(--muted)',
+                                  outline: editIcon === name ? '2px solid var(--primary)' : 'none',
+                                }}
+                              >
+                                <CategoryIcon name={name} size={15} style={{ color: editIcon === name ? 'var(--primary)' : 'var(--muted-foreground)' }} />
+                              </button>
+                            ))}
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => setShowAllEditIcons(v => !v)}
+                            className="text-xs font-medium self-start transition-colors"
+                            style={{ color: 'var(--primary)' }}
+                          >
+                            {showAllEditIcons ? 'Thu gọn ↑' : `Xem tất cả (${CATEGORY_ICON_NAMES.length}) →`}
+                          </button>
                         </div>
                         <div className="flex gap-2">
                           <Button onClick={saveEdit} disabled={!editLabel.trim()} className="flex-1 h-9 rounded-lg text-xs font-semibold flex items-center gap-1.5"
