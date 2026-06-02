@@ -1,5 +1,6 @@
 'use client';
 
+import { useEffect, useRef, useState, useCallback } from 'react';
 import { Transaction, SharedDebt, SharedDebtStatus } from '@/lib/types';
 import { formatVND, formatVNDShort } from '@/lib/format';
 import { SummaryCardSkeleton } from './SummaryCardSkeleton';
@@ -113,31 +114,36 @@ function DeltaChip({ pct, invert }: { pct: number; invert?: boolean }) {
 
 function StatCard({ icon, label, value, valueColor, iconColor, iconBg, deltaPct, invertDelta }: StatCardProps) {
   return (
-    <div className="flex flex-col gap-3 p-4 rounded-2xl" style={CARD_STYLE}>
-      <div className="flex items-center gap-2">
+    <div className="flex flex-col gap-2.5 p-3.5 md:gap-3 md:p-4 rounded-2xl min-w-0" style={CARD_STYLE}>
+      <div className="flex items-center gap-2 min-w-0">
         <div
           className="flex items-center justify-center rounded-full"
-          style={{ width: 28, height: 28, background: iconBg ?? 'var(--primary-soft)', color: iconColor ?? 'var(--primary)' }}
+          style={{ width: 26, height: 26, background: iconBg ?? 'var(--primary-soft)', color: iconColor ?? 'var(--primary)' }}
         >
-          {icon}
+          <span className="scale-[0.92] md:scale-100">{icon}</span>
         </div>
-        <span className="text-sm font-medium" style={{ color: 'var(--muted-foreground)' }}>{label}</span>
+        <span
+          className="text-[12px] md:text-sm font-semibold leading-tight break-words"
+          style={{ color: 'var(--muted-foreground)' }}
+        >
+          {label}
+        </span>
       </div>
       <div>
         <p
-          className="text-xl md:text-2xl font-bold amount"
+          className="text-xl md:text-2xl font-bold amount leading-none"
           style={{ color: valueColor ?? 'var(--foreground)', lineHeight: 1.2, letterSpacing: '-0.01em' }}
         >
           {value}
         </p>
-        <div className="flex items-center gap-1.5 mt-3">
+        <div className="flex flex-col md:flex-row md:items-center gap-1 md:gap-1.5 mt-2.5 md:mt-3">
           {deltaPct !== null ? (
             <>
               <DeltaChip pct={deltaPct} invert={invertDelta} />
-              <span className="text-xs" style={{ color: 'var(--muted-foreground)' }}>vs tháng trước</span>
+              <span className="text-[12px] md:text-xs leading-tight" style={{ color: 'var(--muted-foreground)' }}>vs tháng trước</span>
             </>
           ) : (
-            <span className="text-xs" style={{ color: 'var(--muted-foreground)' }}>—</span>
+            <span className="text-[12px] md:text-xs" style={{ color: 'var(--muted-foreground)' }}>—</span>
           )}
         </div>
       </div>
@@ -269,16 +275,10 @@ export function SummaryCards({
   onSeeAllDebts,
   isLoading,
 }: SummaryCardsProps) {
-  if (isLoading) {
-    return (
-      <div className="grid grid-cols-2 md:grid-cols-5 gap-3 items-stretch">
-        <SummaryCardSkeleton />
-        <SummaryCardSkeleton />
-        <SummaryCardSkeleton />
-        <div className="col-span-2 md:col-span-2"><SummaryCardSkeleton hasList /></div>
-      </div>
-    );
-  }
+  const [currentSlide, setCurrentSlide] = useState(0);
+  const carouselRef = useRef<HTMLDivElement | null>(null);
+  const intervalRef = useRef<number | null>(null);
+  const isInteractingRef = useRef(false);
 
   const income = sumByType(transactions, month, year, 'income');
   const expense = sumByType(transactions, month, year, 'expense');
@@ -290,38 +290,149 @@ export function SummaryCards({
   const balancePrev = sumByTypeBeforeMonth(transactions, month, year, 'income')
     - sumByTypeBeforeMonth(transactions, month, year, 'expense');
 
+  const cards = [
+    <StatCard
+      key="balance"
+      icon={<Wallet size={15} />}
+      label="Số dư tháng"
+      value={formatVND(Math.max(0, balance))}
+      iconColor="var(--muted-foreground)"
+      iconBg="var(--muted)"
+      deltaPct={pctDelta(balance, balancePrev)}
+    />,
+    <StatCard
+      key="income"
+      icon={<TrendingUp size={15} />}
+      label="Thu nhập"
+      value={formatVND(income)}
+      valueColor="var(--income)"
+      deltaPct={pctDelta(income, incomePrev)}
+    />,
+    <StatCard
+      key="expense"
+      icon={<TrendingDown size={15} />}
+      label="Chi tiêu"
+      value={formatVND(expense)}
+      valueColor="var(--orange)"
+      iconColor="var(--orange)"
+      iconBg="var(--orange-soft)"
+      deltaPct={pctDelta(expense, expensePrev)}
+      invertDelta
+    />,
+    <DebtCard
+      key="debt"
+      debts={sharedDebts}
+      currentUserId={currentUserId}
+      onSeeAll={onSeeAllDebts}
+    />,
+  ];
+
+  const totalSlides = cards.length;
+
+  const stopAuto = useCallback(() => {
+    if (intervalRef.current !== null) {
+      window.clearInterval(intervalRef.current);
+      intervalRef.current = null;
+    }
+  }, []);
+
+  const startAuto = useCallback(() => {
+    const el = carouselRef.current;
+    if (!el || totalSlides <= 1) return;
+    if (intervalRef.current !== null) return;
+    intervalRef.current = window.setInterval(() => {
+      if (isInteractingRef.current) return;
+      setCurrentSlide(prev => {
+        const next = (prev + 1) % totalSlides;
+        const width = el.clientWidth;
+        if (width > 0) el.scrollTo({ left: next * width, behavior: 'smooth' });
+        return next;
+      });
+    }, 10_000);
+  }, [totalSlides]);
+
+  useEffect(() => {
+    startAuto();
+    return () => stopAuto();
+  }, [startAuto, stopAuto]);
+
+  const handleCarouselScroll = () => {
+    const el = carouselRef.current;
+    if (!el) return;
+    const width = el.clientWidth;
+    if (width <= 0) return;
+    const index = Math.round(el.scrollLeft / width);
+    setCurrentSlide(Math.min(totalSlides - 1, Math.max(0, index)));
+  };
+
+  const jumpToSlide = (index: number) => {
+    const el = carouselRef.current;
+    if (!el) return;
+    const width = el.clientWidth;
+    if (width <= 0) return;
+    el.scrollTo({ left: index * width, behavior: 'smooth' });
+    setCurrentSlide(index);
+  };
+
+  if (isLoading) {
+    return (
+      <div className="grid grid-cols-2 md:grid-cols-5 gap-2.5 md:gap-3 items-stretch">
+        <SummaryCardSkeleton />
+        <SummaryCardSkeleton />
+        <SummaryCardSkeleton />
+        <div className="col-span-2 md:col-span-2"><SummaryCardSkeleton hasList /></div>
+      </div>
+    );
+  }
+
   return (
-    <div className="grid grid-cols-2 md:grid-cols-5 gap-3 items-stretch">
-      <StatCard
-        icon={<Wallet size={15} />}
-        label="Số dư tháng"
-        value={formatVND(Math.max(0, balance))}
-        iconColor="var(--muted-foreground)"
-        iconBg="var(--muted)"
-        deltaPct={pctDelta(balance, balancePrev)}
-      />
-      <StatCard
-        icon={<TrendingUp size={15} />}
-        label="Thu nhập"
-        value={formatVND(income)}
-        valueColor="var(--income)"
-        deltaPct={pctDelta(income, incomePrev)}
-      />
-      <StatCard
-        icon={<TrendingDown size={15} />}
-        label="Chi tiêu"
-        value={formatVND(expense)}
-        valueColor="var(--orange)"
-        iconColor="var(--orange)"
-        iconBg="var(--orange-soft)"
-        deltaPct={pctDelta(expense, expensePrev)}
-        invertDelta
-      />
-      <DebtCard
-        debts={sharedDebts}
-        currentUserId={currentUserId}
-        onSeeAll={onSeeAllDebts}
-      />
-    </div>
+    <>
+      <div className="md:hidden">
+        <div className="rounded-2xl overflow-hidden">
+          <div
+            ref={carouselRef}
+            onScroll={handleCarouselScroll}
+            onTouchStart={() => { isInteractingRef.current = true; stopAuto(); }}
+            onTouchEnd={() => { isInteractingRef.current = false; startAuto(); }}
+            onTouchCancel={() => { isInteractingRef.current = false; startAuto(); }}
+            onMouseDown={() => { isInteractingRef.current = true; stopAuto(); }}
+            onMouseUp={() => { isInteractingRef.current = false; startAuto(); }}
+            onMouseLeave={() => { isInteractingRef.current = false; startAuto(); }}
+            className="flex overflow-x-auto snap-x snap-mandatory scroll-smooth px-3 [&::-webkit-scrollbar]:hidden"
+            style={{ scrollbarWidth: 'none', msOverflowStyle: 'none', scrollPaddingLeft: 12, scrollPaddingRight: 12 }}
+          >
+            {cards.map((card, index) => (
+              <div key={index} className="w-full shrink-0 snap-center px-1.5">
+                {card}
+              </div>
+            ))}
+          </div>
+        </div>
+        <div className="flex items-center justify-center gap-1.5 mt-2.5">
+          {cards.map((_, index) => (
+            <button
+              key={index}
+              type="button"
+              onClick={() => jumpToSlide(index)}
+              className="rounded-full transition-all"
+              style={{
+                width: currentSlide === index ? 16 : 6,
+                height: 6,
+                background: currentSlide === index ? 'var(--primary)' : 'var(--primary-muted)',
+                opacity: currentSlide === index ? 0.95 : 0.55,
+              }}
+              aria-label={`Đến thẻ ${index + 1}`}
+            />
+          ))}
+        </div>
+      </div>
+
+      <div className="hidden md:grid grid-cols-5 gap-3 items-stretch">
+        <div>{cards[0]}</div>
+        <div>{cards[1]}</div>
+        <div>{cards[2]}</div>
+        <div className="col-span-2">{cards[3]}</div>
+      </div>
+    </>
   );
 }
