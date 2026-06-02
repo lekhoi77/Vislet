@@ -176,7 +176,7 @@ function DebtCard({ debts, currentUserId, onSeeAll }: DebtCardProps) {
         <div className="flex items-center gap-2">
           <div
             className="flex items-center justify-center rounded-full"
-            style={{ width: 28, height: 28, background: 'var(--primary-soft)', color: 'var(--primary)' }}
+            style={{ width: 28, height: 28, background: 'var(--debt-soft)', color: 'var(--debt)' }}
           >
             <Handshake size={15} />
           </div>
