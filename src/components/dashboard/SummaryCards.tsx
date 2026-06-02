@@ -114,7 +114,7 @@ function DeltaChip({ pct, invert }: { pct: number; invert?: boolean }) {
 
 function StatCard({ icon, label, value, valueColor, iconColor, iconBg, deltaPct, invertDelta }: StatCardProps) {
   return (
-    <div className="flex flex-col gap-2.5 p-3.5 md:gap-3 md:p-4 rounded-2xl min-w-0" style={CARD_STYLE}>
+    <div className="flex flex-col gap-2.5 p-3.5 md:gap-3 md:p-4 rounded-2xl min-w-0 h-full" style={CARD_STYLE}>
       <div className="flex items-center gap-2 min-w-0">
         <div
           className="flex items-center justify-center rounded-full"
@@ -129,21 +129,21 @@ function StatCard({ icon, label, value, valueColor, iconColor, iconBg, deltaPct,
           {label}
         </span>
       </div>
-      <div>
+      <div className="flex-1 flex flex-col justify-between">
         <p
           className="text-xl md:text-2xl font-bold amount leading-none"
           style={{ color: valueColor ?? 'var(--foreground)', lineHeight: 1.2, letterSpacing: '-0.01em' }}
         >
           {value}
         </p>
-        <div className="flex flex-col md:flex-row md:items-center gap-1 md:gap-1.5 mt-2.5 md:mt-3">
+        <div className="flex flex-col md:flex-row md:items-center gap-1 md:gap-1.5 mt-2.5 md:mt-3 min-h-[34px] md:min-h-[24px]">
           {deltaPct !== null ? (
             <>
               <DeltaChip pct={deltaPct} invert={invertDelta} />
               <span className="text-[12px] md:text-xs leading-tight" style={{ color: 'var(--muted-foreground)' }}>vs tháng trước</span>
             </>
           ) : (
-            <span className="text-[12px] md:text-xs" style={{ color: 'var(--muted-foreground)' }}>—</span>
+            <span className="text-[12px] md:text-xs" style={{ color: 'var(--muted-foreground)' }}>&nbsp;</span>
           )}
         </div>
       </div>

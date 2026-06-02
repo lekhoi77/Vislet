@@ -1,4 +1,5 @@
 @import url('https://fonts.googleapis.com/css2?family=Lexend:wght@300;400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Caveat:wght@600;700&display=swap');
 
 @import "tailwindcss";
 @import "tw-animate-css";
@@ -414,6 +415,17 @@ button:active:not(:disabled),
   letter-spacing: 0.04em;
   text-transform: uppercase;
   color: var(--muted-foreground);
+}
+
+/* Handwritten + gradient username (Header) */
+.user-name-hand {
+  font-family: 'Caveat', cursive;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  background: linear-gradient(92deg, var(--primary) 0%, #22c55e 38%, var(--orange) 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
 }
 
 /* ─── MAX WIDTH CONTAINER ─── */

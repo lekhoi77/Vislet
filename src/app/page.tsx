@@ -395,7 +395,8 @@ export default function HomePage() {
           <div className="flex items-start justify-between gap-3 px-5 md:px-0 pt-5 md:pt-6 pb-3 md:pb-5">
             <div className="min-w-0">
               <h1 className="font-semibold leading-tight text-xl md:text-2xl">
-                Hi, <span style={{ color: 'var(--primary)' }}>{greetingName}</span>{' '}
+                <span className="font-normal" style={{ color: 'var(--muted-foreground)' }}>Hi,</span>{' '}
+                <span className="user-name-hand">{greetingName}</span>{' '}
                 <span aria-hidden>🐱</span>
               </h1>
               <p className="text-xs md:text-sm mt-0.5 md:mt-1" style={{ color: 'var(--muted-foreground)' }}>
@@ -449,7 +450,10 @@ export default function HomePage() {
           <main className="content-card mx-4 mt-6 md:mt-0 md:mx-0 mb-4 md:mb-0 pb-[120px] md:pb-6 overflow-hidden">
         {/* ─── OVERVIEW TAB ─── */}
         {activeTab === 'overview' && (
-          <div key={`overview-${contentKey}`} className="page-appear flex flex-col gap-6 p-5 pt-5">
+          <div
+            key={`overview-${contentKey}`}
+            className="page-appear flex flex-col gap-6 p-5 pt-5 md:p-7 md:pt-7"
+          >
             <div className="flex items-center">
               <MonthSelector month={month} year={year} onPrev={handlePrevMonth} onNext={handleNextMonth} onSelect={handleSelectMonth} onToday={handleToday} />
             </div>
