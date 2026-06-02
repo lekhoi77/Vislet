@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Transaction } from '@/lib/types';
 import { formatVND, formatVNDShort } from '@/lib/format';
 
@@ -11,7 +11,6 @@ interface TrendStatsCardProps {
 }
 
 const X_TICKS_DESKTOP = [1, 5, 10, 15, 20, 25, 30];
-const X_TICKS_MOBILE = [1, 10, 20, 30];
 const WEEKDAY_NAMES = ['Chủ Nhật', 'Thứ Hai', 'Thứ Ba', 'Thứ Tư', 'Thứ Năm', 'Thứ Sáu', 'Thứ Bảy'];
 
 const CHART_W = 560;
@@ -47,6 +46,11 @@ function buildAreaPath(points: Array<{ x: number; y: number }>): string {
 
 export function TrendStatsCard({ transactions, month, year }: TrendStatsCardProps) {
   const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
+  const chartWrapRef = useRef<HTMLDivElement | null>(null);
+  const scrollerRef = useRef<HTMLDivElement | null>(null);
+  const svgRef = useRef<SVGSVGElement | null>(null);
+  const [tooltipPos, setTooltipPos] = useState<{ left: number; top: number; below: boolean } | null>(null);
+  const [mobileLeadPad, setMobileLeadPad] = useState(0);
 
   const {
     dayCount,
@@ -129,20 +133,63 @@ export function TrendStatsCard({ transactions, month, year }: TrendStatsCardProp
 
   const hoveredPoint = hoveredIndex !== null ? points[hoveredIndex] : null;
   const hasExpenseData = peakAmount > 0;
-  const tooltipLeftPct = hoveredPoint ? clamp((hoveredPoint.x / CHART_W) * 100, 18, 82) : 50;
-  const tooltipTopPct = hoveredPoint ? clamp((hoveredPoint.y / CHART_H) * 100, 16, 86) : 50;
   const showTooltipBelow = hoveredPoint ? hoveredPoint.y < 48 : false;
+
+  const mobileTicks = useMemo(() => {
+    const ticks: number[] = [];
+    const step = 2; // more ticks now that mobile can scroll
+    for (let d = 1; d <= dayCount; d += step) ticks.push(d);
+    if (ticks[ticks.length - 1] !== dayCount) ticks.push(dayCount);
+    return ticks;
+  }, [dayCount]);
+
+  const focusDay = useMemo(() => {
+    const now = new Date();
+    const isCurrentMonth = now.getFullYear() === year && now.getMonth() === month - 1;
+    const d = isCurrentMonth ? now.getDate() : dayCount;
+    return clamp(d, 1, dayCount);
+  }, [dayCount, month, year]);
+
+  useEffect(() => {
+    const scroller = scrollerRef.current;
+    const svg = svgRef.current;
+    if (!scroller || !svg || points.length === 0) return;
+
+    const cw = scroller.clientWidth;
+    const svgRect = svg.getBoundingClientRect();
+    if (cw <= 0 || svgRect.width <= 0) return;
+
+    const idx = clamp(focusDay - 1, 0, points.length - 1);
+    const focusXpx = (points[idx].x / CHART_W) * svgRect.width;
+
+    // Day 1–2: pin to left edge. Later: keep the focus day centered.
+    const desiredPx = focusDay <= 2 ? 12 : (cw / 2);
+    const pad = Math.max(0, desiredPx - focusXpx);
+    setMobileLeadPad(pad);
+  }, [focusDay, points]);
   const pctDelta = previousWeekAmount <= 0
     ? (currentWeekAmount > 0 ? 100 : 0)
     : ((currentWeekAmount - previousWeekAmount) / previousWeekAmount) * 100;
   const isUp = pctDelta >= 0;
 
-  const handlePointerMove = useCallback((clientX: number, left: number, width: number) => {
-    if (points.length === 0) return;
-    const ratio = clamp((clientX - left) / Math.max(1, width), 0, 1);
+  const handlePointerMove = useCallback((clientX: number) => {
+    const wrap = chartWrapRef.current;
+    const svg = svgRef.current;
+    if (!wrap || !svg || points.length === 0) return;
+
+    const svgRect = svg.getBoundingClientRect();
+    const wrapRect = wrap.getBoundingClientRect();
+    const xInSvgPx = clamp(clientX - svgRect.left, 0, svgRect.width);
+    const xInSvg = (xInSvgPx / Math.max(1, svgRect.width)) * CHART_W;
+    const ratio = clamp(xInSvg / CHART_W, 0, 1);
     const idx = Math.round(ratio * (points.length - 1));
     setHoveredIndex(idx);
-  }, [points.length]);
+
+    const p = points[idx];
+    const px = (p.x / CHART_W) * svgRect.width + (svgRect.left - wrapRect.left);
+    const py = (p.y / CHART_H) * svgRect.height + (svgRect.top - wrapRect.top);
+    setTooltipPos({ left: px, top: py, below: p.y < 48 });
+  }, [points]);
 
   return (
     <section
@@ -152,24 +199,31 @@ export function TrendStatsCard({ transactions, month, year }: TrendStatsCardProp
       <div className="flex flex-col gap-4">
         <div>
           <p className="text-overline mb-3">Xu hướng chi tiêu</p>
-          <div className="relative">
-            <svg
-              viewBox={`0 0 ${CHART_W} ${CHART_H}`}
-              className="w-full h-[170px] md:h-[220px]"
-              role="img"
-              aria-label="Biểu đồ xu hướng chi tiêu theo ngày trong tháng"
-              onMouseLeave={() => setHoveredIndex(null)}
-              onMouseMove={(e) => {
-                const rect = e.currentTarget.getBoundingClientRect();
-                handlePointerMove(e.clientX, rect.left, rect.width);
-              }}
-              onTouchMove={(e) => {
-                const touch = e.touches[0];
-                if (!touch) return;
-                const rect = e.currentTarget.getBoundingClientRect();
-                handlePointerMove(touch.clientX, rect.left, rect.width);
+          <div ref={chartWrapRef} className="relative">
+            <div
+              ref={scrollerRef}
+              className="overflow-x-auto [&::-webkit-scrollbar]:hidden"
+              style={{
+                scrollbarWidth: 'none',
+                msOverflowStyle: 'none',
+                paddingLeft: 12 + mobileLeadPad,
+                paddingRight: 12,
               }}
             >
+              <svg
+                ref={svgRef}
+                viewBox={`0 0 ${CHART_W} ${CHART_H}`}
+                className="h-[170px] md:h-[220px] w-[720px] md:w-full"
+                role="img"
+                aria-label="Biểu đồ xu hướng chi tiêu theo ngày trong tháng"
+                onMouseLeave={() => { setHoveredIndex(null); setTooltipPos(null); }}
+                onMouseMove={(e) => handlePointerMove(e.clientX)}
+                onTouchMove={(e) => {
+                  const touch = e.touches[0];
+                  if (!touch) return;
+                  handlePointerMove(touch.clientX);
+                }}
+              >
               <defs>
                 <linearGradient id="trendArea" x1="0" y1="0" x2="0" y2="1">
                   <stop offset="0%" stopColor="var(--orange)" stopOpacity="0.22" />
@@ -221,7 +275,7 @@ export function TrendStatsCard({ transactions, month, year }: TrendStatsCardProp
                   </text>
                 );
               })}
-              {X_TICKS_MOBILE.filter((tick) => tick <= dayCount).map((tick) => {
+              {mobileTicks.map((tick) => {
                 const x = PAD_L + ((tick - 1) * (CHART_W - PAD_L - PAD_R)) / Math.max(1, dayCount - 1);
                 return (
                   <text
@@ -230,7 +284,7 @@ export function TrendStatsCard({ transactions, month, year }: TrendStatsCardProp
                     y={CHART_H - 8}
                     textAnchor="middle"
                     className="md:hidden"
-                    style={{ fontSize: 11, fill: 'var(--muted-foreground)', fontWeight: 600 }}
+                    style={{ fontSize: 10, fill: 'var(--muted-foreground)', fontWeight: 600 }}
                   >
                     {tick}
                   </text>
@@ -247,15 +301,16 @@ export function TrendStatsCard({ transactions, month, year }: TrendStatsCardProp
                   Chưa có dữ liệu chi tiêu
                 </text>
               )}
-            </svg>
+              </svg>
+            </div>
 
-            {hoveredPoint && (
+            {hoveredPoint && tooltipPos && (
               <div
                 className="absolute px-2.5 py-1.5 rounded-lg text-[12px] font-medium pointer-events-none whitespace-nowrap"
                 style={{
-                  left: `${tooltipLeftPct}%`,
-                  top: `${tooltipTopPct}%`,
-                  transform: showTooltipBelow
+                  left: tooltipPos.left,
+                  top: tooltipPos.top,
+                  transform: (tooltipPos.below || showTooltipBelow)
                     ? 'translate(-50%, 10px)'
                     : 'translate(-50%, calc(-100% - 10px))',
                   background: '#121212',
