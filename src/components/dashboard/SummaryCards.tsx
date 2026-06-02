@@ -296,6 +296,8 @@ export function SummaryCards({
         icon={<Wallet size={15} />}
         label="Số dư tháng"
         value={formatVND(Math.max(0, balance))}
+        iconColor="var(--muted-foreground)"
+        iconBg="var(--muted)"
         deltaPct={pctDelta(balance, balancePrev)}
       />
       <StatCard
