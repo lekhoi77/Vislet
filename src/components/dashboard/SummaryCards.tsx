@@ -35,6 +35,21 @@ function sumByType(txs: Transaction[], m: number, y: number, type: 'income' | 'e
   }, 0);
 }
 
+function sumAllByType(txs: Transaction[], type: 'income' | 'expense'): number {
+  return txs.reduce((s, t) => (t.type === type ? s + t.amount : s), 0);
+}
+
+function sumByTypeBeforeMonth(txs: Transaction[], m: number, y: number, type: 'income' | 'expense'): number {
+  return txs.reduce((s, t) => {
+    if (t.type !== type) return s;
+    const d = new Date(t.date);
+    const tm = d.getMonth() + 1;
+    const ty = d.getFullYear();
+    if (ty < y || (ty === y && tm < m)) return s + t.amount;
+    return s;
+  }, 0);
+}
+
 function debtSortTime(d: SharedDebt): number {
   return new Date(d.settledAt ?? d.acceptedAt ?? d.createdAt).getTime();
 }
@@ -267,12 +282,13 @@ export function SummaryCards({
 
   const income = sumByType(transactions, month, year, 'income');
   const expense = sumByType(transactions, month, year, 'expense');
-  const balance = income - expense;
+  const balance = sumAllByType(transactions, 'income') - sumAllByType(transactions, 'expense');
 
   const { m: pm, y: py } = monthPrev(month, year);
   const incomePrev = sumByType(transactions, pm, py, 'income');
   const expensePrev = sumByType(transactions, pm, py, 'expense');
-  const balancePrev = incomePrev - expensePrev;
+  const balancePrev = sumByTypeBeforeMonth(transactions, month, year, 'income')
+    - sumByTypeBeforeMonth(transactions, month, year, 'expense');
 
   return (
     <div className="grid grid-cols-2 md:grid-cols-5 gap-3 items-stretch">
