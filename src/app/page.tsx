@@ -428,6 +428,8 @@ export default function HomePage() {
               <div
                 className="flex items-center justify-center rounded-xl"
                 style={{
+                  width: 40,
+                  height: 40,
                   background: 'var(--card)',
                   boxShadow: '0 0 0 1px rgba(16, 24, 40, 0.06), 0 1px 2px rgba(16, 24, 40, 0.04)',
                 }}

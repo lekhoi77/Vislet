@@ -51,7 +51,11 @@ export function CategoryBlocks({ transactions, month, year, title, onAdd, addLab
       .reduce((s, t) => s + t.amount, 0);
   };
 
-  const balances = allCategories.map(c => ({ ...c, balance: getSpent(c.id), color: getCategoryColor(c.id, customCategories) }));
+  // Ưu tiên hiển thị danh mục có chi tiêu lên đầu (giảm dần theo số tiền);
+  // các danh mục 0đ giữ nguyên thứ tự gốc nhờ sort ổn định. Đúng qua từng tháng vì balance tính lại theo tháng đang xem.
+  const balances = allCategories
+    .map(c => ({ ...c, balance: getSpent(c.id), color: getCategoryColor(c.id, customCategories) }))
+    .sort((a, b) => b.balance - a.balance);
   const total = balances.reduce((s, c) => s + c.balance, 0);
 
   // ── Pie data

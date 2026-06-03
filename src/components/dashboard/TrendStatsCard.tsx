@@ -51,6 +51,37 @@ export function TrendStatsCard({ transactions, month, year }: TrendStatsCardProp
   const svgRef = useRef<SVGSVGElement | null>(null);
   const [tooltipPos, setTooltipPos] = useState<{ left: number; top: number; below: boolean } | null>(null);
   const [mobileLeadPad, setMobileLeadPad] = useState(0);
+  // Trên desktop kéo giãn biểu đồ lấp đầy chiều cao khung (bỏ letterbox của viewBox 560×188).
+  // Mobile giữ nguyên 'meet' vì layout cuộn ngang đã được tinh chỉnh riêng.
+  const [isDesktop, setIsDesktop] = useState(false);
+
+  useEffect(() => {
+    const mq = window.matchMedia('(min-width: 768px)');
+    const update = () => setIsDesktop(mq.matches);
+    update();
+    mq.addEventListener('change', update);
+    return () => mq.removeEventListener('change', update);
+  }, []);
+
+  // Khi preserveAspectRatio='none' (desktop), scale x/y khác nhau khiến hình tròn bị méo thành elip.
+  // Đo tỉ lệ scale thực để vẽ marker bằng ellipse có ry bù lại → hiển thị tròn đều.
+  // mobile ('meet') scale đồng đều nên dotRy = 1 (tròn như cũ).
+  const [dotRy, setDotRy] = useState(1);
+  useEffect(() => {
+    const svg = svgRef.current;
+    if (!svg) return;
+    const measure = () => {
+      const rect = svg.getBoundingClientRect();
+      if (rect.width <= 0 || rect.height <= 0) return;
+      const sx = rect.width / CHART_W;
+      const sy = rect.height / CHART_H;
+      setDotRy(isDesktop ? sx / sy : 1);
+    };
+    measure();
+    const ro = new ResizeObserver(measure);
+    ro.observe(svg);
+    return () => ro.disconnect();
+  }, [isDesktop]);
 
   const {
     dayCount,
@@ -213,6 +244,7 @@ export function TrendStatsCard({ transactions, month, year }: TrendStatsCardProp
               <svg
                 ref={svgRef}
                 viewBox={`0 0 ${CHART_W} ${CHART_H}`}
+                preserveAspectRatio={isDesktop ? 'none' : 'xMidYMid meet'}
                 className="h-[170px] md:h-[220px] w-[720px] md:w-full"
                 role="img"
                 aria-label="Biểu đồ xu hướng chi tiêu theo ngày trong tháng"
@@ -239,25 +271,28 @@ export function TrendStatsCard({ transactions, month, year }: TrendStatsCardProp
                   y2={CHART_H - PAD_B}
                   stroke="var(--border-strong)"
                   strokeDasharray="4 4"
+                  vectorEffect="non-scaling-stroke"
                 />
               )}
 
               <path d={areaPath} fill="url(#trendArea)" />
-              <path d={path} fill="none" stroke="var(--orange)" strokeWidth={3} strokeLinecap="round" />
+              <path d={path} fill="none" stroke="var(--orange)" strokeWidth={3} strokeLinecap="round" vectorEffect="non-scaling-stroke" />
 
               {points[peakIndex] && (
-                <circle
+                <ellipse
                   cx={points[peakIndex].x}
                   cy={points[peakIndex].y}
-                  r={5.5}
+                  rx={5.5}
+                  ry={5.5 * dotRy}
                   fill="var(--card)"
                   stroke="var(--orange)"
                   strokeWidth={3}
+                  vectorEffect="non-scaling-stroke"
                 />
               )}
 
               {hoveredPoint && (
-                <circle cx={hoveredPoint.x} cy={hoveredPoint.y} r={4} fill="var(--orange)" />
+                <ellipse cx={hoveredPoint.x} cy={hoveredPoint.y} rx={4} ry={4 * dotRy} fill="var(--orange)" />
               )}
 
               {X_TICKS_DESKTOP.filter((tick) => tick <= dayCount).map((tick) => {
