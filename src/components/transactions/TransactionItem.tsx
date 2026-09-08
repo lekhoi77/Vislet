@@ -23,7 +23,7 @@ import {
 } from '@/components/ui/sheet';
 import { BottomSheetHeader } from '@/components/ui/bottom-sheet-header';
 import { useAppStore } from '@/store/app-store';
-import { ArrowDownLeft, ArrowUpRight, FileText, Pencil, Trash2 } from 'lucide-react';
+import { ArrowDownLeft, ArrowUpRight, EyeOff, FileText, Pencil, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { Highlight } from '@/components/shared/Highlight';
 
@@ -44,6 +44,7 @@ export function TransactionItem({ tx, onEdit, highlightQuery = '' }: Transaction
   const sourceLabel = resolveSourceLabel(tx.source, customSources);
   const categoryLabel = resolveCategoryLabel(tx.category, customCategories);
   const hasCategory = tx.category && tx.category !== 'none';
+  const isExcludedFromReports = tx.excludedFromReports ?? false;
 
   const handleDelete = () => {
     deleteTransaction(tx.id);
@@ -110,6 +111,15 @@ export function TransactionItem({ tx, onEdit, highlightQuery = '' }: Transaction
                 {categoryLabel}
               </Badge>
             )}
+            {isExcludedFromReports && (
+              <Badge
+                variant="secondary"
+                className="text-[11px] px-1.5 py-0 h-auto font-medium border-0"
+                style={{ background: 'var(--orange-soft)', color: 'var(--orange)' }}
+              >
+                Không tính báo cáo
+              </Badge>
+            )}
           </div>
           {tx.note && (
             <div className="flex items-center gap-1 mt-1">
@@ -154,6 +164,15 @@ export function TransactionItem({ tx, onEdit, highlightQuery = '' }: Transaction
                 <div className="flex items-center justify-between">
                   <span className="text-sm" style={{ color: 'var(--muted-foreground)' }}>Danh mục</span>
                   <span className="text-sm font-medium" style={{ color: 'var(--foreground)' }}>{categoryLabel}</span>
+                </div>
+              )}
+              {isExcludedFromReports && (
+                <div className="flex items-center justify-between gap-3">
+                  <span className="text-sm" style={{ color: 'var(--muted-foreground)' }}>Báo cáo</span>
+                  <span className="inline-flex items-center gap-1.5 text-sm font-medium" style={{ color: 'var(--orange)' }}>
+                    <EyeOff size={14} />
+                    Không tính vào báo cáo
+                  </span>
                 </div>
               )}
               <div className="flex items-center justify-between">

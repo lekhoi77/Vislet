@@ -22,6 +22,7 @@ create table if not exists transactions (
   source      text        not null,
   category    text        not null default 'none',
   note        text        not null default '',
+  excluded_from_reports boolean not null default false,
   date        timestamptz not null,
   created_at  timestamptz not null default now()
 );

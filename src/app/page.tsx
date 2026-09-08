@@ -27,6 +27,7 @@ import { AddBudgetSheet } from '@/components/dashboard/AddBudgetSheet';
 import { WalkthroughTour } from '@/components/tour/WalkthroughTour';
 import { CalculatorPanel } from '@/components/calculator/Calculator';
 import { Transaction, TransactionType } from '@/lib/types';
+import { getReportableTransactions } from '@/lib/transaction-reporting';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { EmptyState } from '@/components/shared/EmptyState';
 import { Handshake, LayoutDashboard, ArrowLeftRight, Tags, Plus, Calculator } from 'lucide-react';
@@ -267,6 +268,7 @@ export default function HomePage() {
     const d = new Date(tx.date);
     return d.getMonth() + 1 === month && d.getFullYear() === year;
   });
+  const reportableTransactions = getReportableTransactions(transactions);
 
   if (isAuthLoading || (user && !isLoaded)) {
     return (
@@ -461,7 +463,7 @@ export default function HomePage() {
             </div>
             <div data-tour="summary">
               <SummaryCards
-                transactions={transactions}
+                transactions={reportableTransactions}
                 month={month}
                 year={year}
                 sharedDebts={sharedDebts}
@@ -472,7 +474,7 @@ export default function HomePage() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div data-tour="sources" className="flex flex-col md:h-[440px]">
                 <SourceBlocks
-                  transactions={transactions}
+                  transactions={reportableTransactions}
                   title="Nguồn tiền"
                   onAdd={() => setShowAddSource(true)}
                   addLabel="Thêm nguồn tiền"
@@ -480,7 +482,7 @@ export default function HomePage() {
               </div>
               <div data-tour="goals" className="flex flex-col md:h-[440px]">
                 <GoalBlocks
-                  transactions={transactions}
+                  transactions={reportableTransactions}
                   month={month}
                   year={year}
                   title="Danh mục"
@@ -491,15 +493,15 @@ export default function HomePage() {
             </div>
             <div className="grid grid-cols-1 xl:grid-cols-3 gap-4">
               <TrendStatsCard
-                transactions={transactions}
+                transactions={reportableTransactions}
                 month={month}
                 year={year}
               />
               <div data-tour="calendar" className="xl:h-full">
-                <CalendarBlock transactions={transactions} sharedDebts={sharedDebts} month={month} year={year} onEdit={handleEditTx} />
+                <CalendarBlock transactions={reportableTransactions} sharedDebts={sharedDebts} month={month} year={year} onEdit={handleEditTx} />
               </div>
               <div className="xl:h-full">
-                <ExpenseHeatmap transactions={transactions} month={month} year={year} onEdit={handleEditTx} />
+                <ExpenseHeatmap transactions={reportableTransactions} month={month} year={year} onEdit={handleEditTx} />
               </div>
             </div>
           </div>
@@ -519,7 +521,7 @@ export default function HomePage() {
         {/* ─── CATEGORIES TAB ─── */}
         {activeTab === 'categories' && (
           <div key={`categories-${contentKey}`} className="page-appear p-5 pt-5">
-            <GoalOverview transactions={transactions} month={month} year={year} onEdit={handleEditTx} />
+            <GoalOverview transactions={reportableTransactions} month={month} year={year} onEdit={handleEditTx} />
           </div>
         )}
 

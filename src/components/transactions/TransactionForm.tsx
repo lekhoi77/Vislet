@@ -15,11 +15,12 @@ import { Button } from '@/components/ui/button';
 import { AmountInput } from '@/components/shared/AmountInput';
 import { useAppStore } from '@/store/app-store';
 import { Transaction, TransactionSource, TransactionCategory, TransactionType } from '@/lib/types';
-import { TrendingUp, TrendingDown, ArrowRight, Loader2 } from 'lucide-react';
+import { TrendingUp, TrendingDown, ArrowRight, Loader2, EyeOff } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { formatVND } from '@/lib/format';
 import { CategoryIcon, AppIcon } from '@/lib/icons';
+import { isReportableTransaction } from '@/lib/transaction-reporting';
 
 interface TransactionFormProps {
   open: boolean;
@@ -33,11 +34,13 @@ function SelectGroup<T extends string>({
   value,
   onChange,
   accent = 'primary',
+  disabled = false,
 }: {
   options: { value: T; label: string; icon?: React.ReactNode }[];
   value: T;
   onChange: (v: T) => void;
   accent?: 'primary' | 'orange';
+  disabled?: boolean;
 }) {
   const selectedBorder = accent === 'orange' ? 'var(--orange-muted)' : 'var(--primary-muted)';
   const selectedBg    = accent === 'orange' ? 'var(--orange-soft)'  : 'var(--primary-soft)';
@@ -49,9 +52,10 @@ function SelectGroup<T extends string>({
         <button
           key={o.value}
           type="button"
+          disabled={disabled}
           onClick={() => onChange(o.value)}
           className={cn(
-            'flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium transition-all',
+            'flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium transition-all disabled:cursor-not-allowed disabled:opacity-45',
           )}
           style={{
             border: value === o.value ? `1px solid ${selectedBorder}` : '1px solid var(--border)',
@@ -93,6 +97,7 @@ export function TransactionForm({ open, type, editingTx, onClose }: TransactionF
   const [category, setCategory] = useState<TransactionCategory>('none');
   const [note, setNote] = useState('');
   const [date, setDate] = useState('');
+  const [excludedFromReports, setExcludedFromReports] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   // Split cost (only for expense)
@@ -101,6 +106,7 @@ export function TransactionForm({ open, type, editingTx, onClose }: TransactionF
   const [splitAmount, setSplitAmount] = useState<number>(0);
   const [splitDueDate, setSplitDueDate] = useState<string>('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const isIncome = type === 'income';
 
   useEffect(() => {
     if (open) {
@@ -112,6 +118,7 @@ export function TransactionForm({ open, type, editingTx, onClose }: TransactionF
         setCategory(editingTx.category);
         setNote(editingTx.note);
         setDate(new Date(editingTx.date).toISOString().slice(0, 10));
+        setExcludedFromReports(editingTx.excludedFromReports ?? false);
       } else {
         setTitle('');
         setAmount(0);
@@ -120,6 +127,7 @@ export function TransactionForm({ open, type, editingTx, onClose }: TransactionF
         setCategory((customCategories.find(c => c.id === 'none')?.id ?? customCategories[0]?.id ?? 'none') as TransactionCategory);
         setNote('');
         setDate(todayStr);
+        setExcludedFromReports(false);
       }
       setSplitEnabled(false);
       setSplitDebtor(null);
@@ -146,6 +154,17 @@ export function TransactionForm({ open, type, editingTx, onClose }: TransactionF
     return Object.keys(e).length === 0;
   };
 
+  const handleToggleExcludedFromReports = () => {
+    const next = !excludedFromReports;
+    setExcludedFromReports(next);
+    if (next) {
+      setSplitEnabled(false);
+      setSplitDebtor(null);
+      setSplitAmount(0);
+      setSplitDueDate('');
+    }
+  };
+
   const handleSubmit = useCallback(async () => {
     if (isSubmitting) return;
     if (!validate()) return;
@@ -158,6 +177,9 @@ export function TransactionForm({ open, type, editingTx, onClose }: TransactionF
       category,
       note: note.trim(),
       date: date ? new Date(date).toISOString() : new Date().toISOString(),
+      ...((excludedFromReports || editingTx?.excludedFromReports)
+        ? { excludedFromReports: !isIncome && excludedFromReports }
+        : {}),
     };
     try {
       if (editingTx) {
@@ -194,7 +216,7 @@ export function TransactionForm({ open, type, editingTx, onClose }: TransactionF
       setIsSubmitting(false);
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [type, title, amount, source, category, note, date, editingTx, onClose, splitEnabled, splitDebtor, splitAmount, splitDueDate, isSubmitting]);
+  }, [type, title, amount, source, category, note, date, editingTx, onClose, splitEnabled, splitDebtor, splitAmount, splitDueDate, isSubmitting, isIncome, excludedFromReports]);
 
   // Enter = submit (trừ khi đang gõ trong textarea)
   const handleSubmitRef = useRef(handleSubmit);
@@ -213,7 +235,6 @@ export function TransactionForm({ open, type, editingTx, onClose }: TransactionF
     return () => window.removeEventListener('keydown', handler);
   }, [open]);
 
-  const isIncome = type === 'income';
   const titleStr = editingTx
     ? (isIncome ? 'Sửa thu nhập' : 'Sửa chi tiêu')
     : (isIncome ? 'Thêm thu nhập' : 'Thêm chi tiêu');
@@ -222,9 +243,9 @@ export function TransactionForm({ open, type, editingTx, onClose }: TransactionF
   const getSourcePreview = () => {
     if (amount <= 0) return null;
     const base = transactions
-      .filter(t => t.source === source && (!editingTx || t.id !== editingTx.id))
+      .filter(t => isReportableTransaction(t) && t.source === source && (!editingTx || t.id !== editingTx.id))
       .reduce((sum, t) => sum + (t.type === 'income' ? t.amount : -t.amount), 0);
-    const next = isIncome ? base + amount : base - amount;
+    const next = excludedFromReports ? base : (isIncome ? base + amount : base - amount);
     return { current: Math.max(0, base), next };
   };
   const sourcePreview = getSourcePreview();
@@ -332,7 +353,63 @@ export function TransactionForm({ open, type, editingTx, onClose }: TransactionF
                 <Label className="text-sm font-medium tracking-wide uppercase" style={{ color: 'var(--muted-foreground)' }}>
                   Danh mục
                 </Label>
-                <SelectGroup options={CATEGORIES} value={category} onChange={setCategory} accent="orange" />
+                <SelectGroup
+                  options={CATEGORIES}
+                  value={category}
+                  onChange={setCategory}
+                  accent="orange"
+                  disabled={excludedFromReports}
+                />
+              </div>
+            )}
+
+            {!isIncome && (
+              <div
+                className="flex flex-col gap-2 p-3 rounded-xl"
+                style={{
+                  background: excludedFromReports ? 'var(--orange-soft)' : 'var(--muted)',
+                  border: `1px solid ${excludedFromReports ? 'var(--orange-muted)' : 'transparent'}`,
+                }}
+              >
+                <label className="flex items-center justify-between gap-3 cursor-pointer">
+                  <div className="flex items-start gap-2">
+                    <EyeOff
+                      size={15}
+                      className="mt-0.5 shrink-0"
+                      style={{ color: excludedFromReports ? 'var(--orange)' : 'var(--muted-foreground)' }}
+                    />
+                    <div className="min-w-0">
+                      <span className="text-sm font-semibold" style={{ color: 'var(--foreground)' }}>
+                        Không tính vào báo cáo
+                      </span>
+                      <p className="text-xs mt-0.5 leading-relaxed" style={{ color: 'var(--muted-foreground)' }}>
+                        Vẫn lưu trong lịch sử, nhưng không tính vào tổng quan, biểu đồ, lịch và số dư nguồn tiền.
+                      </p>
+                    </div>
+                  </div>
+                  <span
+                    role="switch"
+                    aria-checked={excludedFromReports}
+                    onClick={handleToggleExcludedFromReports}
+                    className="relative inline-flex shrink-0 cursor-pointer rounded-full transition-colors"
+                    style={{
+                      width: 36,
+                      height: 20,
+                      background: excludedFromReports ? 'var(--orange)' : 'var(--border)',
+                    }}
+                  >
+                    <span
+                      className="inline-block rounded-full bg-white shadow transition-transform"
+                      style={{
+                        width: 16,
+                        height: 16,
+                        marginTop: 2,
+                        marginLeft: 2,
+                        transform: excludedFromReports ? 'translateX(16px)' : 'translateX(0)',
+                      }}
+                    />
+                  </span>
+                </label>
               </div>
             )}
 
@@ -356,7 +433,7 @@ export function TransactionForm({ open, type, editingTx, onClose }: TransactionF
             </div>
 
             {/* Split cost — only for expense, new transaction */}
-            {!isIncome && !editingTx && (
+            {!isIncome && !editingTx && !excludedFromReports && (
               <div className="flex flex-col gap-3 p-3 rounded-xl" style={{ background: 'var(--muted)' }}>
                 <label className="flex items-center justify-between gap-3 cursor-pointer">
                   <div className="flex items-center gap-2">
