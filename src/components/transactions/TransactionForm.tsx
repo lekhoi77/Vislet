@@ -146,8 +146,8 @@ export function TransactionForm({ open, type, editingTx, onClose }: TransactionF
     if (amount > 999_999_999_999) e.amount = 'Số tiền vượt quá giới hạn';
     if (note.length > 500) e.note = 'Ghi chú tối đa 500 ký tự';
     if (splitEnabled) {
-      if (!splitDebtor) e.split = 'Chọn người nợ bạn';
-      if (splitAmount <= 0) e.splitAmount = 'Nhập số tiền họ nợ';
+      if (splitAmount > 0 && !splitDebtor) e.split = 'Chọn người nợ bạn';
+      if (splitAmount < 0) e.splitAmount = 'Nhập số tiền họ nợ hợp lệ';
       if (splitAmount > amount) e.splitAmount = 'Không thể lớn hơn tổng chi tiêu';
     }
     setErrors(e);
@@ -464,7 +464,7 @@ export function TransactionForm({ open, type, editingTx, onClose }: TransactionF
                   <>
                     <div className="flex flex-col gap-2">
                       <Label className="text-sm font-medium tracking-wide uppercase" style={{ color: 'var(--muted-foreground)' }}>
-                        Người nợ bạn *
+                        Người nợ bạn {splitAmount > 0 ? '*' : '(tuỳ chọn)'}
                       </Label>
                       <UserSearchPicker value={splitDebtor} onChange={setSplitDebtor} />
                       {errors.split && <p className="text-sm" style={{ color: 'var(--destructive)' }}>{errors.split}</p>}
@@ -491,15 +491,14 @@ export function TransactionForm({ open, type, editingTx, onClose }: TransactionF
                       {/* Gợi ý chia */}
                       {amount > 0 && (() => {
                         const presets = [
+                          { label: 'Tôi trả hết', value: 0 },
                           { label: 'Chia đôi', value: Math.floor(amount / 2) },
-                          { label: 'Chia 3',   value: Math.floor(amount / 3) },
-                          { label: 'Chia 4',   value: Math.floor(amount / 4) },
                           { label: 'Họ trả hết', value: amount },
                         ];
                         return (
                           <div className="flex gap-2 flex-wrap">
                             {presets.map(p => {
-                              const isActive = splitAmount === p.value && splitAmount > 0;
+                              const isActive = splitAmount === p.value;
                               return (
                                 <button
                                   key={p.label}
