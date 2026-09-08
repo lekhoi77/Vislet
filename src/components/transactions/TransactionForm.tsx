@@ -178,7 +178,7 @@ export function TransactionForm({ open, type, editingTx, onClose }: TransactionF
       note: note.trim(),
       date: date ? new Date(date).toISOString() : new Date().toISOString(),
       ...((excludedFromReports || editingTx?.excludedFromReports)
-        ? { excludedFromReports: !isIncome && excludedFromReports }
+        ? { excludedFromReports }
         : {}),
     };
     try {
@@ -238,6 +238,9 @@ export function TransactionForm({ open, type, editingTx, onClose }: TransactionF
   const titleStr = editingTx
     ? (isIncome ? 'Sửa thu nhập' : 'Sửa chi tiêu')
     : (isIncome ? 'Thêm thu nhập' : 'Thêm chi tiêu');
+  const exclusionColor = isIncome ? 'var(--primary)' : 'var(--orange)';
+  const exclusionSoft = isIncome ? 'var(--primary-soft)' : 'var(--orange-soft)';
+  const exclusionMuted = isIncome ? 'var(--primary-muted)' : 'var(--orange-muted)';
 
   // Source balance preview
   const getSourcePreview = () => {
@@ -363,55 +366,53 @@ export function TransactionForm({ open, type, editingTx, onClose }: TransactionF
               </div>
             )}
 
-            {!isIncome && (
-              <div
-                className="flex flex-col gap-2 p-3 rounded-xl"
-                style={{
-                  background: excludedFromReports ? 'var(--orange-soft)' : 'var(--muted)',
-                  border: `1px solid ${excludedFromReports ? 'var(--orange-muted)' : 'transparent'}`,
-                }}
-              >
-                <label className="flex items-center justify-between gap-3 cursor-pointer">
-                  <div className="flex items-start gap-2">
-                    <EyeOff
-                      size={15}
-                      className="mt-0.5 shrink-0"
-                      style={{ color: excludedFromReports ? 'var(--orange)' : 'var(--muted-foreground)' }}
-                    />
-                    <div className="min-w-0">
-                      <span className="text-sm font-semibold" style={{ color: 'var(--foreground)' }}>
-                        Không tính vào báo cáo
-                      </span>
-                      <p className="text-xs mt-0.5 leading-relaxed" style={{ color: 'var(--muted-foreground)' }}>
-                        Vẫn lưu trong lịch sử, nhưng không tính vào tổng quan, biểu đồ, lịch và số dư nguồn tiền.
-                      </p>
-                    </div>
+            <div
+              className="flex flex-col gap-2 p-3 rounded-xl"
+              style={{
+                background: excludedFromReports ? exclusionSoft : 'var(--muted)',
+                border: `1px solid ${excludedFromReports ? exclusionMuted : 'transparent'}`,
+              }}
+            >
+              <label className="flex items-center justify-between gap-3 cursor-pointer">
+                <div className="flex items-start gap-2">
+                  <EyeOff
+                    size={15}
+                    className="mt-0.5 shrink-0"
+                    style={{ color: excludedFromReports ? exclusionColor : 'var(--muted-foreground)' }}
+                  />
+                  <div className="min-w-0">
+                    <span className="text-sm font-semibold" style={{ color: 'var(--foreground)' }}>
+                      Không tính vào báo cáo
+                    </span>
+                    <p className="text-xs mt-0.5 leading-relaxed" style={{ color: 'var(--muted-foreground)' }}>
+                      Vẫn lưu trong lịch sử, nhưng không tính vào tổng quan, biểu đồ, lịch và số dư nguồn tiền.
+                    </p>
                   </div>
+                </div>
+                <span
+                  role="switch"
+                  aria-checked={excludedFromReports}
+                  onClick={handleToggleExcludedFromReports}
+                  className="relative inline-flex shrink-0 cursor-pointer rounded-full transition-colors"
+                  style={{
+                    width: 36,
+                    height: 20,
+                    background: excludedFromReports ? exclusionColor : 'var(--border)',
+                  }}
+                >
                   <span
-                    role="switch"
-                    aria-checked={excludedFromReports}
-                    onClick={handleToggleExcludedFromReports}
-                    className="relative inline-flex shrink-0 cursor-pointer rounded-full transition-colors"
+                    className="inline-block rounded-full bg-white shadow transition-transform"
                     style={{
-                      width: 36,
-                      height: 20,
-                      background: excludedFromReports ? 'var(--orange)' : 'var(--border)',
+                      width: 16,
+                      height: 16,
+                      marginTop: 2,
+                      marginLeft: 2,
+                      transform: excludedFromReports ? 'translateX(16px)' : 'translateX(0)',
                     }}
-                  >
-                    <span
-                      className="inline-block rounded-full bg-white shadow transition-transform"
-                      style={{
-                        width: 16,
-                        height: 16,
-                        marginTop: 2,
-                        marginLeft: 2,
-                        transform: excludedFromReports ? 'translateX(16px)' : 'translateX(0)',
-                      }}
-                    />
-                  </span>
-                </label>
-              </div>
-            )}
+                  />
+                </span>
+              </label>
+            </div>
 
             {/* Note */}
             <div className="flex flex-col gap-2">
