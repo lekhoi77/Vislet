@@ -71,11 +71,11 @@ function SelectGroup<T extends string>({
   );
 }
 
-import { UserSearchPicker, PickedDebtor } from '@/components/shared/UserSearchPicker';
+import { UserSearchPicker, PickedParticipant } from '@/components/shared/UserSearchPicker';
 import { Users } from 'lucide-react';
 
 export function TransactionForm({ open, type, editingTx, onClose }: TransactionFormProps) {
-  const { addTransaction, updateTransaction, createSharedDebt, transactions, customSources, customCategories } = useAppStore();
+  const { addTransaction, updateTransaction, createSharedExpense, transactions, customSources, customCategories } = useAppStore();
 
   // customSources/customCategories đã chứa cả defaults (bank/cash/momo, saving/...)
   // được seed trong fetchProfileData — không prepend BUILT_IN nữa, sẽ duplicate.
@@ -102,7 +102,7 @@ export function TransactionForm({ open, type, editingTx, onClose }: TransactionF
 
   // Split cost (only for expense)
   const [splitEnabled, setSplitEnabled] = useState(false);
-  const [splitDebtor, setSplitDebtor] = useState<PickedDebtor | null>(null);
+  const [splitParticipant, setSplitParticipant] = useState<PickedParticipant | null>(null);
   const [splitAmount, setSplitAmount] = useState<number>(0);
   const [splitDueDate, setSplitDueDate] = useState<string>('');
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -130,7 +130,7 @@ export function TransactionForm({ open, type, editingTx, onClose }: TransactionF
         setExcludedFromReports(false);
       }
       setSplitEnabled(false);
-      setSplitDebtor(null);
+      setSplitParticipant(null);
       setSplitAmount(0);
       setSplitDueDate('');
       setErrors({});
@@ -146,8 +146,8 @@ export function TransactionForm({ open, type, editingTx, onClose }: TransactionF
     if (amount > 999_999_999_999) e.amount = 'Số tiền vượt quá giới hạn';
     if (note.length > 500) e.note = 'Ghi chú tối đa 500 ký tự';
     if (splitEnabled) {
-      if (splitAmount > 0 && !splitDebtor) e.split = 'Chọn người nợ bạn';
-      if (splitAmount < 0) e.splitAmount = 'Nhập số tiền họ nợ hợp lệ';
+      if (splitAmount > 0 && !splitParticipant) e.split = 'Chọn người cùng chia';
+      if (splitAmount < 0) e.splitAmount = 'Nhập số tiền hợp lệ';
       if (splitAmount > amount) e.splitAmount = 'Không thể lớn hơn tổng chi tiêu';
     }
     setErrors(e);
@@ -159,7 +159,7 @@ export function TransactionForm({ open, type, editingTx, onClose }: TransactionF
     setExcludedFromReports(next);
     if (next) {
       setSplitEnabled(false);
-      setSplitDebtor(null);
+      setSplitParticipant(null);
       setSplitAmount(0);
       setSplitDueDate('');
     }
@@ -182,33 +182,37 @@ export function TransactionForm({ open, type, editingTx, onClose }: TransactionF
         : {}),
     };
     try {
+      let sourceTransactionId: string;
       if (editingTx) {
         await updateTransaction(editingTx.id, txData);
+        sourceTransactionId = editingTx.id;
+      } else {
+        sourceTransactionId = (await addTransaction(txData)).id;
+      }
+
+      // Nếu bật chia chi phí (khi tạo mới hoặc khi sửa lại): tạo SharedExpense liên kết
+      if (splitEnabled && splitParticipant && splitAmount > 0) {
+        await createSharedExpense({
+          sourceTransactionId,
+          totalExpense: amount,
+          splitAmount,
+          participantType: splitParticipant.type,
+          participantUserId: splitParticipant.userId,
+          participantProfileId: splitParticipant.profileId,
+          participantName: splitParticipant.name,
+          participantEmail: splitParticipant.email,
+          direction: 'forward',
+          note: title.trim() || note.trim(),
+          category,
+          dueDate: splitDueDate ? new Date(splitDueDate).toISOString() : null,
+        });
+        toast.success(splitParticipant.type === 'linked'
+          ? (editingTx ? 'Đã cập nhật, đã gửi yêu cầu chi chung' : 'Đã lưu chi tiêu, đã gửi yêu cầu chi chung')
+          : (editingTx ? 'Đã cập nhật kèm khoản chi chung' : 'Đã lưu chi tiêu kèm khoản chi chung'));
+      } else if (editingTx) {
         toast.success('Đã cập nhật giao dịch');
       } else {
-        const created = await addTransaction(txData);
-        // Nếu bật chia chi phí: tạo SharedDebt liên kết
-        if (splitEnabled && splitDebtor && splitAmount > 0) {
-          await createSharedDebt({
-            sourceTransactionId: created.id,
-            totalExpense: amount,
-            debtAmount: splitAmount,
-            debtorType: splitDebtor.type,
-            debtorUserId: splitDebtor.userId,
-            debtorProfileId: splitDebtor.profileId,
-            debtorName: splitDebtor.name,
-            debtorEmail: splitDebtor.email,
-            direction: 'forward',
-            note: title.trim() || note.trim(),
-            category,
-            dueDate: splitDueDate ? new Date(splitDueDate).toISOString() : null,
-          });
-          toast.success(splitDebtor.type === 'linked'
-            ? 'Đã lưu chi tiêu, đã gửi yêu cầu nợ'
-            : 'Đã lưu chi tiêu kèm khoản nợ');
-        } else {
-          toast.success(type === 'income' ? 'Đã lưu thu nhập' : 'Đã lưu chi tiêu');
-        }
+        toast.success(type === 'income' ? 'Đã lưu thu nhập' : 'Đã lưu chi tiêu');
       }
       onClose();
     } catch (err) {
@@ -216,7 +220,7 @@ export function TransactionForm({ open, type, editingTx, onClose }: TransactionF
       setIsSubmitting(false);
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [type, title, amount, source, category, note, date, editingTx, onClose, splitEnabled, splitDebtor, splitAmount, splitDueDate, isSubmitting, isIncome, excludedFromReports]);
+  }, [type, title, amount, source, category, note, date, editingTx, onClose, splitEnabled, splitParticipant, splitAmount, splitDueDate, isSubmitting, isIncome, excludedFromReports]);
 
   // Enter = submit (trừ khi đang gõ trong textarea)
   const handleSubmitRef = useRef(handleSubmit);
@@ -433,8 +437,8 @@ export function TransactionForm({ open, type, editingTx, onClose }: TransactionF
               )}
             </div>
 
-            {/* Split cost — only for expense, new transaction */}
-            {!isIncome && !editingTx && !excludedFromReports && (
+            {/* Split cost — only for expense (new or existing) */}
+            {!isIncome && !excludedFromReports && (
               <div className="flex flex-col gap-3 p-3 rounded-xl" style={{ background: 'var(--muted)' }}>
                 <label className="flex items-center justify-between gap-3 cursor-pointer">
                   <div className="flex items-center gap-2">
@@ -464,15 +468,15 @@ export function TransactionForm({ open, type, editingTx, onClose }: TransactionF
                   <>
                     <div className="flex flex-col gap-2">
                       <Label className="text-sm font-medium tracking-wide uppercase" style={{ color: 'var(--muted-foreground)' }}>
-                        Người nợ bạn {splitAmount > 0 ? '*' : '(tuỳ chọn)'}
+                        Người cùng chia chi phí {splitAmount > 0 ? '*' : '(tuỳ chọn)'}
                       </Label>
-                      <UserSearchPicker value={splitDebtor} onChange={setSplitDebtor} />
+                      <UserSearchPicker value={splitParticipant} onChange={setSplitParticipant} />
                       {errors.split && <p className="text-sm" style={{ color: 'var(--destructive)' }}>{errors.split}</p>}
                     </div>
 
                     <div className="flex flex-col gap-2">
                       <Label className="text-sm font-medium tracking-wide uppercase" style={{ color: 'var(--muted-foreground)' }}>
-                        Số tiền họ nợ *
+                        Phần họ phải trả *
                       </Label>
                       <div className="relative">
                         <Input
@@ -491,7 +495,6 @@ export function TransactionForm({ open, type, editingTx, onClose }: TransactionF
                       {/* Gợi ý chia */}
                       {amount > 0 && (() => {
                         const presets = [
-                          { label: 'Tôi trả hết', value: 0 },
                           { label: 'Chia đôi', value: Math.floor(amount / 2) },
                           { label: 'Họ trả hết', value: amount },
                         ];

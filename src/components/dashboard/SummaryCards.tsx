@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState, useCallback } from 'react';
-import { Transaction, SharedDebt, SharedDebtStatus } from '@/lib/types';
+import { Transaction, SharedExpense, SharedExpenseStatus } from '@/lib/types';
 import { formatVND, formatVNDShort } from '@/lib/format';
 import { SummaryCardSkeleton } from './SummaryCardSkeleton';
 import { Wallet, TrendingUp, TrendingDown, Handshake, ArrowUpRight, ArrowDownRight, ChevronRight } from 'lucide-react';
@@ -10,13 +10,13 @@ interface SummaryCardsProps {
   transactions: Transaction[];
   month: number;
   year: number;
-  sharedDebts: SharedDebt[];
+  sharedExpenses: SharedExpense[];
   currentUserId: string;
-  onSeeAllDebts?: () => void;
+  onSeeAllSharedExpenses?: () => void;
   isLoading?: boolean;
 }
 
-const OPEN_DEBT_STATUSES: SharedDebtStatus[] = ['pending', 'active', 'pending_confirm'];
+const OPEN_SHARED_EXPENSE_STATUSES: SharedExpenseStatus[] = ['pending', 'active', 'pending_confirm'];
 
 function monthPrev(m: number, y: number): { m: number; y: number } {
   return m === 1 ? { m: 12, y: y - 1 } : { m: m - 1, y };
@@ -51,20 +51,20 @@ function sumByTypeBeforeMonth(txs: Transaction[], m: number, y: number, type: 'i
   }, 0);
 }
 
-function debtSortTime(d: SharedDebt): number {
-  return new Date(d.settledAt ?? d.acceptedAt ?? d.createdAt).getTime();
+function sharedExpenseSortTime(e: SharedExpense): number {
+  return new Date(e.settledAt ?? e.acceptedAt ?? e.createdAt).getTime();
 }
 
-const STATUS_LABEL: Record<SharedDebtStatus, string> = {
+const STATUS_LABEL: Record<SharedExpenseStatus, string> = {
   pending: 'Chờ',
-  active: 'Đang nợ',
+  active: 'Đang mở',
   pending_confirm: 'Chờ xác nhận',
   settled: 'Đã trả',
   rejected: 'Từ chối',
   cancelled: 'Đã huỷ',
 };
 
-function statusColor(s: SharedDebtStatus): { bg: string; fg: string } {
+function statusColor(s: SharedExpenseStatus): { bg: string; fg: string } {
   switch (s) {
     case 'active':         return { bg: 'var(--primary-soft)', fg: 'var(--primary)' };
     case 'pending':        return { bg: 'hsl(45, 100%, 94%)', fg: 'hsl(40, 80%, 38%)' };
@@ -151,25 +151,25 @@ function StatCard({ icon, label, value, valueColor, iconColor, iconBg, deltaPct,
   );
 }
 
-// ─── Debt card (card 4) ───────────────────────────────────────
-interface DebtCardProps {
-  debts: SharedDebt[];
+// ─── Shared expense summary card (card 4) ──────────────────────
+interface SharedExpenseSummaryCardProps {
+  expenses: SharedExpense[];
   currentUserId: string;
   onSeeAll?: () => void;
 }
 
-function counterpartyName(d: SharedDebt, currentUserId: string): string {
-  if (d.creditorUserId === currentUserId) return d.debtorName || 'Người dùng';
-  return d.creditorName || 'Người dùng';
+function counterpartyName(e: SharedExpense, currentUserId: string): string {
+  if (e.ownerUserId === currentUserId) return e.participantName || 'Người dùng';
+  return e.ownerName || 'Người dùng';
 }
 
-function DebtCard({ debts, currentUserId, onSeeAll }: DebtCardProps) {
-  const openDebts = debts.filter(d => OPEN_DEBT_STATUSES.includes(d.status));
-  const totalOpen = openDebts.reduce((s, d) => s + d.remainingAmount, 0);
+function SharedExpenseSummaryCard({ expenses, currentUserId, onSeeAll }: SharedExpenseSummaryCardProps) {
+  const openExpenses = expenses.filter(e => OPEN_SHARED_EXPENSE_STATUSES.includes(e.status));
+  const totalOpen = openExpenses.reduce((s, e) => s + e.remainingAmount, 0);
 
-  const recent = [...debts]
-    .filter(d => !['settled', 'rejected', 'cancelled'].includes(d.status))
-    .sort((a, b) => debtSortTime(b) - debtSortTime(a))
+  const recent = [...expenses]
+    .filter(e => !['settled', 'rejected', 'cancelled'].includes(e.status))
+    .sort((a, b) => sharedExpenseSortTime(b) - sharedExpenseSortTime(a))
     .slice(0, 3);
 
   return (
@@ -182,11 +182,11 @@ function DebtCard({ debts, currentUserId, onSeeAll }: DebtCardProps) {
         <div className="flex items-center gap-2">
           <div
             className="flex items-center justify-center rounded-full"
-            style={{ width: 28, height: 28, background: 'var(--debt-soft)', color: 'var(--debt)' }}
+            style={{ width: 28, height: 28, background: 'var(--split-soft)', color: 'var(--split)' }}
           >
             <Handshake size={15} />
           </div>
-          <span className="text-sm font-medium" style={{ color: 'var(--muted-foreground)' }}>Nợ còn lại</span>
+          <span className="text-sm font-medium" style={{ color: 'var(--muted-foreground)' }}>Chi chung đang mở</span>
         </div>
         <p
           className="text-xl md:text-2xl font-bold amount"
@@ -195,10 +195,10 @@ function DebtCard({ debts, currentUserId, onSeeAll }: DebtCardProps) {
           {formatVND(totalOpen)}
         </p>
         <span className="text-xs" style={{ color: 'var(--muted-foreground)' }}>
-          {openDebts.length} khoản đang mở
+          {openExpenses.length} khoản đang mở
         </span>
         {/* Mobile-only see-all link (list is hidden on mobile) */}
-        {onSeeAll && debts.length > 0 && (
+        {onSeeAll && expenses.length > 0 && (
           <button
             type="button"
             onClick={onSeeAll}
@@ -210,10 +210,10 @@ function DebtCard({ debts, currentUserId, onSeeAll }: DebtCardProps) {
         )}
       </div>
 
-      {/* ── Right: recent debts list (desktop only) ── */}
+      {/* ── Right: recent shared expenses list (desktop only) ── */}
       <div className="hidden md:flex flex-col gap-2 min-w-0">
         <div className="flex items-center justify-end">
-          {onSeeAll && debts.length > 0 && (
+          {onSeeAll && expenses.length > 0 && (
             <button
               type="button"
               onClick={onSeeAll}
@@ -227,16 +227,16 @@ function DebtCard({ debts, currentUserId, onSeeAll }: DebtCardProps) {
 
         {recent.length === 0 ? (
           <p className="text-xs py-3 text-center" style={{ color: 'var(--muted-foreground)' }}>
-            Chưa có khoản nợ nào
+            Chưa có khoản chi chung nào
           </p>
         ) : (
           <ul className="flex flex-col gap-1.5">
-            {recent.map(d => {
-              const name = counterpartyName(d, currentUserId);
+            {recent.map(e => {
+              const name = counterpartyName(e, currentUserId);
               const initial = name.charAt(0).toUpperCase();
-              const colors = statusColor(d.status);
+              const colors = statusColor(e.status);
               return (
-                <li key={d.id} className="flex items-center gap-2 min-w-0">
+                <li key={e.id} className="flex items-center gap-2 min-w-0">
                   <div
                     className="flex items-center justify-center rounded-full shrink-0 text-xs font-semibold"
                     style={{ width: 24, height: 24, background: 'var(--muted)', color: 'var(--foreground)' }}
@@ -246,14 +246,14 @@ function DebtCard({ debts, currentUserId, onSeeAll }: DebtCardProps) {
                   <div className="flex-1 min-w-0">
                     <p className="text-xs font-medium truncate" style={{ color: 'var(--foreground)' }}>{name}</p>
                     <p className="text-xs amount" style={{ color: 'var(--muted-foreground)' }}>
-                      {formatVNDShort(d.remainingAmount)}
+                      {formatVNDShort(e.remainingAmount)}
                     </p>
                   </div>
                   <span
                     className="text-[10px] font-semibold px-1.5 py-0.5 rounded-md shrink-0"
                     style={{ background: colors.bg, color: colors.fg }}
                   >
-                    {STATUS_LABEL[d.status]}
+                    {STATUS_LABEL[e.status]}
                   </span>
                 </li>
               );
@@ -270,9 +270,9 @@ export function SummaryCards({
   transactions,
   month,
   year,
-  sharedDebts,
+  sharedExpenses,
   currentUserId,
-  onSeeAllDebts,
+  onSeeAllSharedExpenses,
   isLoading,
 }: SummaryCardsProps) {
   const [currentSlide, setCurrentSlide] = useState(0);
@@ -319,11 +319,11 @@ export function SummaryCards({
       deltaPct={pctDelta(expense, expensePrev)}
       invertDelta
     />,
-    <DebtCard
-      key="debt"
-      debts={sharedDebts}
+    <SharedExpenseSummaryCard
+      key="shared"
+      expenses={sharedExpenses}
       currentUserId={currentUserId}
-      onSeeAll={onSeeAllDebts}
+      onSeeAll={onSeeAllSharedExpenses}
     />,
   ];
 

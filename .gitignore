@@ -44,3 +44,6 @@ public/.claude
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# supabase CLI local cache
+supabase/.temp/

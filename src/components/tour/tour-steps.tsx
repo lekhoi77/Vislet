@@ -17,7 +17,7 @@ export interface TourStep {
   title: string;
   body: React.ReactNode;
   icon: React.ComponentType<{ size?: number; className?: string; style?: React.CSSProperties }>;
-  tab?: 'overview' | 'transactions' | 'categories' | 'debts';
+  tab?: 'overview' | 'transactions' | 'categories' | 'shared';
   placement?: 'auto' | 'bottom' | 'top' | 'center';
   /** Opens profile dropdown before highlighting (guide lives inside menu). */
   openProfileMenu?: boolean;
@@ -32,7 +32,7 @@ export const TOUR_STEPS: TourStep[] = [
     placement: 'center',
     body: (
       <>
-        Vislet giúp bạn ghi lại thu chi, theo dõi mục tiêu và quản lý nợ một cách nhẹ nhàng.
+        Vislet giúp bạn ghi lại thu chi, theo dõi mục tiêu và quản lý chi chung một cách nhẹ nhàng.
         Mình sẽ dắt bạn đi 1 vòng (~30 giây) để làm quen các khu vực chính. Bạn có thể bỏ qua bất cứ lúc nào.
       </>
     ),
@@ -86,7 +86,7 @@ export const TOUR_STEPS: TourStep[] = [
       <>
         Mỗi ngày trong tháng. Chấm <span style={{ color: 'var(--income)' }}>●</span> là Thu,
         <span style={{ color: 'var(--orange)' }}> ●</span> là Chi,
-        <span style={{ color: 'var(--expense)' }}> ●</span> là Nợ tới hạn.
+        <span style={{ color: 'var(--expense)' }}> ●</span> là Chi chung chưa trả.
         Mỗi giao dịch là 1 chấm — nhấn vào ngày để xem chi tiết.
       </>
     ),
@@ -128,13 +128,14 @@ export const TOUR_STEPS: TourStep[] = [
     ),
   },
   {
-    id: 'tab-debts',
-    selector: '[data-tour="tab-debts"]',
-    title: 'Tab Nợ',
+    id: 'tab-shared',
+    selector: '[data-tour="tab-shared"]',
+    title: 'Tab Chi chung',
     icon: Handshake,
     body: (
       <>
-        Ghi các khoản cho vay / đi vay, gắn ngày đến hạn. Đến ngày, dấu chấm <span style={{ color: 'var(--expense)' }}>●</span> sẽ xuất hiện trên lịch.
+        Ghi các khoản chi chung/chia chi phí với người khác, gắn ngày đến hạn. Người cùng chia sẽ được yêu cầu xác nhận hoặc từ chối.
+        Đến ngày, dấu chấm <span style={{ color: 'var(--expense)' }}>●</span> sẽ xuất hiện trên lịch.
       </>
     ),
   },

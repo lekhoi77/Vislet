@@ -9,8 +9,8 @@ const GTM_ID = 'GTM-T6TDDGKH';
 export const metadata: Metadata = {
   title: APP_NAME,
   description:
-    'Theo dõi thu nhập, chi tiêu, danh mục tài chính và quản lý nợ một cách đơn giản.',
-  keywords: ['tài chính', 'chi tiêu', 'thu nhập', 'quản lý nợ', 'tiết kiệm'],
+    'Theo dõi thu nhập, chi tiêu, danh mục tài chính và chi chung một cách đơn giản.',
+  keywords: ['tài chính', 'chi tiêu', 'thu nhập', 'chi chung', 'tiết kiệm'],
   applicationName: APP_NAME,
   verification: {
     google: 'SsFk4Pz4lSXwswgMbPcgHROX7mS3yt45yerPf8CKCKM',

@@ -5,9 +5,9 @@ import { useAppStore } from '@/store/app-store';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Input } from '@/components/ui/input';
 import { Search, UserPlus, Link2, User as UserIcon, X, Check } from 'lucide-react';
-import type { UserSearchResult, DebtContact } from '@/lib/types';
+import type { UserSearchResult, SharedExpenseContact } from '@/lib/types';
 
-export interface PickedDebtor {
+export interface PickedParticipant {
   type: 'linked' | 'unlinked';
   userId: string | null;
   profileId: string | null;
@@ -18,12 +18,12 @@ export interface PickedDebtor {
 }
 
 interface Props {
-  value: PickedDebtor | null;
-  onChange: (v: PickedDebtor | null) => void;
+  value: PickedParticipant | null;
+  onChange: (v: PickedParticipant | null) => void;
 }
 
 export function UserSearchPicker({ value, onChange }: Props) {
-  const { debtContacts, searchUsers, refreshContacts } = useAppStore();
+  const { sharedExpenseContacts, searchUsers, refreshContacts } = useAppStore();
   const [query, setQuery] = useState('');
   const [results, setResults] = useState<UserSearchResult[]>([]);
   const [loading, setLoading] = useState(false);
@@ -45,20 +45,20 @@ export function UserSearchPicker({ value, onChange }: Props) {
   }, [query, searchUsers]);
 
   // Lọc recent contacts theo query
-  const filteredContacts = useMemo<DebtContact[]>(() => {
+  const filteredContacts = useMemo<SharedExpenseContact[]>(() => {
     const q = query.trim().toLowerCase();
-    if (!q) return debtContacts.slice(0, 6);
-    return debtContacts.filter(c =>
+    if (!q) return sharedExpenseContacts.slice(0, 6);
+    return sharedExpenseContacts.filter(c =>
       c.contactName.toLowerCase().includes(q) ||
       (c.contactEmail ?? '').toLowerCase().includes(q)
     ).slice(0, 6);
-  }, [debtContacts, query]);
+  }, [sharedExpenseContacts, query]);
 
   // Lọc kết quả search: bỏ các user đã có trong recent contacts (tránh trùng)
   const filteredResults = useMemo(() => {
-    const contactUserIds = new Set(debtContacts.map(c => c.contactUserId).filter(Boolean));
+    const contactUserIds = new Set(sharedExpenseContacts.map(c => c.contactUserId).filter(Boolean));
     return results.filter(r => !contactUserIds.has(r.userId));
-  }, [results, debtContacts]);
+  }, [results, sharedExpenseContacts]);
 
   const pickLinked = (r: UserSearchResult) => {
     onChange({
@@ -74,7 +74,7 @@ export function UserSearchPicker({ value, onChange }: Props) {
     setQuery('');
   };
 
-  const pickContact = (c: DebtContact) => {
+  const pickContact = (c: SharedExpenseContact) => {
     onChange({
       type: c.contactType,
       userId: c.contactUserId,

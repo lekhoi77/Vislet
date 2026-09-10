@@ -1,12 +1,12 @@
 'use client';
 
 import { useMemo, useState } from 'react';
-import { Transaction, SharedDebt, isConfirmedDebt } from '@/lib/types';
+import { Transaction, SharedExpense, isConfirmedSharedExpense } from '@/lib/types';
 import { DayDetailSheet } from './DayDetailSheet';
 
 interface CalendarBlockProps {
   transactions: Transaction[];
-  sharedDebts: SharedDebt[];
+  sharedExpenses: SharedExpense[];
   month: number;
   year: number;
   onEdit?: (tx: Transaction) => void;
@@ -19,11 +19,11 @@ interface DayCell {
   isToday: boolean;
   incomeCount: number;
   expenseCount: number;
-  hasDebt: boolean;
+  hasSharedExpense: boolean;
 }
 
 
-export function CalendarBlock({ transactions, sharedDebts, month, year, onEdit }: CalendarBlockProps) {
+export function CalendarBlock({ transactions, sharedExpenses, month, year, onEdit }: CalendarBlockProps) {
   const [selectedDay, setSelectedDay] = useState<number | null>(null);
 
   const days = useMemo<DayCell[]>(() => {
@@ -34,7 +34,7 @@ export function CalendarBlock({ transactions, sharedDebts, month, year, onEdit }
 
     const cells: DayCell[] = [];
     for (let i = 0; i < firstWeekday; i++) {
-      cells.push({ day: null, isToday: false, incomeCount: 0, expenseCount: 0, hasDebt: false });
+      cells.push({ day: null, isToday: false, incomeCount: 0, expenseCount: 0, hasSharedExpense: false });
     }
 
     for (let d = 1; d <= daysInMonth; d++) {
@@ -52,24 +52,24 @@ export function CalendarBlock({ transactions, sharedDebts, month, year, onEdit }
         else if (tx.type === 'expense') expenseCount += 1;
       }
 
-      let hasDebt = false;
-      for (const debt of sharedDebts) {
-        // Chỉ tính nợ đã được xác nhận thực sự — bỏ qua pending/rejected/cancelled
-        if (!isConfirmedDebt(debt.status)) continue;
+      let hasSharedExpense = false;
+      for (const expense of sharedExpenses) {
+        // Chỉ tính khoản đã được xác nhận thực sự — bỏ qua pending/rejected/cancelled
+        if (!isConfirmedSharedExpense(expense.status)) continue;
         // Sync với dashboard: ưu tiên dueDate, fallback về createdAt
-        const dateStr = debt.dueDate ?? debt.createdAt;
+        const dateStr = expense.dueDate ?? expense.createdAt;
         if (!dateStr) continue;
         const dd = new Date(dateStr);
         if (dd.getFullYear() === year && dd.getMonth() === month - 1 && dd.getDate() === d) {
-          hasDebt = true;
+          hasSharedExpense = true;
           break;
         }
       }
 
-      cells.push({ day: d, isToday, incomeCount, expenseCount, hasDebt });
+      cells.push({ day: d, isToday, incomeCount, expenseCount, hasSharedExpense });
     }
     return cells;
-  }, [transactions, sharedDebts, month, year]);
+  }, [transactions, sharedExpenses, month, year]);
 
   const selectedDate = selectedDay !== null ? new Date(year, month - 1, selectedDay) : null;
 
@@ -89,7 +89,7 @@ export function CalendarBlock({ transactions, sharedDebts, month, year, onEdit }
             <span style={{ display: 'inline-block', width: 8, height: 8, borderRadius: '50%', background: 'var(--orange)', flexShrink: 0 }} /> Chi
           </span>
           <span className="flex items-center gap-1">
-            <span style={{ display: 'inline-block', width: 8, height: 8, borderRadius: '50%', background: 'hsl(262, 60%, 55%)', flexShrink: 0 }} /> Nợ
+            <span style={{ display: 'inline-block', width: 8, height: 8, borderRadius: '50%', background: 'var(--split)', flexShrink: 0 }} /> Chi chung
           </span>
         </div>
       </div>
@@ -113,8 +113,8 @@ export function CalendarBlock({ transactions, sharedDebts, month, year, onEdit }
           if (c.day === null) {
             return <div key={i} aria-hidden />;
           }
-          const hasAny = c.incomeCount > 0 || c.expenseCount > 0 || c.hasDebt;
-          const totalDots = c.incomeCount + c.expenseCount + (c.hasDebt ? 1 : 0);
+          const hasAny = c.incomeCount > 0 || c.expenseCount > 0 || c.hasSharedExpense;
+          const totalDots = c.incomeCount + c.expenseCount + (c.hasSharedExpense ? 1 : 0);
           const isCrowded = totalDots > 6;
           return (
             <button
@@ -145,8 +145,8 @@ export function CalendarBlock({ transactions, sharedDebts, month, year, onEdit }
                 {Array.from({ length: c.expenseCount }).map((_, k) => (
                   <span key={`exp-${k}`} className="cal-dot" style={{ background: 'var(--orange)' }} />
                 ))}
-                {c.hasDebt && (
-                  <span className="cal-dot" style={{ background: 'hsl(262, 60%, 55%)' }} />
+                {c.hasSharedExpense && (
+                  <span className="cal-dot" style={{ background: 'var(--split)' }} />
                 )}
               </div>
             </button>
@@ -157,7 +157,7 @@ export function CalendarBlock({ transactions, sharedDebts, month, year, onEdit }
       <DayDetailSheet
         date={selectedDate}
         transactions={transactions}
-        sharedDebts={sharedDebts}
+        sharedExpenses={sharedExpenses}
         filterType="all"
         onEdit={onEdit}
         onClose={() => setSelectedDay(null)}

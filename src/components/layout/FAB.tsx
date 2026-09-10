@@ -3,26 +3,26 @@
 import { Plus } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
-type ActiveTab = 'overview' | 'transactions' | 'categories' | 'debts';
+type ActiveTab = 'overview' | 'transactions' | 'categories' | 'shared';
 
 interface FABProps {
   activeTab: ActiveTab;
   onIncome: () => void;
   onExpense: () => void;
-  onDebt: () => void;
+  onCreateShared: () => void;
   isFirstTime?: boolean;
 }
 
-export function FAB({ activeTab, onIncome, onExpense, onDebt, isFirstTime }: FABProps) {
-  if (activeTab === 'debts') {
+export function FAB({ activeTab, onIncome, onExpense, onCreateShared, isFirstTime }: FABProps) {
+  if (activeTab === 'shared') {
     return (
       <div
         className="fixed bottom-0 left-1/2 -translate-x-1/2 flex justify-center md:hidden"
         style={{ padding: '16px 20px 32px', zIndex: 40, maxWidth: 480, width: '100%' }}
       >
         <button
-          id="fab-debt"
-          onClick={onDebt}
+          id="fab-shared"
+          onClick={onCreateShared}
           className={cn(
             'flex items-center gap-2 h-12 px-6 rounded-full font-semibold text-sm transition-all',
             isFirstTime && 'fab-hint'
@@ -35,7 +35,7 @@ export function FAB({ activeTab, onIncome, onExpense, onDebt, isFirstTime }: FAB
           }}
         >
           <Plus size={16} />
-          Ghi nợ
+          Ghi chi chung
         </button>
       </div>
     );

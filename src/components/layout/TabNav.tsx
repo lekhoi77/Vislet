@@ -2,7 +2,7 @@
 
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
-type TabValue = 'overview' | 'transactions' | 'categories' | 'debts';
+type TabValue = 'overview' | 'transactions' | 'categories' | 'shared';
 
 interface TabNavProps {
   value: TabValue;
@@ -13,7 +13,7 @@ const TABS: { value: TabValue; label: string }[] = [
   { value: 'overview', label: 'Tổng quan' },
   { value: 'transactions', label: 'Giao dịch' },
   { value: 'categories', label: 'Danh mục' },
-  { value: 'debts', label: 'Nợ' },
+  { value: 'shared', label: 'Chi chung' },
 ];
 
 export function TabNav({ value, onChange }: TabNavProps) {

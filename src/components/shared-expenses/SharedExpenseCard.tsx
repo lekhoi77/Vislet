@@ -18,52 +18,52 @@ import { Textarea } from '@/components/ui/textarea';
 import { Link2, User as UserIcon, Calendar, Trash2, X, Check, FileText, Building2, Wallet, Smartphone, ArrowDownLeft, ArrowUpRight } from 'lucide-react';
 import { toast } from 'sonner';
 import { formatVND, formatDate } from '@/lib/format';
-import type { SharedDebt } from '@/lib/types';
+import type { SharedExpense } from '@/lib/types';
 
 interface Props {
-  debt: SharedDebt;
+  sharedExpense: SharedExpense;
   currentUserId: string;
 }
 
 const STATUS_BADGE: Record<string, { label: string; bg: string; color: string }> = {
   pending:          { label: 'Chờ xác nhận',     bg: 'hsl(40, 95%, 92%)', color: 'hsl(28, 90%, 38%)' },
-  active:           { label: 'Đang nợ',          bg: 'var(--muted)',       color: 'var(--foreground)' },
+  active:           { label: 'Đang mở',          bg: 'var(--muted)',       color: 'var(--foreground)' },
   pending_confirm:  { label: 'Chờ xác nhận trả', bg: 'hsl(40, 95%, 92%)', color: 'hsl(28, 90%, 38%)' },
   settled:          { label: 'Đã xong',          bg: 'var(--primary-soft)', color: 'var(--primary)' },
   rejected:         { label: 'Bị từ chối',       bg: 'hsl(0, 65%, 95%)',   color: 'var(--destructive)' },
   cancelled:        { label: 'Đã huỷ',           bg: 'var(--muted)',       color: 'var(--muted-foreground)' },
 };
 
-export function SharedDebtCard({ debt, currentUserId }: Props) {
+export function SharedExpenseCard({ sharedExpense, currentUserId }: Props) {
   const {
-    cancelSharedDebt, deleteSharedDebt, acceptSharedDebt, rejectSharedDebt,
+    cancelSharedExpense, deleteSharedExpense, acceptSharedExpense, rejectSharedExpense,
     claimPayment, confirmPayment, denyPayment, manualSettle,
   } = useAppStore();
 
-  const isCreditor = debt.creditorUserId === currentUserId;
-  const isDebtor = debt.debtorUserId === currentUserId;
+  const isOwner = sharedExpense.ownerUserId === currentUserId;
+  const isParticipant = sharedExpense.participantUserId === currentUserId;
 
   const [showDelete, setShowDelete] = useState(false);
   const [showClaim, setShowClaim] = useState(false);
   const [showSettle, setShowSettle] = useState(false);
 
-  const badge = STATUS_BADGE[debt.status];
-  const remaining = debt.remainingAmount;
-  const paidSoFar = debt.debtAmount - remaining;
-  const progressPct = debt.debtAmount > 0 ? (paidSoFar / debt.debtAmount) * 100 : 0;
+  const badge = STATUS_BADGE[sharedExpense.status];
+  const remaining = sharedExpense.remainingAmount;
+  const paidSoFar = sharedExpense.splitAmount - remaining;
+  const progressPct = sharedExpense.splitAmount > 0 ? (paidSoFar / sharedExpense.splitAmount) * 100 : 0;
 
-  const otherName = isCreditor ? debt.debtorName : debt.creditorName;
-  const otherIsLinked = isCreditor ? debt.debtorType === 'linked' : true;
+  const otherName = isOwner ? sharedExpense.participantName : sharedExpense.ownerName;
+  const otherIsLinked = isOwner ? sharedExpense.participantType === 'linked' : true;
 
-  // Direction display: isDebtor = "Tôi nợ" (đỏ/cam), isCreditor = "Cho vay" (xanh)
-  const directionLabel = isDebtor ? 'Tôi nợ' : 'Cho vay';
-  const directionColor = isDebtor ? 'var(--down)' : 'var(--primary)';
-  const directionBg    = isDebtor ? 'hsl(0, 70%, 96%)' : 'var(--primary-soft)';
-  const DirectionIcon  = isDebtor ? ArrowUpRight : ArrowDownLeft;
-  const amountPrefix   = isDebtor ? '−' : '+';
+  // Direction display: isParticipant = "Tôi cần trả" (đỏ/cam), isOwner = "Đã chi hộ" (xanh)
+  const directionLabel = isParticipant ? 'Tôi cần trả' : 'Đã chi hộ';
+  const directionColor = isParticipant ? 'var(--down)' : 'var(--primary)';
+  const directionBg    = isParticipant ? 'hsl(0, 70%, 96%)' : 'var(--primary-soft)';
+  const DirectionIcon  = isParticipant ? ArrowUpRight : ArrowDownLeft;
+  const amountPrefix   = isParticipant ? '−' : '+';
 
-  // Payment chưa confirm (chờ A confirm)
-  const pendingPayment = debt.payments?.find(p => p.confirmedAt === null);
+  // Payment chưa confirm (chờ owner confirm)
+  const pendingPayment = sharedExpense.payments?.find(p => p.confirmedAt === null);
 
   return (
     <>
@@ -102,7 +102,7 @@ export function SharedDebtCard({ debt, currentUserId }: Props) {
           </Avatar>
           <div className="min-w-0 flex-1">
             <p className="text-[11px] uppercase tracking-wide font-medium" style={{ color: 'var(--muted-foreground)' }}>
-              {isDebtor ? 'Người cho vay' : 'Người vay'}
+              {isParticipant ? 'Người trả trước' : 'Người cùng chia'}
             </p>
             <div className="flex items-center gap-1">
               <span className="text-sm font-semibold truncate" style={{ color: 'var(--foreground)' }}>{otherName}</span>
@@ -117,10 +117,10 @@ export function SharedDebtCard({ debt, currentUserId }: Props) {
         <p className="text-2xl font-bold amount" style={{ color: directionColor }}>
           {amountPrefix}{formatVND(remaining)}
         </p>
-        {remaining < debt.debtAmount && (
+        {remaining < sharedExpense.splitAmount && (
           <div className="flex flex-col gap-1">
             <p className="text-[12px]" style={{ color: 'var(--muted-foreground)' }}>
-              Đã trả {formatVND(paidSoFar)} / {formatVND(debt.debtAmount)}
+              Đã trả {formatVND(paidSoFar)} / {formatVND(sharedExpense.splitAmount)}
             </p>
             <div className="h-1.5 rounded-full" style={{ background: 'var(--muted)' }}>
               <div className="h-1.5 rounded-full" style={{ width: `${progressPct}%`, background: 'var(--primary)' }} />
@@ -129,16 +129,16 @@ export function SharedDebtCard({ debt, currentUserId }: Props) {
         )}
 
         {/* Note + due date */}
-        {debt.note && (
+        {sharedExpense.note && (
           <div className="flex items-center gap-1.5">
             <FileText size={12} style={{ color: 'var(--muted-foreground)' }} />
-            <p className="text-[13px] truncate" style={{ color: 'var(--muted-foreground)' }}>{debt.note}</p>
+            <p className="text-[13px] truncate" style={{ color: 'var(--muted-foreground)' }}>{sharedExpense.note}</p>
           </div>
         )}
-        {debt.dueDate && (
+        {sharedExpense.dueDate && (
           <div className="flex items-center gap-1.5">
             <Calendar size={12} style={{ color: 'var(--muted-foreground)' }} />
-            <p className="text-[13px]" style={{ color: 'var(--muted-foreground)' }}>Hạn: {formatDate(debt.dueDate)}</p>
+            <p className="text-[13px]" style={{ color: 'var(--muted-foreground)' }}>Hạn: {formatDate(sharedExpense.dueDate)}</p>
           </div>
         )}
 
@@ -146,9 +146,9 @@ export function SharedDebtCard({ debt, currentUserId }: Props) {
         {pendingPayment && (
           <div className="flex flex-col gap-1 p-2 rounded-lg" style={{ background: 'hsl(40, 95%, 96%)', border: '1px solid hsl(40, 90%, 85%)' }}>
             <p className="text-[12px] font-medium" style={{ color: 'hsl(28, 90%, 38%)' }}>
-              {isCreditor
-                ? `${debt.debtorName} nói đã trả ${formatVND(pendingPayment.amount)}`
-                : `Bạn đã báo trả ${formatVND(pendingPayment.amount)}, chờ ${debt.creditorName} xác nhận`}
+              {isOwner
+                ? `${sharedExpense.participantName} nói đã trả ${formatVND(pendingPayment.amount)}`
+                : `Bạn đã báo trả ${formatVND(pendingPayment.amount)}, chờ ${sharedExpense.ownerName} xác nhận`}
             </p>
             {pendingPayment.note && (
               <p className="text-[12px]" style={{ color: 'var(--muted-foreground)' }}>&ldquo;{pendingPayment.note}&rdquo;</p>
@@ -157,21 +157,21 @@ export function SharedDebtCard({ debt, currentUserId }: Props) {
         )}
 
         {/* Rejected reason */}
-        {debt.status === 'rejected' && debt.rejectReason && (
+        {sharedExpense.status === 'rejected' && sharedExpense.rejectReason && (
           <p className="text-[12px]" style={{ color: 'var(--destructive)' }}>
-            Lý do: {debt.rejectReason}
+            Lý do: {sharedExpense.rejectReason}
           </p>
         )}
 
         {/* Actions */}
         <div className="flex items-center gap-2 pt-1 flex-wrap">
-          {/* Creditor actions */}
-          {isCreditor && debt.status === 'pending' && (
-            <Button size="sm" variant="outline" className="h-9" onClick={() => { cancelSharedDebt(debt.id); toast.success('Đã huỷ yêu cầu'); }}>
+          {/* Owner actions */}
+          {isOwner && sharedExpense.status === 'pending' && (
+            <Button size="sm" variant="outline" className="h-9" onClick={() => { cancelSharedExpense(sharedExpense.id); toast.success('Đã huỷ yêu cầu'); }}>
               <X size={13} /> Huỷ yêu cầu
             </Button>
           )}
-          {isCreditor && debt.status === 'pending_confirm' && pendingPayment && (
+          {isOwner && sharedExpense.status === 'pending_confirm' && pendingPayment && (
             <>
               <Button size="sm" className="flex-1 h-9 gap-1.5" style={{ background: 'var(--primary)', color: '#fff' }}
                 onClick={async () => { await confirmPayment(pendingPayment.id); toast.success('Đã xác nhận nhận tiền'); }}>
@@ -183,35 +183,35 @@ export function SharedDebtCard({ debt, currentUserId }: Props) {
               </Button>
             </>
           )}
-          {isCreditor && debt.status === 'active' && debt.debtorType === 'unlinked' && (
+          {isOwner && sharedExpense.status === 'active' && sharedExpense.participantType === 'unlinked' && (
             <Button size="sm" className="flex-1 h-9 gap-1.5" style={{ background: 'var(--primary)', color: '#fff' }}
               onClick={() => setShowSettle(true)}>
               <Check size={13} /> Đánh dấu đã nhận
             </Button>
           )}
 
-          {/* Debtor actions (linked, B side) */}
-          {isDebtor && debt.status === 'pending' && (
+          {/* Participant actions (linked) */}
+          {isParticipant && sharedExpense.status === 'pending' && (
             <>
               <Button size="sm" className="flex-1 h-9 gap-1.5" style={{ background: 'var(--primary)', color: '#fff' }}
-                onClick={async () => { await acceptSharedDebt(debt.id); toast.success('Đã xác nhận'); }}>
-                <Check size={13} /> Xác nhận nợ
+                onClick={async () => { await acceptSharedExpense(sharedExpense.id); toast.success('Đã xác nhận'); }}>
+                <Check size={13} /> Xác nhận
               </Button>
               <Button size="sm" variant="outline" className="h-9"
-                onClick={async () => { await rejectSharedDebt(debt.id); toast.success('Đã từ chối'); }}>
+                onClick={async () => { await rejectSharedExpense(sharedExpense.id); toast.success('Đã từ chối'); }}>
                 <X size={13} /> Từ chối
               </Button>
             </>
           )}
-          {isDebtor && debt.status === 'active' && (
+          {isParticipant && sharedExpense.status === 'active' && (
             <Button size="sm" className="flex-1 h-9 gap-1.5" style={{ background: 'var(--primary)', color: '#fff' }}
               onClick={() => setShowClaim(true)}>
               Đã trả →
             </Button>
           )}
 
-          {/* Delete (creditor only, for non-active states) */}
-          {isCreditor && (debt.status === 'rejected' || debt.status === 'cancelled' || debt.status === 'settled') && (
+          {/* Delete (owner only, for non-active states) */}
+          {isOwner && (sharedExpense.status === 'rejected' || sharedExpense.status === 'cancelled' || sharedExpense.status === 'settled') && (
             <Button size="sm" variant="outline" className="h-9 w-9 p-0 ml-auto"
               style={{ color: 'var(--destructive)' }}
               onClick={() => setShowDelete(true)}
@@ -222,25 +222,25 @@ export function SharedDebtCard({ debt, currentUserId }: Props) {
         </div>
       </div>
 
-      {/* Claim payment sheet (B) */}
+      {/* Claim payment sheet (participant) */}
       <ClaimPaymentSheet
         open={showClaim}
         onClose={() => setShowClaim(false)}
-        debt={debt}
+        sharedExpense={sharedExpense}
         onConfirm={async (amt, src, note) => {
-          await claimPayment(debt.id, amt, src, note);
-          toast.success(`Đã gửi xác nhận trả cho ${debt.creditorName}`);
+          await claimPayment(sharedExpense.id, amt, src, note);
+          toast.success(`Đã gửi xác nhận trả cho ${sharedExpense.ownerName}`);
           setShowClaim(false);
         }}
       />
 
-      {/* Manual settle sheet (A, unlinked) */}
+      {/* Manual settle sheet (owner, unlinked) */}
       <ManualSettleSheet
         open={showSettle}
         onClose={() => setShowSettle(false)}
-        debt={debt}
+        sharedExpense={sharedExpense}
         onConfirm={async (amt, src, note) => {
-          await manualSettle(debt.id, amt, src, note);
+          await manualSettle(sharedExpense.id, amt, src, note);
           toast.success('Đã ghi nhận khoản thu');
           setShowSettle(false);
         }}
@@ -249,14 +249,14 @@ export function SharedDebtCard({ debt, currentUserId }: Props) {
       <AlertDialog open={showDelete} onOpenChange={setShowDelete}>
         <AlertDialogContent className="rounded-2xl">
           <AlertDialogHeader>
-            <AlertDialogTitle>Xoá khoản nợ?</AlertDialogTitle>
+            <AlertDialogTitle>Xoá khoản chi chung?</AlertDialogTitle>
             <AlertDialogDescription>
-              Khoản nợ này sẽ bị xoá. Giao dịch chi tiêu gốc (nếu có) vẫn được giữ lại.
+              Khoản này sẽ bị xoá. Giao dịch chi tiêu gốc (nếu có) vẫn được giữ lại.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Huỷ</AlertDialogCancel>
-            <AlertDialogAction onClick={() => deleteSharedDebt(debt.id)}
+            <AlertDialogAction onClick={() => deleteSharedExpense(sharedExpense.id)}
               style={{ background: 'var(--destructive)', color: '#fff' }}>
               Xoá
             </AlertDialogAction>
@@ -268,17 +268,17 @@ export function SharedDebtCard({ debt, currentUserId }: Props) {
 }
 
 // ─── Claim Payment Sheet ─────────────────────────────────
-function ClaimPaymentSheet({ open, onClose, debt, onConfirm }: {
-  open: boolean; onClose: () => void; debt: SharedDebt;
+function ClaimPaymentSheet({ open, onClose, sharedExpense, onConfirm }: {
+  open: boolean; onClose: () => void; sharedExpense: SharedExpense;
   onConfirm: (amount: number, source: string, note: string) => Promise<void>;
 }) {
-  const [amount, setAmount] = useState(debt.remainingAmount);
+  const [amount, setAmount] = useState(sharedExpense.remainingAmount);
   const [source, setSource] = useState('bank');
   const [note, setNote] = useState('');
   const [submitting, setSubmitting] = useState(false);
 
   const submit = async () => {
-    if (amount <= 0 || amount > debt.remainingAmount) {
+    if (amount <= 0 || amount > sharedExpense.remainingAmount) {
       toast.error('Số tiền không hợp lệ'); return;
     }
     setSubmitting(true);
@@ -295,8 +295,8 @@ function ClaimPaymentSheet({ open, onClose, debt, onConfirm }: {
         <SheetHeader className="px-5 pb-3" style={{ borderBottom: '1px solid var(--border)' }}>
           <SheetTitle className="text-base font-semibold text-left">💸 Xác nhận đã trả</SheetTitle>
           <SheetDescription className="text-sm text-left" style={{ color: 'var(--muted-foreground)' }}>
-            Trả cho: <b style={{ color: 'var(--foreground)' }}>{debt.creditorName}</b><br />
-            Số tiền còn nợ: <b style={{ color: 'var(--foreground)' }}>{formatVND(debt.remainingAmount)}</b>
+            Trả cho: <b style={{ color: 'var(--foreground)' }}>{sharedExpense.ownerName}</b><br />
+            Số tiền còn lại: <b style={{ color: 'var(--foreground)' }}>{formatVND(sharedExpense.remainingAmount)}</b>
           </SheetDescription>
         </SheetHeader>
         <div className="px-5 py-4 flex flex-col gap-4 overflow-y-auto">
@@ -331,7 +331,7 @@ function ClaimPaymentSheet({ open, onClose, debt, onConfirm }: {
             </div>
           </div>
           <div className="flex flex-col gap-2">
-            <Label className="text-sm font-medium uppercase" style={{ color: 'var(--muted-foreground)' }}>Ghi chú cho {debt.creditorName} (tuỳ chọn)</Label>
+            <Label className="text-sm font-medium uppercase" style={{ color: 'var(--muted-foreground)' }}>Ghi chú cho {sharedExpense.ownerName} (tuỳ chọn)</Label>
             <Textarea rows={2} value={note} onChange={e => setNote(e.target.value)}
               placeholder='VD: "Đã chuyển khoản rồi nha"' maxLength={200} />
           </div>
@@ -340,7 +340,7 @@ function ClaimPaymentSheet({ open, onClose, debt, onConfirm }: {
           <Button disabled={submitting} onClick={submit}
             className="w-full h-12 rounded-xl text-sm font-semibold tracking-wide"
             style={{ background: 'var(--primary)', color: '#fff' }}>
-            {submitting ? 'Đang gửi…' : `GỬI XÁC NHẬN CHO ${debt.creditorName.toUpperCase()}`}
+            {submitting ? 'Đang gửi…' : `GỬI XÁC NHẬN CHO ${sharedExpense.ownerName.toUpperCase()}`}
           </Button>
         </div>
       </SheetContent>
@@ -348,18 +348,18 @@ function ClaimPaymentSheet({ open, onClose, debt, onConfirm }: {
   );
 }
 
-// ─── Manual settle sheet (A, unlinked) ───────────────────
-function ManualSettleSheet({ open, onClose, debt, onConfirm }: {
-  open: boolean; onClose: () => void; debt: SharedDebt;
+// ─── Manual settle sheet (owner, unlinked) ───────────────
+function ManualSettleSheet({ open, onClose, sharedExpense, onConfirm }: {
+  open: boolean; onClose: () => void; sharedExpense: SharedExpense;
   onConfirm: (amount: number, source: string, note: string) => Promise<void>;
 }) {
-  const [amount, setAmount] = useState(debt.remainingAmount);
+  const [amount, setAmount] = useState(sharedExpense.remainingAmount);
   const [source, setSource] = useState('bank');
   const [note, setNote] = useState('');
   const [submitting, setSubmitting] = useState(false);
 
   const submit = async () => {
-    if (amount <= 0 || amount > debt.remainingAmount) { toast.error('Số tiền không hợp lệ'); return; }
+    if (amount <= 0 || amount > sharedExpense.remainingAmount) { toast.error('Số tiền không hợp lệ'); return; }
     setSubmitting(true);
     try { await onConfirm(amount, source, note); } finally { setSubmitting(false); }
   };
@@ -374,8 +374,8 @@ function ManualSettleSheet({ open, onClose, debt, onConfirm }: {
         <SheetHeader className="px-5 pb-3" style={{ borderBottom: '1px solid var(--border)' }}>
           <SheetTitle className="text-base font-semibold text-left">✓ Đánh dấu đã nhận</SheetTitle>
           <SheetDescription className="text-sm text-left" style={{ color: 'var(--muted-foreground)' }}>
-            Nhận từ: <b style={{ color: 'var(--foreground)' }}>{debt.debtorName}</b><br />
-            Còn lại: <b style={{ color: 'var(--foreground)' }}>{formatVND(debt.remainingAmount)}</b>
+            Nhận từ: <b style={{ color: 'var(--foreground)' }}>{sharedExpense.participantName}</b><br />
+            Còn lại: <b style={{ color: 'var(--foreground)' }}>{formatVND(sharedExpense.remainingAmount)}</b>
           </SheetDescription>
         </SheetHeader>
         <div className="px-5 py-4 flex flex-col gap-4 overflow-y-auto">

@@ -10,7 +10,7 @@ interface Rect { top: number; left: number; width: number; height: number; }
 interface WalkthroughTourProps {
   open: boolean;
   onClose: () => void;
-  onRequestTab?: (tab: 'overview' | 'transactions' | 'categories' | 'debts') => void;
+  onRequestTab?: (tab: 'overview' | 'transactions' | 'categories' | 'shared') => void;
 }
 
 const PAD = 8;

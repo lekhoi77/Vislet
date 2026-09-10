@@ -6,7 +6,7 @@ export default function manifest(): MetadataRoute.Manifest {
     name: APP_INSTALL_NAME,
     short_name: APP_SHORT_NAME,
     description:
-      'Theo dõi thu nhập, chi tiêu, danh mục tài chính và quản lý nợ một cách đơn giản.',
+      'Theo dõi thu nhập, chi tiêu, danh mục tài chính và chi chung một cách đơn giản.',
     start_url: '/',
     scope: '/',
     display: 'standalone',

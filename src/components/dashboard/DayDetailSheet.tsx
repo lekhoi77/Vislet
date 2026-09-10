@@ -1,7 +1,7 @@
 'use client';
 
 import { useMemo } from 'react';
-import { Transaction, SharedDebt, isConfirmedDebt } from '@/lib/types';
+import { Transaction, SharedExpense, isConfirmedSharedExpense } from '@/lib/types';
 import { useAuthStore } from '@/store/auth-store';
 import { formatVND } from '@/lib/format';
 import { resolveSourceLabel, resolveCategoryLabel } from '@/lib/constants';
@@ -20,7 +20,7 @@ interface DayDetailSheetProps {
   date: Date | null;
   transactions: Transaction[];
   filterType?: 'income' | 'expense' | 'all';
-  sharedDebts?: SharedDebt[];
+  sharedExpenses?: SharedExpense[];
   onEdit?: (tx: Transaction) => void;
   onClose: () => void;
 }
@@ -40,7 +40,7 @@ export function DayDetailSheet({
   date,
   transactions,
   filterType = 'all',
-  sharedDebts = [],
+  sharedExpenses = [],
   onEdit,
   onClose,
 }: DayDetailSheetProps) {
@@ -58,15 +58,15 @@ export function DayDetailSheet({
       .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
   }, [date, transactions, filterType]);
 
-  const dayDebts = useMemo(() => {
+  const daySharedExpenses = useMemo(() => {
     if (!date) return [];
-    return sharedDebts.filter(d => {
-      // Chỉ hiển thị nợ đã xác nhận thực sự — không hiện pending/rejected/cancelled
-      if (!isConfirmedDebt(d.status)) return false;
-      const dateStr = d.dueDate ?? d.createdAt;
+    return sharedExpenses.filter(e => {
+      // Chỉ hiển thị khoản đã xác nhận thực sự — không hiện pending/rejected/cancelled
+      if (!isConfirmedSharedExpense(e.status)) return false;
+      const dateStr = e.dueDate ?? e.createdAt;
       return dateStr && isSameDay(dateStr, date);
     });
-  }, [date, sharedDebts]);
+  }, [date, sharedExpenses]);
 
   const totalIncome = dayTxs.filter(t => t.type === 'income').reduce((s, t) => s + t.amount, 0);
   const totalExpense = dayTxs.filter(t => t.type === 'expense').reduce((s, t) => s + t.amount, 0);
@@ -130,7 +130,7 @@ export function DayDetailSheet({
 
         {/* Scrollable body */}
         <div className="flex-1 min-h-0 overflow-y-auto px-5 py-4">
-          {dayTxs.length === 0 && dayDebts.length === 0 ? (
+          {dayTxs.length === 0 && daySharedExpenses.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-12 gap-2"
               style={{ color: 'var(--muted-foreground)' }}>
               <Inbox size={32} />
@@ -190,14 +190,14 @@ export function DayDetailSheet({
                 );
               })}
 
-              {dayDebts.length > 0 && (
+              {daySharedExpenses.length > 0 && (
                 <>
-                  {dayTxs.length > 0 && <p className="text-overline mt-3">Nợ đến hạn</p>}
-                  {dayDebts.map(debt => {
-                    const iOwe = debt.debtorUserId === currentUserId;
-                    const counterpart = iOwe ? debt.creditorName : debt.debtorName;
+                  {dayTxs.length > 0 && <p className="text-overline mt-3">Chi chung đến hạn</p>}
+                  {daySharedExpenses.map(expense => {
+                    const isParticipant = expense.participantUserId === currentUserId;
+                    const counterpart = isParticipant ? expense.ownerName : expense.participantName;
                     return (
-                      <div key={debt.id} className="w-full flex items-start gap-3 p-3 rounded-xl"
+                      <div key={expense.id} className="w-full flex items-start gap-3 p-3 rounded-xl"
                         style={{ background: 'var(--card)', border: '1px solid var(--border)' }}>
                         <div className="flex items-center justify-center rounded-xl shrink-0"
                           style={{ width: 36, height: 36, background: 'var(--orange-soft)' }}>
@@ -206,15 +206,15 @@ export function DayDetailSheet({
                         <div className="flex-1 min-w-0">
                           <div className="flex items-start justify-between gap-2">
                             <p className="text-sm font-semibold truncate" style={{ color: 'var(--foreground)' }}>
-                              {iOwe ? 'Nợ' : 'Cho vay'} · {counterpart}
+                              {isParticipant ? 'Tôi cần trả' : 'Đã chi hộ'} · {counterpart}
                             </p>
                             <p className="text-sm font-semibold amount shrink-0" style={{ color: 'var(--expense)' }}>
-                              {formatVND(debt.remainingAmount)}
+                              {formatVND(expense.remainingAmount)}
                             </p>
                           </div>
-                          {debt.note && (
+                          {expense.note && (
                             <p className="text-[13px] mt-1 line-clamp-1" style={{ color: 'var(--muted-foreground)' }}>
-                              {debt.note}
+                              {expense.note}
                             </p>
                           )}
                         </div>

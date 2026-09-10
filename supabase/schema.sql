@@ -27,9 +27,9 @@ create table if not exists transactions (
   created_at  timestamptz not null default now()
 );
 
--- ─── 3. SHARED DEBTS ───────────────────────────────────────
--- Xem migration 003_shared_debts.sql để biết full schema.
--- Bảng debts cũ đã bị thay thế bằng shared_debts + shared_debt_payments + debt_notifications + debt_contacts.
+-- ─── 3. SHARED EXPENSES ("Chi chung") ──────────────────────
+-- Xem migration 005_shared_expenses.sql để biết full schema.
+-- Bảng shared_debts cũ đã bị thay thế bằng shared_expenses + shared_expense_contacts.
 
 -- ─── 4. CUSTOM SOURCES ─────────────────────────────────────
 create table if not exists custom_sources (

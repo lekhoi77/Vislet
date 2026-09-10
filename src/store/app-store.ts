@@ -2,7 +2,7 @@ import { create } from 'zustand';
 import { v4 as uuidv4 } from 'uuid';
 import {
   UserProfile, Transaction, CustomSource, CustomCategory,
-  SharedDebt, DebtNotification, DebtContact, UserSearchResult,
+  SharedExpense, SharedExpenseNotification, SharedExpenseContact, UserSearchResult,
 } from '@/lib/types';
 import { AVATAR_COLORS } from '@/lib/constants';
 import { DEFAULT_SOURCES, DEFAULT_GOALS } from '@/lib/defaults';
@@ -12,11 +12,10 @@ import {
   toTransaction,
   toCustomSource,
   toCustomCategory,
-  toSharedDebt,
-  toSharedDebtPayment,
-  toDebtNotification,
-  toDebtContact,
-  SharedDebtRow,
+  toSharedExpense,
+  toSharedExpenseNotification,
+  toSharedExpenseContact,
+  SharedExpenseRow,
 } from '@/lib/supabase';
 
 const CURRENT_KEY_PREFIX = 'viapp_current_';
@@ -85,20 +84,20 @@ async function getCurrentUser() {
   }
 }
 
-interface NewSharedDebtInput {
-  // Tx of A (current user) — đã có sẵn nếu tạo từ TransactionForm split.
-  // Nếu null → đây là "ghi nợ" thuần (không gắn expense, A không thực sự bỏ tiền ra).
+interface NewSharedExpenseInput {
+  // Tx của A (current user) — đã có sẵn nếu tạo từ TransactionForm split.
+  // Nếu null → đây là "ghi chi chung" thuần (không gắn expense).
   sourceTransactionId?: string | null;
   totalExpense: number;
-  debtAmount: number;
+  splitAmount: number;
 
-  debtorType: 'linked' | 'unlinked';
-  debtorUserId?: string | null;
-  debtorProfileId?: string | null;
-  debtorName: string;
-  debtorEmail?: string | null;
+  participantType: 'linked' | 'unlinked';
+  participantUserId?: string | null;
+  participantProfileId?: string | null;
+  participantName: string;
+  participantEmail?: string | null;
 
-  direction: 'forward' | 'reverse'; // forward = họ nợ tôi; reverse = tôi nợ họ
+  direction: 'forward' | 'reverse'; // forward = họ cần trả tôi; reverse = tôi cần trả họ
   note: string;
   category: string;
   dueDate?: string | null;
@@ -108,9 +107,9 @@ interface AppState {
   profiles: UserProfile[];
   currentProfileId: string | null;
   transactions: Transaction[];
-  sharedDebts: SharedDebt[];
-  notifications: DebtNotification[];
-  debtContacts: DebtContact[];
+  sharedExpenses: SharedExpense[];
+  notifications: SharedExpenseNotification[];
+  sharedExpenseContacts: SharedExpenseContact[];
   customSources: CustomSource[];
   customCategories: CustomCategory[];
   isLoaded: boolean;
@@ -135,17 +134,17 @@ interface AppState {
   updateCustomCategory: (id: string, label: string, icon: string) => Promise<void>;
   reorderCustomCategories: (orderedIds: string[]) => void;
 
-  // Shared debts
-  createSharedDebt: (input: NewSharedDebtInput) => Promise<SharedDebt>;
-  acceptSharedDebt: (id: string) => Promise<void>;
-  rejectSharedDebt: (id: string, reason?: string) => Promise<void>;
-  cancelSharedDebt: (id: string) => Promise<void>;
-  deleteSharedDebt: (id: string) => Promise<void>;
+  // Shared expenses ("Chi chung")
+  createSharedExpense: (input: NewSharedExpenseInput) => Promise<SharedExpense>;
+  acceptSharedExpense: (id: string) => Promise<void>;
+  rejectSharedExpense: (id: string, reason?: string) => Promise<void>;
+  cancelSharedExpense: (id: string) => Promise<void>;
+  deleteSharedExpense: (id: string) => Promise<void>;
   claimPayment: (id: string, amount: number, paymentSource: string, note: string) => Promise<void>;
   confirmPayment: (paymentId: string) => Promise<void>;
   denyPayment: (paymentId: string) => Promise<void>;
   manualSettle: (id: string, amount: number, source: string, note: string) => Promise<void>;
-  refreshSharedDebts: () => Promise<void>;
+  refreshSharedExpenses: () => Promise<void>;
 
   // Notifications
   fetchNotifications: () => Promise<void>;
@@ -158,7 +157,7 @@ interface AppState {
   recordContact: (input: { contactUserId?: string | null; contactName: string; contactEmail?: string | null; contactType: 'linked' | 'unlinked' }) => Promise<void>;
 }
 
-// ─── Helper: fetch tất cả data của profile + user-level (debts) ───
+// ─── Helper: fetch tất cả data của profile + user-level (chi chung) ───
 
 async function fetchProfileData(profileId: string) {
   const [txRes, srcRes, catRes] = await Promise.all([
@@ -191,11 +190,15 @@ async function fetchProfileData(profileId: string) {
       return { id: g.id, label: ov?.label ?? g.label, icon: ov?.icon ?? g.icon, createdAt: '' };
     });
 
-  // Loại trùng ID (phòng trường hợp legacy DB từng insert được trước đây)
+  // Loại trùng ID + trùng TÊN (phòng trường hợp legacy DB từng insert được trước
+  // đây — profile cũ có thể đã có sẵn dòng thật "Ngân hàng"/"Tiết kiệm"/... với
+  // UUID riêng, khớp ID sẽ không bắt được nên phải so thêm theo label).
   const dbSrcIds = new Set(sources.map(s => s.id));
+  const dbSrcLabels = new Set(sources.map(s => s.label.trim().toLowerCase()));
   const dbCatIds = new Set(categories.map(c => c.id));
-  sources = [...defaultSrcRows.filter(d => !dbSrcIds.has(d.id)), ...sources];
-  categories = [...defaultCatRows.filter(d => !dbCatIds.has(d.id)), ...categories];
+  const dbCatLabels = new Set(categories.map(c => c.label.trim().toLowerCase()));
+  sources = [...defaultSrcRows.filter(d => !dbSrcIds.has(d.id) && !dbSrcLabels.has(d.label.trim().toLowerCase())), ...sources];
+  categories = [...defaultCatRows.filter(d => !dbCatIds.has(d.id) && !dbCatLabels.has(d.label.trim().toLowerCase())), ...categories];
 
   return {
     transactions: (txRes.data ?? []).map(toTransaction),
@@ -205,22 +208,16 @@ async function fetchProfileData(profileId: string) {
 }
 
 async function fetchUserScopedData(userId: string) {
-  const [debtsRes, paymentsRes, notifRes, contactsRes] = await Promise.all([
-    supabase.from('shared_debts').select('*').or(`creditor_user_id.eq.${userId},debtor_user_id.eq.${userId}`).order('created_at', { ascending: false }),
-    supabase.from('shared_debt_payments').select('*').order('paid_at', { ascending: false }),
-    supabase.from('debt_notifications').select('*').eq('recipient_user_id', userId).order('created_at', { ascending: false }).limit(50),
-    supabase.from('debt_contacts').select('*').eq('owner_user_id', userId).order('last_used_at', { ascending: false }).limit(20),
+  const [expensesRes, paymentsRes, notifRes, contactsRes] = await Promise.all([
+    supabase.from('shared_expenses').select('*').or(`owner_user_id.eq.${userId},participant_user_id.eq.${userId}`).order('created_at', { ascending: false }),
+    supabase.from('shared_expense_payments').select('*').order('paid_at', { ascending: false }),
+    supabase.from('shared_expense_notifications').select('*').eq('recipient_user_id', userId).order('created_at', { ascending: false }).limit(50),
+    supabase.from('shared_expense_contacts').select('*').eq('owner_user_id', userId).order('last_used_at', { ascending: false }).limit(20),
   ]);
-  const paymentsByDebt = new Map<string, ReturnType<typeof toSharedDebtPayment>[]>();
-  (paymentsRes.data ?? []).forEach(p => {
-    const arr = paymentsByDebt.get(p.shared_debt_id) ?? [];
-    arr.push(toSharedDebtPayment(p));
-    paymentsByDebt.set(p.shared_debt_id, arr);
-  });
   return {
-    sharedDebts: (debtsRes.data ?? []).map(d => toSharedDebt(d, (paymentsRes.data ?? []).filter(p => p.shared_debt_id === d.id))),
-    notifications: (notifRes.data ?? []).map(toDebtNotification),
-    debtContacts: (contactsRes.data ?? []).map(toDebtContact),
+    sharedExpenses: (expensesRes.data ?? []).map(e => toSharedExpense(e, (paymentsRes.data ?? []).filter(p => p.shared_expense_id === e.id))),
+    notifications: (notifRes.data ?? []).map(toSharedExpenseNotification),
+    sharedExpenseContacts: (contactsRes.data ?? []).map(toSharedExpenseContact),
   };
 }
 
@@ -228,16 +225,16 @@ async function fetchUserScopedData(userId: string) {
 async function pushNotification(input: {
   recipientUserId: string;
   type: string;
-  sharedDebtId: string;
+  sharedExpenseId: string;
   actorName: string;
   amount: number;
   message: string;
 }) {
-  const { error } = await supabase.from('debt_notifications').insert({
+  const { error } = await supabase.from('shared_expense_notifications').insert({
     id: uuidv4(),
     recipient_user_id: input.recipientUserId,
     type: input.type,
-    shared_debt_id: input.sharedDebtId,
+    shared_expense_id: input.sharedExpenseId,
     actor_name: input.actorName,
     amount: input.amount,
     message: input.message,
@@ -252,9 +249,9 @@ export const useAppStore = create<AppState>((set, get) => ({
   profiles: [],
   currentProfileId: null,
   transactions: [],
-  sharedDebts: [],
+  sharedExpenses: [],
   notifications: [],
-  debtContacts: [],
+  sharedExpenseContacts: [],
   customSources: [],
   customCategories: [],
   isLoaded: false,
@@ -368,7 +365,7 @@ export const useAppStore = create<AppState>((set, get) => ({
       source: txData.source, category: txData.category, note: txData.note ?? '',
       date: txData.date,
       is_auto_generated: txData.isAutoGenerated ?? false,
-      linked_debt_id: txData.linkedDebtId ?? null,
+      linked_shared_expense_id: txData.linkedSharedExpenseId ?? null,
       auto_kind: txData.autoKind ?? null,
     };
     if (txData.excludedFromReports) row.excluded_from_reports = true;
@@ -484,30 +481,30 @@ export const useAppStore = create<AppState>((set, get) => ({
     });
   },
 
-  // ── Shared Debts ────────────────────────────────────────
-  createSharedDebt: async (input) => {
+  // ── Shared Expenses ("Chi chung") ───────────────────────
+  createSharedExpense: async (input) => {
     const user = await getCurrentUser();
-    const { currentProfileId, profiles, sharedDebts } = get();
+    const { currentProfileId, profiles, sharedExpenses } = get();
     if (!user || !currentProfileId) throw new Error('Chưa đăng nhập');
 
     const me = profiles.find(p => p.id === currentProfileId);
     const id = uuidv4();
-    const status: 'pending' | 'active' = input.debtorType === 'linked' ? 'pending' : 'active';
+    const status: 'pending' | 'active' = input.participantType === 'linked' ? 'pending' : 'active';
 
-    const row: SharedDebtRow = {
+    const row: SharedExpenseRow = {
       id,
-      creditor_user_id: user.id,
-      creditor_profile_id: currentProfileId,
-      creditor_name: me?.name ?? 'Bạn',
-      debtor_type: input.debtorType,
-      debtor_user_id: input.debtorUserId ?? null,
-      debtor_profile_id: input.debtorProfileId ?? null,
-      debtor_name: input.debtorName.trim(),
-      debtor_email: input.debtorEmail ?? null,
+      owner_user_id: user.id,
+      owner_profile_id: currentProfileId,
+      owner_name: me?.name ?? 'Bạn',
+      participant_type: input.participantType,
+      participant_user_id: input.participantUserId ?? null,
+      participant_profile_id: input.participantProfileId ?? null,
+      participant_name: input.participantName.trim(),
+      participant_email: input.participantEmail ?? null,
       direction: input.direction,
       total_expense: input.totalExpense,
-      debt_amount: input.debtAmount,
-      remaining_amount: input.debtAmount,
+      split_amount: input.splitAmount,
+      remaining_amount: input.splitAmount,
       source_transaction_id: input.sourceTransactionId ?? null,
       status,
       note: input.note,
@@ -520,173 +517,173 @@ export const useAppStore = create<AppState>((set, get) => ({
       manually_settled: false,
     };
 
-    const { error } = await supabase.from('shared_debts').insert(row);
-    if (error) throw new Error(error.message || 'Không thể tạo khoản nợ');
+    const { error } = await supabase.from('shared_expenses').insert(row);
+    if (error) throw new Error(error.message || 'Không thể tạo khoản chi chung');
 
-    // Notification cho B (linked)
-    if (input.debtorType === 'linked' && input.debtorUserId) {
-      const amt = input.debtAmount.toLocaleString('vi-VN');
+    // Notification cho người cùng chia (linked)
+    if (input.participantType === 'linked' && input.participantUserId) {
+      const amt = input.splitAmount.toLocaleString('vi-VN');
       await pushNotification({
-        recipientUserId: input.debtorUserId,
-        type: 'debt_request',
-        sharedDebtId: id,
+        recipientUserId: input.participantUserId,
+        type: 'split_request',
+        sharedExpenseId: id,
         actorName: me?.name ?? 'Người dùng',
-        amount: input.debtAmount,
-        message: `${me?.name ?? 'Một người dùng'} muốn ghi nhận bạn nợ ${amt} ₫${input.note ? ` cho: ${input.note}` : ''}`,
+        amount: input.splitAmount,
+        message: `${me?.name ?? 'Một người dùng'} muốn ghi nhận bạn cần trả ${amt} ₫${input.note ? ` cho: ${input.note}` : ''}`,
       });
     }
 
     // Lưu contact
     await get().recordContact({
-      contactUserId: input.debtorUserId ?? null,
-      contactName: input.debtorName,
-      contactEmail: input.debtorEmail ?? null,
-      contactType: input.debtorType,
+      contactUserId: input.participantUserId ?? null,
+      contactName: input.participantName,
+      contactEmail: input.participantEmail ?? null,
+      contactType: input.participantType,
     });
 
-    const debt = toSharedDebt(row);
-    set({ sharedDebts: [debt, ...sharedDebts] });
-    return debt;
+    const expense = toSharedExpense(row);
+    set({ sharedExpenses: [expense, ...sharedExpenses] });
+    return expense;
   },
 
-  acceptSharedDebt: async (id) => {
+  acceptSharedExpense: async (id) => {
     const user = await getCurrentUser();
-    const { sharedDebts, profiles, currentProfileId } = get();
+    const { sharedExpenses, profiles, currentProfileId } = get();
     if (!user) return;
-    const debt = sharedDebts.find(d => d.id === id);
-    if (!debt) return;
+    const expense = sharedExpenses.find(e => e.id === id);
+    if (!expense) return;
     const me = profiles.find(p => p.id === currentProfileId);
 
     const acceptedAt = new Date().toISOString();
-    const { error } = await supabase.from('shared_debts').update({
+    const { error } = await supabase.from('shared_expenses').update({
       status: 'active',
       accepted_at: acceptedAt,
-      debtor_profile_id: currentProfileId, // B chọn profile để gắn nợ
-      debtor_name: me?.name ?? debt.debtorName,
+      participant_profile_id: currentProfileId,
+      participant_name: me?.name ?? expense.participantName,
     }).eq('id', id);
-    if (error) { console.error('acceptSharedDebt:', error); throw error; }
+    if (error) { console.error('acceptSharedExpense:', error); throw error; }
 
     await pushNotification({
-      recipientUserId: debt.creditorUserId,
-      type: 'debt_accepted',
-      sharedDebtId: id,
+      recipientUserId: expense.ownerUserId,
+      type: 'split_accepted',
+      sharedExpenseId: id,
       actorName: me?.name ?? 'Người dùng',
-      amount: debt.debtAmount,
-      message: `${me?.name ?? 'Người nợ'} đã xác nhận khoản nợ ${debt.debtAmount.toLocaleString('vi-VN')} ₫`,
+      amount: expense.splitAmount,
+      message: `${me?.name ?? 'Người cùng chia'} đã xác nhận khoản chi chung ${expense.splitAmount.toLocaleString('vi-VN')} ₫`,
     });
 
     set({
-      sharedDebts: sharedDebts.map(d => d.id === id ? { ...d, status: 'active', acceptedAt, debtorProfileId: currentProfileId, debtorName: me?.name ?? d.debtorName } : d),
+      sharedExpenses: sharedExpenses.map(e => e.id === id ? { ...e, status: 'active', acceptedAt, participantProfileId: currentProfileId, participantName: me?.name ?? e.participantName } : e),
     });
   },
 
-  rejectSharedDebt: async (id, reason) => {
-    const { sharedDebts, profiles, currentProfileId } = get();
-    const debt = sharedDebts.find(d => d.id === id);
-    if (!debt) return;
+  rejectSharedExpense: async (id, reason) => {
+    const { sharedExpenses, profiles, currentProfileId } = get();
+    const expense = sharedExpenses.find(e => e.id === id);
+    if (!expense) return;
     const me = profiles.find(p => p.id === currentProfileId);
 
-    const { error } = await supabase.from('shared_debts').update({
+    const { error } = await supabase.from('shared_expenses').update({
       status: 'rejected',
       reject_reason: reason?.trim() || null,
     }).eq('id', id);
-    if (error) { console.error('rejectSharedDebt:', error); throw error; }
+    if (error) { console.error('rejectSharedExpense:', error); throw error; }
 
     await pushNotification({
-      recipientUserId: debt.creditorUserId,
-      type: 'debt_rejected',
-      sharedDebtId: id,
+      recipientUserId: expense.ownerUserId,
+      type: 'split_rejected',
+      sharedExpenseId: id,
       actorName: me?.name ?? 'Người dùng',
-      amount: debt.debtAmount,
-      message: `${me?.name ?? 'Người nợ'} đã từ chối khoản nợ${reason ? ` (lý do: ${reason})` : ''}`,
+      amount: expense.splitAmount,
+      message: `${me?.name ?? 'Người cùng chia'} đã từ chối khoản chi chung${reason ? ` (lý do: ${reason})` : ''}`,
     });
 
-    set({ sharedDebts: sharedDebts.map(d => d.id === id ? { ...d, status: 'rejected', rejectReason: reason ?? null } : d) });
+    set({ sharedExpenses: sharedExpenses.map(e => e.id === id ? { ...e, status: 'rejected', rejectReason: reason ?? null } : e) });
   },
 
-  cancelSharedDebt: async (id) => {
-    const { sharedDebts } = get();
-    const debt = sharedDebts.find(d => d.id === id);
-    if (!debt || debt.status !== 'pending') return;
-    const { error } = await supabase.from('shared_debts').update({ status: 'cancelled' }).eq('id', id);
-    if (error) { console.error('cancelSharedDebt:', error); return; }
-    if (debt.debtorUserId) {
+  cancelSharedExpense: async (id) => {
+    const { sharedExpenses } = get();
+    const expense = sharedExpenses.find(e => e.id === id);
+    if (!expense || expense.status !== 'pending') return;
+    const { error } = await supabase.from('shared_expenses').update({ status: 'cancelled' }).eq('id', id);
+    if (error) { console.error('cancelSharedExpense:', error); return; }
+    if (expense.participantUserId) {
       await pushNotification({
-        recipientUserId: debt.debtorUserId,
-        type: 'debt_cancelled',
-        sharedDebtId: id,
-        actorName: debt.creditorName,
-        amount: debt.debtAmount,
-        message: `${debt.creditorName} đã huỷ yêu cầu nợ ${debt.debtAmount.toLocaleString('vi-VN')} ₫`,
+        recipientUserId: expense.participantUserId,
+        type: 'split_cancelled',
+        sharedExpenseId: id,
+        actorName: expense.ownerName,
+        amount: expense.splitAmount,
+        message: `${expense.ownerName} đã huỷ yêu cầu chia chi phí ${expense.splitAmount.toLocaleString('vi-VN')} ₫`,
       });
     }
-    set({ sharedDebts: sharedDebts.map(d => d.id === id ? { ...d, status: 'cancelled' } : d) });
+    set({ sharedExpenses: sharedExpenses.map(e => e.id === id ? { ...e, status: 'cancelled' } : e) });
   },
 
-  deleteSharedDebt: async (id) => {
-    const { sharedDebts } = get();
-    const { error } = await supabase.from('shared_debts').delete().eq('id', id);
-    if (error) { console.error('deleteSharedDebt:', error); return; }
-    set({ sharedDebts: sharedDebts.filter(d => d.id !== id) });
+  deleteSharedExpense: async (id) => {
+    const { sharedExpenses } = get();
+    const { error } = await supabase.from('shared_expenses').delete().eq('id', id);
+    if (error) { console.error('deleteSharedExpense:', error); return; }
+    set({ sharedExpenses: sharedExpenses.filter(e => e.id !== id) });
   },
 
   claimPayment: async (id, amount, paymentSource, note) => {
-    const { sharedDebts, profiles, currentProfileId } = get();
-    const debt = sharedDebts.find(d => d.id === id);
-    if (!debt) return;
+    const { sharedExpenses, profiles, currentProfileId } = get();
+    const expense = sharedExpenses.find(e => e.id === id);
+    if (!expense) return;
     const me = profiles.find(p => p.id === currentProfileId);
 
     const paymentId = uuidv4();
     const paidAt = new Date().toISOString();
 
-    const { error: pErr } = await supabase.from('shared_debt_payments').insert({
-      id: paymentId, shared_debt_id: id, amount, payment_source: paymentSource,
+    const { error: pErr } = await supabase.from('shared_expense_payments').insert({
+      id: paymentId, shared_expense_id: id, amount, payment_source: paymentSource,
       paid_at: paidAt, note,
     });
     if (pErr) throw pErr;
 
-    const { error: sErr } = await supabase.from('shared_debts').update({ status: 'pending_confirm' }).eq('id', id);
+    const { error: sErr } = await supabase.from('shared_expenses').update({ status: 'pending_confirm' }).eq('id', id);
     if (sErr) throw sErr;
 
     await pushNotification({
-      recipientUserId: debt.creditorUserId,
+      recipientUserId: expense.ownerUserId,
       type: 'payment_claimed',
-      sharedDebtId: id,
-      actorName: me?.name ?? 'Người nợ',
+      sharedExpenseId: id,
+      actorName: me?.name ?? 'Người cùng chia',
       amount,
-      message: `${me?.name ?? 'Người nợ'} nói đã trả ${amount.toLocaleString('vi-VN')} ₫${note ? ` — "${note}"` : ''}`,
+      message: `${me?.name ?? 'Người cùng chia'} nói đã trả ${amount.toLocaleString('vi-VN')} ₫${note ? ` — "${note}"` : ''}`,
     });
 
     const newPayment = {
-      id: paymentId, sharedDebtId: id, amount, paymentSource,
+      id: paymentId, sharedExpenseId: id, amount, paymentSource,
       paidAt, confirmedAt: null, note, incomeTransactionId: null, expenseTransactionId: null,
     };
     set({
-      sharedDebts: sharedDebts.map(d => d.id === id
-        ? { ...d, status: 'pending_confirm', payments: [...(d.payments ?? []), newPayment] }
-        : d),
+      sharedExpenses: sharedExpenses.map(e => e.id === id
+        ? { ...e, status: 'pending_confirm', payments: [...(e.payments ?? []), newPayment] }
+        : e),
     });
   },
 
   confirmPayment: async (paymentId) => {
     const user = await getCurrentUser();
-    const { sharedDebts, profiles, currentProfileId } = get();
+    const { sharedExpenses, profiles, currentProfileId } = get();
     if (!user || !currentProfileId) return;
 
-    // Tìm payment + debt
-    let debtForPayment: SharedDebt | undefined;
+    // Tìm payment + expense
+    let expenseForPayment: SharedExpense | undefined;
     let payment;
-    for (const d of sharedDebts) {
-      const p = d.payments?.find(x => x.id === paymentId);
-      if (p) { debtForPayment = d; payment = p; break; }
+    for (const e of sharedExpenses) {
+      const p = e.payments?.find(x => x.id === paymentId);
+      if (p) { expenseForPayment = e; payment = p; break; }
     }
-    if (!debtForPayment || !payment) return;
+    if (!expenseForPayment || !payment) return;
     const me = profiles.find(p => p.id === currentProfileId);
     const now = new Date().toISOString();
 
-    // 1. Tạo income tự động bên A (current user = creditor)
+    // 1. Tạo income tự động bên chủ chi tiêu (owner)
     const incomeTxId = uuidv4();
-    const incomeTitle = `Thu nợ: ${debtForPayment.debtorName}${debtForPayment.note ? ` — ${debtForPayment.note}` : ''}`;
+    const incomeTitle = `Thu chi chung: ${expenseForPayment.participantName}${expenseForPayment.note ? ` — ${expenseForPayment.note}` : ''}`;
     const { error: incErr } = await supabase.from('transactions').insert({
       id: incomeTxId,
       profile_id: currentProfileId,
@@ -698,114 +695,114 @@ export const useAppStore = create<AppState>((set, get) => ({
       note: payment.note ?? '',
       date: now,
       is_auto_generated: true,
-      linked_debt_id: debtForPayment.id,
-      auto_kind: 'debt_income',
+      linked_shared_expense_id: expenseForPayment.id,
+      auto_kind: 'split_income',
     });
     if (incErr) throw incErr;
 
-    // 2. Tạo expense tự động bên B (nếu linked)
+    // 2. Tạo expense tự động bên người cùng chia (nếu linked)
     let expenseTxId: string | null = null;
-    if (debtForPayment.debtorType === 'linked' && debtForPayment.debtorProfileId) {
+    if (expenseForPayment.participantType === 'linked' && expenseForPayment.participantProfileId) {
       expenseTxId = uuidv4();
       const { error: expErr } = await supabase.from('transactions').insert({
         id: expenseTxId,
-        profile_id: debtForPayment.debtorProfileId,
+        profile_id: expenseForPayment.participantProfileId,
         type: 'expense',
-        title: `Trả nợ: ${debtForPayment.creditorName}${debtForPayment.note ? ` — ${debtForPayment.note}` : ''}`,
+        title: `Trả chi chung: ${expenseForPayment.ownerName}${expenseForPayment.note ? ` — ${expenseForPayment.note}` : ''}`,
         amount: payment.amount,
         source: payment.paymentSource ?? 'bank',
         category: 'none',
         note: payment.note ?? '',
         date: now,
         is_auto_generated: true,
-        linked_debt_id: debtForPayment.id,
-        auto_kind: 'debt_expense',
+        linked_shared_expense_id: expenseForPayment.id,
+        auto_kind: 'split_expense',
       });
-      if (expErr) console.error('insert expense for debtor:', expErr);
+      if (expErr) console.error('insert expense for participant:', expErr);
     }
 
     // 3. Update payment với confirmed_at + tx links
-    await supabase.from('shared_debt_payments').update({
+    await supabase.from('shared_expense_payments').update({
       confirmed_at: now,
       income_transaction_id: incomeTxId,
       expense_transaction_id: expenseTxId,
     }).eq('id', paymentId);
 
-    // 4. Update debt remaining + status
-    const newRemaining = Math.max(0, debtForPayment.remainingAmount - payment.amount);
+    // 4. Update expense remaining + status
+    const newRemaining = Math.max(0, expenseForPayment.remainingAmount - payment.amount);
     const newStatus = newRemaining === 0 ? 'settled' : 'active';
     const settledAt = newRemaining === 0 ? now : null;
-    await supabase.from('shared_debts').update({
+    await supabase.from('shared_expenses').update({
       remaining_amount: newRemaining,
       status: newStatus,
       settled_at: settledAt,
-    }).eq('id', debtForPayment.id);
+    }).eq('id', expenseForPayment.id);
 
-    // 5. Notif về B
-    if (debtForPayment.debtorUserId) {
+    // 5. Notif về người cùng chia
+    if (expenseForPayment.participantUserId) {
       await pushNotification({
-        recipientUserId: debtForPayment.debtorUserId,
+        recipientUserId: expenseForPayment.participantUserId,
         type: 'payment_confirmed',
-        sharedDebtId: debtForPayment.id,
-        actorName: me?.name ?? 'Người cho vay',
+        sharedExpenseId: expenseForPayment.id,
+        actorName: me?.name ?? 'Người trả trước',
         amount: payment.amount,
-        message: `${me?.name ?? 'Người cho vay'} đã xác nhận nhận ${payment.amount.toLocaleString('vi-VN')} ₫`,
+        message: `${me?.name ?? 'Người trả trước'} đã xác nhận nhận ${payment.amount.toLocaleString('vi-VN')} ₫`,
       });
     }
 
     // 6. Refresh local
-    await get().refreshSharedDebts();
+    await get().refreshSharedExpenses();
     // Refresh transactions cũng cần
     const profileData = await fetchProfileData(currentProfileId);
     set({ transactions: profileData.transactions });
   },
 
   denyPayment: async (paymentId) => {
-    const { sharedDebts, profiles, currentProfileId } = get();
-    let debtForPayment: SharedDebt | undefined;
+    const { sharedExpenses, profiles, currentProfileId } = get();
+    let expenseForPayment: SharedExpense | undefined;
     let payment;
-    for (const d of sharedDebts) {
-      const p = d.payments?.find(x => x.id === paymentId);
-      if (p) { debtForPayment = d; payment = p; break; }
+    for (const e of sharedExpenses) {
+      const p = e.payments?.find(x => x.id === paymentId);
+      if (p) { expenseForPayment = e; payment = p; break; }
     }
-    if (!debtForPayment || !payment) return;
+    if (!expenseForPayment || !payment) return;
     const me = profiles.find(p => p.id === currentProfileId);
 
-    // Xoá payment, trả debt về active
-    await supabase.from('shared_debt_payments').delete().eq('id', paymentId);
-    await supabase.from('shared_debts').update({ status: 'active' }).eq('id', debtForPayment.id);
+    // Xoá payment, trả expense về active
+    await supabase.from('shared_expense_payments').delete().eq('id', paymentId);
+    await supabase.from('shared_expenses').update({ status: 'active' }).eq('id', expenseForPayment.id);
 
-    if (debtForPayment.debtorUserId) {
+    if (expenseForPayment.participantUserId) {
       await pushNotification({
-        recipientUserId: debtForPayment.debtorUserId,
+        recipientUserId: expenseForPayment.participantUserId,
         type: 'payment_denied',
-        sharedDebtId: debtForPayment.id,
-        actorName: me?.name ?? 'Người cho vay',
+        sharedExpenseId: expenseForPayment.id,
+        actorName: me?.name ?? 'Người trả trước',
         amount: payment.amount,
-        message: `${me?.name ?? 'Người cho vay'} báo chưa nhận được ${payment.amount.toLocaleString('vi-VN')} ₫`,
+        message: `${me?.name ?? 'Người trả trước'} báo chưa nhận được ${payment.amount.toLocaleString('vi-VN')} ₫`,
       });
     }
 
     set({
-      sharedDebts: sharedDebts.map(d => d.id === debtForPayment!.id
-        ? { ...d, status: 'active', payments: (d.payments ?? []).filter(p => p.id !== paymentId) }
-        : d),
+      sharedExpenses: sharedExpenses.map(e => e.id === expenseForPayment!.id
+        ? { ...e, status: 'active', payments: (e.payments ?? []).filter(p => p.id !== paymentId) }
+        : e),
     });
   },
 
   manualSettle: async (id, amount, source, note) => {
-    const { sharedDebts, currentProfileId } = get();
+    const { sharedExpenses, currentProfileId } = get();
     if (!currentProfileId) return;
-    const debt = sharedDebts.find(d => d.id === id);
-    if (!debt || debt.debtorType !== 'unlinked') return;
+    const expense = sharedExpenses.find(e => e.id === id);
+    if (!expense || expense.participantType !== 'unlinked') return;
 
     const now = new Date().toISOString();
     const paymentId = uuidv4();
     const incomeTxId = uuidv4();
 
     // 1. Payment
-    await supabase.from('shared_debt_payments').insert({
-      id: paymentId, shared_debt_id: id, amount, payment_source: source,
+    await supabase.from('shared_expense_payments').insert({
+      id: paymentId, shared_expense_id: id, amount, payment_source: source,
       paid_at: now, confirmed_at: now, note,
       income_transaction_id: incomeTxId,
     });
@@ -815,34 +812,34 @@ export const useAppStore = create<AppState>((set, get) => ({
       id: incomeTxId,
       profile_id: currentProfileId,
       type: 'income',
-      title: `Thu nợ: ${debt.debtorName}${debt.note ? ` — ${debt.note}` : ''}`,
+      title: `Thu chi chung: ${expense.participantName}${expense.note ? ` — ${expense.note}` : ''}`,
       amount, source, category: 'none', note,
       date: now,
       is_auto_generated: true,
-      linked_debt_id: id,
-      auto_kind: 'debt_income',
+      linked_shared_expense_id: id,
+      auto_kind: 'split_income',
     });
 
-    // 3. Update debt
-    const newRemaining = Math.max(0, debt.remainingAmount - amount);
+    // 3. Update expense
+    const newRemaining = Math.max(0, expense.remainingAmount - amount);
     const newStatus = newRemaining === 0 ? 'settled' : 'active';
-    await supabase.from('shared_debts').update({
+    await supabase.from('shared_expenses').update({
       remaining_amount: newRemaining,
       status: newStatus,
       settled_at: newRemaining === 0 ? now : null,
       manually_settled: newRemaining === 0,
     }).eq('id', id);
 
-    await get().refreshSharedDebts();
+    await get().refreshSharedExpenses();
     const profileData = await fetchProfileData(currentProfileId);
     set({ transactions: profileData.transactions });
   },
 
-  refreshSharedDebts: async () => {
+  refreshSharedExpenses: async () => {
     const user = await getCurrentUser();
     if (!user) return;
     const data = await fetchUserScopedData(user.id);
-    set({ sharedDebts: data.sharedDebts, notifications: data.notifications, debtContacts: data.debtContacts });
+    set({ sharedExpenses: data.sharedExpenses, notifications: data.notifications, sharedExpenseContacts: data.sharedExpenseContacts });
   },
 
   // ── Notifications ───────────────────────────────────────
@@ -850,17 +847,17 @@ export const useAppStore = create<AppState>((set, get) => ({
     const user = await getCurrentUser();
     if (!user) return;
     const { data } = await supabase
-      .from('debt_notifications')
+      .from('shared_expense_notifications')
       .select('*')
       .eq('recipient_user_id', user.id)
       .order('created_at', { ascending: false })
       .limit(50);
-    set({ notifications: (data ?? []).map(toDebtNotification) });
+    set({ notifications: (data ?? []).map(toSharedExpenseNotification) });
   },
 
   markNotifRead: async (id) => {
     const { notifications } = get();
-    await supabase.from('debt_notifications').update({ is_read: true }).eq('id', id);
+    await supabase.from('shared_expense_notifications').update({ is_read: true }).eq('id', id);
     set({ notifications: notifications.map(n => n.id === id ? { ...n, isRead: true } : n) });
   },
 
@@ -868,7 +865,7 @@ export const useAppStore = create<AppState>((set, get) => ({
     const user = await getCurrentUser();
     const { notifications } = get();
     if (!user) return;
-    await supabase.from('debt_notifications').update({ is_read: true }).eq('recipient_user_id', user.id).eq('is_read', false);
+    await supabase.from('shared_expense_notifications').update({ is_read: true }).eq('recipient_user_id', user.id).eq('is_read', false);
     set({ notifications: notifications.map(n => ({ ...n, isRead: true })) });
   },
 
@@ -876,7 +873,7 @@ export const useAppStore = create<AppState>((set, get) => ({
   searchUsers: async (query) => {
     const q = query.trim();
     if (q.length < 1) return [];
-    const { data, error } = await supabase.rpc('search_users_for_debt', { q });
+    const { data, error } = await supabase.rpc('search_users_for_split', { q });
     if (error) { console.error('searchUsers:', error); return []; }
     return (data ?? []).map((r: { user_id: string; profile_id: string; name: string; email: string | null; avatar_color: string; initial: string }) => ({
       userId: r.user_id,
@@ -891,11 +888,11 @@ export const useAppStore = create<AppState>((set, get) => ({
   refreshContacts: async () => {
     const user = await getCurrentUser();
     if (!user) return;
-    const { data } = await supabase.from('debt_contacts').select('*')
+    const { data } = await supabase.from('shared_expense_contacts').select('*')
       .eq('owner_user_id', user.id)
       .order('last_used_at', { ascending: false })
       .limit(20);
-    set({ debtContacts: (data ?? []).map(toDebtContact) });
+    set({ sharedExpenseContacts: (data ?? []).map(toSharedExpenseContact) });
   },
 
   recordContact: async (input) => {
@@ -905,14 +902,14 @@ export const useAppStore = create<AppState>((set, get) => ({
     // Upsert: nếu tồn tại update last_used_at, không thì insert
     const now = new Date().toISOString();
     if (input.contactUserId) {
-      const { data: existing } = await supabase.from('debt_contacts').select('id')
+      const { data: existing } = await supabase.from('shared_expense_contacts').select('id')
         .eq('owner_user_id', user.id)
         .eq('contact_user_id', input.contactUserId)
         .maybeSingle();
       if (existing) {
-        await supabase.from('debt_contacts').update({ last_used_at: now }).eq('id', existing.id);
+        await supabase.from('shared_expense_contacts').update({ last_used_at: now }).eq('id', existing.id);
       } else {
-        await supabase.from('debt_contacts').insert({
+        await supabase.from('shared_expense_contacts').insert({
           owner_user_id: user.id,
           contact_user_id: input.contactUserId,
           contact_name: input.contactName.trim(),
@@ -922,15 +919,15 @@ export const useAppStore = create<AppState>((set, get) => ({
         });
       }
     } else {
-      const { data: existing } = await supabase.from('debt_contacts').select('id')
+      const { data: existing } = await supabase.from('shared_expense_contacts').select('id')
         .eq('owner_user_id', user.id)
         .is('contact_user_id', null)
         .ilike('contact_name', input.contactName.trim())
         .maybeSingle();
       if (existing) {
-        await supabase.from('debt_contacts').update({ last_used_at: now }).eq('id', existing.id);
+        await supabase.from('shared_expense_contacts').update({ last_used_at: now }).eq('id', existing.id);
       } else {
-        await supabase.from('debt_contacts').insert({
+        await supabase.from('shared_expense_contacts').insert({
           owner_user_id: user.id,
           contact_user_id: null,
           contact_name: input.contactName.trim(),

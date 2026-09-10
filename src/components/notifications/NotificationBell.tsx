@@ -6,7 +6,7 @@ import { Bell, Check, X, CheckCheck } from 'lucide-react';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from '@/components/ui/sheet';
 import { toast } from 'sonner';
 import { formatVND } from '@/lib/format';
-import type { DebtNotification, DebtNotificationType } from '@/lib/types';
+import type { SharedExpenseNotification, SharedExpenseNotificationType } from '@/lib/types';
 
 function timeAgo(iso: string): string {
   const diff = (Date.now() - new Date(iso).getTime()) / 1000;
@@ -16,49 +16,49 @@ function timeAgo(iso: string): string {
   return `${Math.floor(diff / 86400)} ngày trước`;
 }
 
-const ICONS: Record<DebtNotificationType, string> = {
-  debt_request: '💸',
-  debt_accepted: '✅',
-  debt_rejected: '❌',
+const ICONS: Record<SharedExpenseNotificationType, string> = {
+  split_request: '💸',
+  split_accepted: '✅',
+  split_rejected: '❌',
   payment_claimed: '💰',
   payment_confirmed: '✓',
   payment_denied: '⚠️',
-  debt_cancelled: '🚫',
+  split_cancelled: '🚫',
   due_reminder: '⏰',
 };
 
 export function NotificationBell() {
-  const { notifications, sharedDebts, markNotifRead, markAllNotifsRead, acceptSharedDebt, rejectSharedDebt } = useAppStore();
+  const { notifications, sharedExpenses, markNotifRead, markAllNotifsRead, acceptSharedExpense, rejectSharedExpense } = useAppStore();
   const [open, setOpen] = useState(false);
 
   const unreadCount = useMemo(() => notifications.filter(n => !n.isRead).length, [notifications]);
 
-  const handleAccept = async (n: DebtNotification) => {
-    if (!n.sharedDebtId) return;
+  const handleAccept = async (n: SharedExpenseNotification) => {
+    if (!n.sharedExpenseId) return;
     try {
-      await acceptSharedDebt(n.sharedDebtId);
+      await acceptSharedExpense(n.sharedExpenseId);
       await markNotifRead(n.id);
-      toast.success('Đã xác nhận khoản nợ');
+      toast.success('Đã xác nhận khoản chi chung');
     } catch {
       toast.error('Không thể xác nhận');
     }
   };
 
-  const handleReject = async (n: DebtNotification) => {
-    if (!n.sharedDebtId) return;
+  const handleReject = async (n: SharedExpenseNotification) => {
+    if (!n.sharedExpenseId) return;
     try {
-      await rejectSharedDebt(n.sharedDebtId);
+      await rejectSharedExpense(n.sharedExpenseId);
       await markNotifRead(n.id);
-      toast.success('Đã từ chối khoản nợ');
+      toast.success('Đã từ chối khoản chi chung');
     } catch {
       toast.error('Không thể từ chối');
     }
   };
 
-  const isRequestActive = (n: DebtNotification) => {
-    if (n.type !== 'debt_request' || !n.sharedDebtId) return false;
-    const debt = sharedDebts.find(d => d.id === n.sharedDebtId);
-    return debt?.status === 'pending';
+  const isRequestActive = (n: SharedExpenseNotification) => {
+    if (n.type !== 'split_request' || !n.sharedExpenseId) return false;
+    const expense = sharedExpenses.find(e => e.id === n.sharedExpenseId);
+    return expense?.status === 'pending';
   };
 
   return (
@@ -94,7 +94,7 @@ export function NotificationBell() {
             <SheetTitle className="text-base font-semibold text-left" style={{ color: 'var(--foreground)' }}>
               Thông báo
             </SheetTitle>
-            <SheetDescription className="sr-only">Danh sách thông báo về các khoản nợ</SheetDescription>
+            <SheetDescription className="sr-only">Danh sách thông báo về các khoản chi chung</SheetDescription>
             {unreadCount > 0 && (
               <button
                 type="button"

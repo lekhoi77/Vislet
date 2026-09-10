@@ -11,9 +11,9 @@ import { FAB } from '@/components/layout/FAB';
 import { OnboardingScreen } from '@/components/profile/OnboardingScreen';
 import { TransactionForm } from '@/components/transactions/TransactionForm';
 import { TransactionPane } from '@/components/transactions/TransactionPane';
-import { DebtForm } from '@/components/debts/DebtForm';
-import { SharedDebtCard } from '@/components/debts/SharedDebtCard';
-import { DebtStats } from '@/components/debts/DebtStats';
+import { SharedExpenseForm } from '@/components/shared-expenses/SharedExpenseForm';
+import { SharedExpenseCard } from '@/components/shared-expenses/SharedExpenseCard';
+import { SharedExpenseStats } from '@/components/shared-expenses/SharedExpenseStats';
 import { SummaryCards } from '@/components/dashboard/SummaryCards';
 import { SourceBlocks } from '@/components/dashboard/SourceBlocks';
 import { GoalBlocks } from '@/components/dashboard/GoalBlocks';
@@ -56,13 +56,13 @@ const GREETINGS = [
   'Thấy tiền nong dạo này sao rồi',
 ];
 
-type ActiveTab = 'overview' | 'transactions' | 'categories' | 'debts';
-type DebtFilter = 'owed_by_me' | 'owed_to_me' | 'settled';
+type ActiveTab = 'overview' | 'transactions' | 'categories' | 'shared';
+type SplitFilter = 'toi_no' | 'ho_no' | 'settled';
 
-const OPEN_DEBT_STATUSES = ['pending', 'active', 'pending_confirm'] as const;
+const OPEN_SHARED_EXPENSE_STATUSES = ['pending', 'active', 'pending_confirm'] as const;
 
 export default function HomePage() {
-  const { initApp, isLoaded, profiles, currentProfileId, transactions, sharedDebts } = useAppStore();
+  const { initApp, isLoaded, profiles, currentProfileId, transactions, sharedExpenses } = useAppStore();
   const { user, isAuthLoading, initAuth } = useAuthStore();
 
   const [activeTab, setActiveTab] = useState<ActiveTab>('overview');
@@ -75,8 +75,8 @@ export default function HomePage() {
   const [txFormType, setTxFormType] = useState<TransactionType>('income');
   const [editingTx, setEditingTx] = useState<Transaction | null>(null);
 
-  // Debt form state
-  const [debtFormOpen, setDebtFormOpen] = useState(false);
+  // Shared expense form state
+  const [sharedFormOpen, setSharedFormOpen] = useState(false);
 
   // Month filter
   const now = new Date();
@@ -109,8 +109,8 @@ export default function HomePage() {
     return () => { clearInterval(id); document.removeEventListener('visibilitychange', onVis); };
   }, []);
 
-  // Debt filter tab
-  const [debtFilter, setDebtFilter] = useState<DebtFilter>('owed_to_me');
+  // Shared expense filter tab
+  const [splitFilter, setSplitFilter] = useState<SplitFilter>('ho_no');
 
   // Source/budget manager sheets
   const [showAddSource, setShowAddSource] = useState(false);
@@ -139,7 +139,7 @@ export default function HomePage() {
       // Nếu account vừa đổi (login tài khoản khác) thì đóng overlay
       if (prevUserIdRef.current && prevUserIdRef.current !== user.id) {
         setShowLoginOverlay(false);
-        useAppStore.setState({ profiles: [], currentProfileId: null, transactions: [], sharedDebts: [], notifications: [], debtContacts: [], customSources: [], customCategories: [], isLoaded: false });
+        useAppStore.setState({ profiles: [], currentProfileId: null, transactions: [], sharedExpenses: [], notifications: [], sharedExpenseContacts: [], customSources: [], customCategories: [], isLoaded: false });
       }
       prevUserIdRef.current = user.id;
       initApp();
@@ -258,11 +258,11 @@ export default function HomePage() {
     return () => window.removeEventListener('keydown', handler);
   }, [handleOpenIncomForm, handleOpenExpenseForm, calcOpen]);
 
-  const filteredDebts = sharedDebts.filter(d => {
-    if (debtFilter === 'settled') return d.status === 'settled';
-    if (!(OPEN_DEBT_STATUSES as readonly string[]).includes(d.status)) return false;
-    if (debtFilter === 'owed_by_me') return d.debtorUserId === user?.id;
-    return d.creditorUserId === user?.id;
+  const filteredSharedExpenses = sharedExpenses.filter(e => {
+    if (splitFilter === 'settled') return e.status === 'settled';
+    if (!(OPEN_SHARED_EXPENSE_STATUSES as readonly string[]).includes(e.status)) return false;
+    if (splitFilter === 'toi_no') return e.participantUserId === user?.id;
+    return e.ownerUserId === user?.id;
   });
   const monthTxs = transactions.filter(tx => {
     const d = new Date(tx.date);
@@ -301,7 +301,7 @@ export default function HomePage() {
     { value: 'overview' as ActiveTab, label: 'Tổng quan', icon: LayoutDashboard },
     { value: 'transactions' as ActiveTab, label: 'Giao dịch', icon: ArrowLeftRight },
     { value: 'categories' as ActiveTab, label: 'Danh mục', icon: Tags },
-    { value: 'debts' as ActiveTab, label: 'Nợ', icon: Handshake },
+    { value: 'shared' as ActiveTab, label: 'Chi chung', icon: Handshake },
   ];
 
   const currentProfile = profiles.find(p => p.id === currentProfileId);
@@ -350,13 +350,13 @@ export default function HomePage() {
             })}
           </nav>
           <div data-tour="fab" className="relative z-10 p-3 flex flex-col gap-2" style={{ borderTop: '1px solid var(--border-subtle)' }}>
-            {activeTab === 'debts' ? (
+            {activeTab === 'shared' ? (
               <button
-                onClick={() => setDebtFormOpen(true)}
+                onClick={() => setSharedFormOpen(true)}
                 className="flex items-center gap-2 h-10 md:h-12 px-4 rounded-xl font-semibold text-sm w-full justify-center transition-all hover:opacity-90 active:scale-95"
                 style={{ background: 'var(--primary)', color: 'var(--primary-foreground)' }}
               >
-                <Plus size={15} /> Ghi nợ
+                <Plus size={15} /> Ghi chi chung
               </button>
             ) : (
               <>
@@ -466,9 +466,9 @@ export default function HomePage() {
                 transactions={reportableTransactions}
                 month={month}
                 year={year}
-                sharedDebts={sharedDebts}
+                sharedExpenses={sharedExpenses}
                 currentUserId={user?.id ?? ''}
-                onSeeAllDebts={() => handleTabChange('debts')}
+                onSeeAllSharedExpenses={() => handleTabChange('shared')}
               />
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -498,7 +498,7 @@ export default function HomePage() {
                 year={year}
               />
               <div data-tour="calendar" className="xl:h-full">
-                <CalendarBlock transactions={reportableTransactions} sharedDebts={sharedDebts} month={month} year={year} onEdit={handleEditTx} />
+                <CalendarBlock transactions={reportableTransactions} sharedExpenses={sharedExpenses} month={month} year={year} onEdit={handleEditTx} />
               </div>
               <div className="xl:h-full">
                 <ExpenseHeatmap transactions={reportableTransactions} month={month} year={year} onEdit={handleEditTx} />
@@ -525,23 +525,23 @@ export default function HomePage() {
           </div>
         )}
 
-        {/* ─── DEBTS TAB ─── */}
-        {activeTab === 'debts' && (
-          <div key={`debts-${contentKey}`} className="page-appear flex flex-col gap-5 p-5 pt-5">
-            <p className="text-overline">Quản lý nợ</p>
-            <DebtStats sharedDebts={sharedDebts} currentUserId={user?.id ?? ''} />
+        {/* ─── SHARED TAB ─── */}
+        {activeTab === 'shared' && (
+          <div key={`shared-${contentKey}`} className="page-appear flex flex-col gap-5 p-5 pt-5">
+            <p className="text-overline">Chi chung</p>
+            <SharedExpenseStats sharedExpenses={sharedExpenses} currentUserId={user?.id ?? ''} />
 
             {/* Filter tabs */}
-            <Tabs value={debtFilter} onValueChange={v => setDebtFilter(v as DebtFilter)}>
+            <Tabs value={splitFilter} onValueChange={v => setSplitFilter(v as SplitFilter)}>
               <TabsList className="w-full h-10 bg-[var(--muted)] rounded-xl p-1">
                 <TabsTrigger
-                  value="owed_to_me"
+                  value="ho_no"
                   className="flex-1 text-sm rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-sm"
                 >
                   Họ nợ tôi
                 </TabsTrigger>
                 <TabsTrigger
-                  value="owed_by_me"
+                  value="toi_no"
                   className="flex-1 text-sm rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-sm"
                 >
                   Tôi đang nợ
@@ -555,16 +555,16 @@ export default function HomePage() {
               </TabsList>
             </Tabs>
 
-            {filteredDebts.length === 0 ? (
+            {filteredSharedExpenses.length === 0 ? (
               <EmptyState
                 icon={Handshake}
-                title={debtFilter === 'settled' ? 'Chưa có khoản nợ đã xử lý' : 'Chưa có khoản nợ nào'}
-                subtitle={debtFilter === 'settled' ? undefined : 'Nhấn + Ghi nợ để thêm'}
+                title={splitFilter === 'settled' ? 'Chưa có khoản chi chung đã xử lý' : 'Chưa có khoản chi chung nào'}
+                subtitle={splitFilter === 'settled' ? undefined : "Nhấn + Ghi chi chung để thêm"}
               />
             ) : (
               <div className="flex flex-col gap-3">
-                {filteredDebts.map(d => (
-                  <SharedDebtCard key={d.id} debt={d} currentUserId={user?.id ?? ''} />
+                {filteredSharedExpenses.map(e => (
+                  <SharedExpenseCard key={e.id} sharedExpense={e} currentUserId={user?.id ?? ''} />
                 ))}
               </div>
             )}
@@ -577,7 +577,7 @@ export default function HomePage() {
             activeTab={activeTab}
             onIncome={handleOpenIncomForm}
             onExpense={handleOpenExpenseForm}
-            onDebt={() => setDebtFormOpen(true)}
+            onCreateShared={() => setSharedFormOpen(true)}
             isFirstTime={isFirstTime}
           />
         </div>
@@ -603,9 +603,9 @@ export default function HomePage() {
         editingTx={editingTx}
         onClose={() => { setTxFormOpen(false); setEditingTx(null); }}
       />
-      <DebtForm
-        open={debtFormOpen}
-        onClose={() => setDebtFormOpen(false)}
+      <SharedExpenseForm
+        open={sharedFormOpen}
+        onClose={() => setSharedFormOpen(false)}
       />
 
       <AddSourceSheet open={showAddSource} onClose={() => setShowAddSource(false)} />

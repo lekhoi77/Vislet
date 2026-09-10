@@ -48,9 +48,9 @@
   --orange-soft: hsl(28, 95%, 94%);
   --orange-muted: hsl(26, 75%, 82%);
 
-  /* ─── DEBT (Purple) ─── */
-  --debt: hsl(262, 60%, 55%);
-  --debt-soft: hsl(262, 60%, 95%);
+  /* ─── SPLIT / CHI CHUNG (Purple) ─── */
+  --split: hsl(262, 60%, 55%);
+  --split-soft: hsl(262, 60%, 95%);
 
   /* ─── BACKGROUND ─── */
   --background: #F9F9F9;
