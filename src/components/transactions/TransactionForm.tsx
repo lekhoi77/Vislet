@@ -15,12 +15,24 @@ import { Button } from '@/components/ui/button';
 import { AmountInput } from '@/components/shared/AmountInput';
 import { useAppStore } from '@/store/app-store';
 import { Transaction, TransactionSource, TransactionCategory, TransactionType } from '@/lib/types';
-import { TrendingUp, TrendingDown, ArrowRight, Loader2, EyeOff } from 'lucide-react';
+import { TrendingUp, TrendingDown, ArrowRight, Loader2, EyeOff, Camera, Sparkles } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { formatVND } from '@/lib/format';
 import { CategoryIcon, AppIcon } from '@/lib/icons';
 import { isReportableTransaction } from '@/lib/transaction-reporting';
+import { resizeImageToBase64 } from '@/lib/client-image';
+
+function AiBadge() {
+  return (
+    <span
+      className="inline-flex items-center gap-1 text-[10px] font-semibold px-1.5 py-0.5 rounded-full normal-case tracking-normal"
+      style={{ background: 'var(--primary-soft)', color: 'var(--primary)' }}
+    >
+      <Sparkles size={9} /> AI gợi ý
+    </span>
+  );
+}
 
 interface TransactionFormProps {
   open: boolean;
@@ -75,7 +87,7 @@ import { UserSearchPicker, PickedParticipant } from '@/components/shared/UserSea
 import { Users } from 'lucide-react';
 
 export function TransactionForm({ open, type, editingTx, onClose }: TransactionFormProps) {
-  const { addTransaction, updateTransaction, createSharedExpense, transactions, customSources, customCategories } = useAppStore();
+  const { addTransaction, updateTransaction, createSharedExpense, transactions, customSources, customCategories, currentProfileId } = useAppStore();
 
   // customSources/customCategories đã chứa cả defaults (bank/cash/momo, saving/...)
   // được seed trong fetchProfileData — không prepend BUILT_IN nữa, sẽ duplicate.
@@ -106,7 +118,73 @@ export function TransactionForm({ open, type, editingTx, onClose }: TransactionF
   const [splitAmount, setSplitAmount] = useState<number>(0);
   const [splitDueDate, setSplitDueDate] = useState<string>('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [scanning, setScanning] = useState(false);
+  const [aiFields, setAiFields] = useState<Set<string>>(new Set());
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const isIncome = type === 'income';
+
+  const clearAiField = (field: string) => {
+    setAiFields(prev => {
+      if (!prev.has(field)) return prev;
+      const next = new Set(prev);
+      next.delete(field);
+      return next;
+    });
+  };
+
+  const handleScanClick = () => {
+    if (scanning) return;
+    fileInputRef.current?.click();
+  };
+
+  const handleFileSelected = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = ''; // cho phép chọn lại cùng 1 file lần sau
+    if (!file || !currentProfileId) return;
+    setScanning(true);
+    try {
+      const { base64, mimeType } = await resizeImageToBase64(file);
+      const res = await fetch('/api/receipts/scan', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          imageBase64: base64,
+          mimeType,
+          profileId: currentProfileId,
+          type,
+          today: new Date().toISOString().slice(0, 10),
+          categories: customCategories.map(c => ({ id: c.id, label: c.label })),
+          sources: customSources.map(s => ({ id: s.id, label: s.label })),
+        }),
+      });
+      if (!res.ok) {
+        const body = await res.json().catch(() => null);
+        throw new Error(body?.error ?? 'Không đọc được ảnh');
+      }
+      const result = await res.json();
+      const filled = new Set<string>(result.fieldsFilledByAi ?? []);
+
+      if (filled.has('title')) setTitle(result.title);
+      if (filled.has('amount') && result.amount > 0) setAmount(result.amount);
+      if (filled.has('date')) setDate(result.date);
+      if (filled.has('note')) setNote(result.note);
+      if (filled.has('category') && result.categoryId) { setCategory(result.categoryId); } else { filled.delete('category'); }
+      if (filled.has('source') && result.sourceId) { setSource(result.sourceId); } else { filled.delete('source'); }
+      setAiFields(filled);
+
+      if (result.type && result.type !== type) {
+        toast(`Ảnh này có vẻ là khoản ${result.type === 'income' ? 'thu' : 'chi'}, bạn đang nhập khoản ${isIncome ? 'thu' : 'chi'} — kiểm tra lại trước khi lưu nhé.`);
+      } else if (filled.size === 0) {
+        toast.error('Không nhận diện được thông tin từ ảnh này, vui lòng nhập tay');
+      } else {
+        toast.success('Đã điền thông tin từ ảnh, kiểm tra lại trước khi lưu');
+      }
+    } catch (err) {
+      toast.error((err as Error).message || 'Không quét được ảnh này');
+    } finally {
+      setScanning(false);
+    }
+  };
 
   useEffect(() => {
     if (open) {
@@ -135,6 +213,8 @@ export function TransactionForm({ open, type, editingTx, onClose }: TransactionF
       setSplitDueDate('');
       setErrors({});
       setIsSubmitting(false);
+      setAiFields(new Set());
+      setScanning(false);
     }
   }, [open, editingTx]);
 
@@ -300,13 +380,13 @@ export function TransactionForm({ open, type, editingTx, onClose }: TransactionF
           <div className="flex flex-col gap-5">
             {/* Title */}
             <div className="flex flex-col gap-2">
-              <Label className="text-sm font-medium tracking-wide uppercase" style={{ color: 'var(--muted-foreground)' }}>
-                Nội dung *
+              <Label className="text-sm font-medium tracking-wide uppercase flex items-center gap-1.5" style={{ color: 'var(--muted-foreground)' }}>
+                Nội dung * {aiFields.has('title') && <AiBadge />}
               </Label>
               <Input
                 id="tx-title"
                 value={title}
-                onChange={e => setTitle(e.target.value)}
+                onChange={e => { setTitle(e.target.value); clearAiField('title'); }}
                 placeholder={isIncome ? 'VD: Lương tháng 5...' : 'VD: Cà phê Highlands...'}
                 maxLength={100}
                 className={errors.title ? 'border-[var(--destructive)]' : ''}
@@ -317,28 +397,34 @@ export function TransactionForm({ open, type, editingTx, onClose }: TransactionF
             </div>
 
             {/* Amount */}
-            <AmountInput value={amount} onChange={setAmount} type={type} error={errors.amount} />
+            <AmountInput
+              value={amount}
+              onChange={v => { setAmount(v); clearAiField('amount'); }}
+              type={type}
+              error={errors.amount}
+              label={<span className="flex items-center gap-1.5">Số tiền * {aiFields.has('amount') && <AiBadge />}</span>}
+            />
 
             {/* Date */}
             <div className="flex flex-col gap-2">
-              <Label htmlFor="tx-date" className="text-sm font-medium tracking-wide uppercase" style={{ color: 'var(--muted-foreground)' }}>
-                Ngày
+              <Label htmlFor="tx-date" className="text-sm font-medium tracking-wide uppercase flex items-center gap-1.5" style={{ color: 'var(--muted-foreground)' }}>
+                Ngày {aiFields.has('date') && <AiBadge />}
               </Label>
               <Input
                 id="tx-date"
                 type="date"
                 value={date}
-                onChange={e => setDate(e.target.value)}
+                onChange={e => { setDate(e.target.value); clearAiField('date'); }}
                 max={new Date().toISOString().slice(0, 10)}
               />
             </div>
 
             {/* Source */}
             <div className="flex flex-col gap-2">
-              <Label className="text-sm font-medium tracking-wide uppercase" style={{ color: 'var(--muted-foreground)' }}>
-                Nguồn tiền *
+              <Label className="text-sm font-medium tracking-wide uppercase flex items-center gap-1.5" style={{ color: 'var(--muted-foreground)' }}>
+                Nguồn tiền * {aiFields.has('source') && <AiBadge />}
               </Label>
-              <SelectGroup options={SOURCES} value={source} onChange={setSource} accent={isIncome ? 'primary' : 'orange'} />
+              <SelectGroup options={SOURCES} value={source} onChange={v => { setSource(v); clearAiField('source'); }} accent={isIncome ? 'primary' : 'orange'} />
               {sourcePreview && (
                 <div
                   className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium"
@@ -357,13 +443,13 @@ export function TransactionForm({ open, type, editingTx, onClose }: TransactionF
             {/* Category - expense only */}
             {!isIncome && (
               <div className="flex flex-col gap-2">
-                <Label className="text-sm font-medium tracking-wide uppercase" style={{ color: 'var(--muted-foreground)' }}>
-                  Danh mục
+                <Label className="text-sm font-medium tracking-wide uppercase flex items-center gap-1.5" style={{ color: 'var(--muted-foreground)' }}>
+                  Danh mục {aiFields.has('category') && <AiBadge />}
                 </Label>
                 <SelectGroup
                   options={CATEGORIES}
                   value={category}
-                  onChange={setCategory}
+                  onChange={v => { setCategory(v); clearAiField('category'); }}
                   accent="orange"
                   disabled={excludedFromReports}
                 />
@@ -420,13 +506,13 @@ export function TransactionForm({ open, type, editingTx, onClose }: TransactionF
 
             {/* Note */}
             <div className="flex flex-col gap-2">
-              <Label className="text-sm font-medium tracking-wide uppercase" style={{ color: 'var(--muted-foreground)' }}>
-                Ghi chú (tuỳ chọn)
+              <Label className="text-sm font-medium tracking-wide uppercase flex items-center gap-1.5" style={{ color: 'var(--muted-foreground)' }}>
+                Ghi chú (tuỳ chọn) {aiFields.has('note') && <AiBadge />}
               </Label>
               <Textarea
                 id="tx-note"
                 value={note}
-                onChange={e => setNote(e.target.value)}
+                onChange={e => { setNote(e.target.value); clearAiField('note'); }}
                 placeholder="Thêm ghi chú..."
                 maxLength={500}
                 rows={2}
@@ -538,12 +624,30 @@ export function TransactionForm({ open, type, editingTx, onClose }: TransactionF
         </div>
 
         {/* Fixed footer */}
-        <div className="shrink-0 px-5 pt-3 pb-8" style={{ borderTop: '1px solid var(--border)' }}>
+        <div className="shrink-0 px-5 pt-3 pb-8 flex items-center gap-2" style={{ borderTop: '1px solid var(--border)' }}>
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/*"
+            capture="environment"
+            hidden
+            onChange={handleFileSelected}
+          />
+          <button
+            type="button"
+            onClick={handleScanClick}
+            disabled={scanning || isSubmitting}
+            aria-label="Quét hoá đơn bằng AI"
+            className="shrink-0 h-12 w-12 rounded-xl flex items-center justify-center transition-opacity disabled:opacity-60 disabled:cursor-not-allowed"
+            style={{ background: 'var(--muted)', color: 'var(--foreground)' }}
+          >
+            {scanning ? <Loader2 size={18} className="animate-spin" /> : <Camera size={18} />}
+          </button>
           <Button
             id="tx-submit"
             onClick={handleSubmit}
             disabled={isSubmitting}
-            className="w-full h-12 rounded-xl text-sm font-semibold tracking-wide flex items-center justify-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed"
+            className="flex-1 h-12 rounded-xl text-sm font-semibold tracking-wide flex items-center justify-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed"
             style={{
               background: isIncome ? 'var(--primary)' : 'var(--orange)',
               color: isIncome ? 'var(--primary-foreground)' : 'var(--orange-foreground)',

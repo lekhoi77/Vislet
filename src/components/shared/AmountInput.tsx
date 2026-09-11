@@ -11,7 +11,7 @@ interface AmountInputProps {
   onChange: (value: number) => void;
   type?: 'income' | 'expense';
   error?: string;
-  label?: string;
+  label?: React.ReactNode;
 }
 
 export function AmountInput({ value, onChange, type = 'income', error, label = 'Số tiền *' }: AmountInputProps) {
