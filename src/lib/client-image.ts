@@ -3,7 +3,7 @@
  *  thêm thư viện. */
 export async function resizeImageToBase64(
   file: File,
-  maxDim = 1568,
+  maxDim = 1280,
   quality = 0.8,
 ): Promise<{ base64: string; mimeType: string }> {
   const objectUrl = URL.createObjectURL(file);

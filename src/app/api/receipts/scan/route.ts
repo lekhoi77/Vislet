@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { supabase } from '@/lib/supabase';
+import { createAuthedServerClient } from '@/lib/supabase';
 import { scanReceipt, ReceiptScanOption } from '@/lib/receipt-scan';
 
 export const runtime = 'nodejs';
@@ -48,9 +48,16 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: 'Thiếu dữ liệu bắt buộc' }, { status: 400 });
   }
 
-  // Chặn gọi trái phép từ bên ngoài app: profileId phải tồn tại thật trong DB
-  // (Vislet chưa có auth thật, đây là rào chắn tối thiểu cho v1).
-  const { data: profile, error: profileError } = await supabase
+  // Xác thực: profileId phải thuộc đúng user đang đăng nhập (RLS auth.uid() =
+  // user_id trên bảng profiles) — cần forward access token từ client, vì
+  // Supabase client phía server không tự mang theo phiên đăng nhập.
+  const authHeader = req.headers.get('authorization');
+  const accessToken = authHeader?.startsWith('Bearer ') ? authHeader.slice(7) : null;
+  if (!accessToken) {
+    return NextResponse.json({ error: 'Chưa đăng nhập' }, { status: 401 });
+  }
+  const authedClient = createAuthedServerClient(accessToken);
+  const { data: profile, error: profileError } = await authedClient
     .from('profiles')
     .select('id')
     .eq('id', profileId)

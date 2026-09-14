@@ -22,6 +22,7 @@ import { formatVND } from '@/lib/format';
 import { CategoryIcon, AppIcon } from '@/lib/icons';
 import { isReportableTransaction } from '@/lib/transaction-reporting';
 import { resizeImageToBase64 } from '@/lib/client-image';
+import { supabase } from '@/lib/supabase';
 
 function AiBadge() {
   return (
@@ -143,10 +144,18 @@ export function TransactionForm({ open, type, editingTx, onClose }: TransactionF
     if (!file || !currentProfileId) return;
     setScanning(true);
     try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        toast.error('Cần đăng nhập để dùng tính năng này');
+        return;
+      }
       const { base64, mimeType } = await resizeImageToBase64(file);
       const res = await fetch('/api/receipts/scan', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${session.access_token}`,
+        },
         body: JSON.stringify({
           imageBase64: base64,
           mimeType,
@@ -378,6 +387,15 @@ export function TransactionForm({ open, type, editingTx, onClose }: TransactionF
           style={!isIncome ? { '--ring': 'hsl(24, 90%, 58%)', '--ring-opacity': '0.4' } as React.CSSProperties : undefined}
         >
           <div className="flex flex-col gap-5">
+            {scanning && (
+              <div
+                className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium"
+                style={{ background: 'var(--primary-soft)', color: 'var(--primary)' }}
+              >
+                <Loader2 size={14} className="animate-spin" />
+                Đang đọc hoá đơn...
+              </div>
+            )}
             {/* Title */}
             <div className="flex flex-col gap-2">
               <Label className="text-sm font-medium tracking-wide uppercase flex items-center gap-1.5" style={{ color: 'var(--muted-foreground)' }}>

@@ -5,6 +5,16 @@ const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!;
 
 export const supabase = createClient(supabaseUrl, supabaseKey);
 
+/** Client Supabase server-side mang theo access token của user hiện tại —
+ *  cần thiết để RLS (auth.uid() = user_id) xác thực đúng chủ sở hữu.
+ *  `supabase` export ở trên KHÔNG mang session, dùng cho việc này sẽ luôn
+ *  bị RLS chặn dù dữ liệu có tồn tại thật. */
+export function createAuthedServerClient(accessToken: string) {
+  return createClient(supabaseUrl, supabaseKey, {
+    global: { headers: { Authorization: `Bearer ${accessToken}` } },
+  });
+}
+
 // ─── Database row types (snake_case từ Supabase) ───────────
 
 export interface ProfileRow {

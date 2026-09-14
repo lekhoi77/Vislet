@@ -1,9 +1,17 @@
-import { GoogleGenAI, Type } from '@google/genai';
+import { GoogleGenAI, Type, ApiError } from '@google/genai';
+
+function sleep(ms: number): Promise<void> {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
 
 // Model dùng để quét hoá đơn/chuyển khoản — đổi qua biến môi trường
-// GEMINI_MODEL nếu cần, không phải sửa code. 'gemini-2.0-flash' là ví dụ
-// chính thức trong tài liệu @google/genai tại thời điểm viết.
-const MODEL = process.env.GEMINI_MODEL || 'gemini-2.0-flash';
+// GEMINI_MODEL nếu cần, không phải sửa code.
+// Lưu ý: alias 'gemini-flash-latest' từng bị 503 "high demand" khi test
+// (có thể do nó trỏ tới 1 endpoint đang quá tải), trong khi ghim đúng
+// 'gemini-3.6-flash' (model Google khuyến nghị khi gemini-2.0/2.5-flash
+// bị khai tử) chạy ổn định với structured output — dùng model cụ thể này
+// làm mặc định thay vì alias.
+const MODEL = process.env.GEMINI_MODEL || 'gemini-3.6-flash';
 
 let client: GoogleGenAI | null = null;
 function getClient(): GoogleGenAI {
@@ -90,9 +98,26 @@ function buildResponseSchema(input: ReceiptScanInput) {
   };
 }
 
+// Gemini thỉnh thoảng trả 503 "high demand" — lỗi tạm thời phía Google, tự
+// thử lại 1 lần sau độ trễ ngắn thay vì bắt người dùng tự bấm quét lại.
+async function generateContentWithRetry(
+  ai: GoogleGenAI,
+  params: Parameters<GoogleGenAI['models']['generateContent']>[0],
+) {
+  try {
+    return await ai.models.generateContent(params);
+  } catch (err) {
+    if (err instanceof ApiError && err.status === 503) {
+      await sleep(1500);
+      return await ai.models.generateContent(params);
+    }
+    throw err;
+  }
+}
+
 export async function scanReceipt(input: ReceiptScanInput): Promise<ReceiptScanResult> {
   const ai = getClient();
-  const response = await ai.models.generateContent({
+  const response = await generateContentWithRetry(ai, {
     model: MODEL,
     contents: [
       {
@@ -108,6 +133,13 @@ export async function scanReceipt(input: ReceiptScanInput): Promise<ReceiptScanR
       responseSchema: buildResponseSchema(input),
     },
   });
+
+  const usage = response.usageMetadata;
+  if (usage) {
+    console.log(
+      `receipt-scan tokens: prompt=${usage.promptTokenCount} output=${usage.candidatesTokenCount} total=${usage.totalTokenCount}`,
+    );
+  }
 
   const text = response.text;
   if (!text) throw new Error('AI không trả về kết quả');
