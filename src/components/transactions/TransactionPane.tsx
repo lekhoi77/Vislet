@@ -107,7 +107,7 @@ export function TransactionPane({ transactions, onEdit }: TransactionPaneProps) 
 
   // Build source + category options
   const sourceOptions = customSources.map(s => ({ value: s.id, label: s.label }));
-  const categoryOptions = customCategories.map(c => ({ value: c.id, label: c.label }));
+  const categoryOptions = customCategories.map(c => ({ value: c.id, label: resolveCategoryLabel(c.id, customCategories) }));
 
   // Apply filters
   const filtered = useMemo(() => {

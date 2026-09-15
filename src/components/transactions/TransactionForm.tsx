@@ -98,16 +98,20 @@ export function TransactionForm({ open, type, editingTx, onClose }: TransactionF
     icon: <AppIcon name={s.icon} size={15} />,
   }));
 
-  const CATEGORIES = customCategories.map(c => ({
-    value: c.id,
-    label: c.label,
-    icon: <CategoryIcon name={c.icon} size={14} />,
-  }));
+  // 'none' (Chưa phân loại) không còn cho chọn mới — thay bằng "Không tính vào báo cáo".
+  // Giao dịch cũ đã gắn 'none' vẫn giữ nguyên, chỉ ẩn khỏi danh sách lựa chọn.
+  const CATEGORIES = customCategories
+    .filter(c => c.id !== 'none')
+    .map(c => ({
+      value: c.id,
+      label: c.label,
+      icon: <CategoryIcon name={c.icon} size={14} />,
+    }));
 
   const [title, setTitle] = useState('');
   const [amount, setAmount] = useState(0);
   const [source, setSource] = useState<TransactionSource>('bank');
-  const [category, setCategory] = useState<TransactionCategory>('none');
+  const [category, setCategory] = useState<TransactionCategory>('saving');
   const [note, setNote] = useState('');
   const [date, setDate] = useState('');
   const [excludedFromReports, setExcludedFromReports] = useState(false);
@@ -117,6 +121,8 @@ export function TransactionForm({ open, type, editingTx, onClose }: TransactionF
   const [splitEnabled, setSplitEnabled] = useState(false);
   const [splitParticipant, setSplitParticipant] = useState<PickedParticipant | null>(null);
   const [splitAmount, setSplitAmount] = useState<number>(0);
+  const [splitLockHint, setSplitLockHint] = useState(false);
+  const isSplitLocked = amount <= 0;
   const [splitDueDate, setSplitDueDate] = useState<string>('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [scanning, setScanning] = useState(false);
@@ -181,6 +187,14 @@ export function TransactionForm({ open, type, editingTx, onClose }: TransactionF
       if (filled.has('source') && result.sourceId) { setSource(result.sourceId); } else { filled.delete('source'); }
       setAiFields(filled);
 
+      // Reset lỗi validate cũ, chỉ giữ lại lỗi cho field thực sự còn thiếu sau khi scan
+      const effTitle = filled.has('title') ? result.title : title;
+      const effAmount = (filled.has('amount') && result.amount > 0) ? result.amount : amount;
+      const newErrors: Record<string, string> = {};
+      if (!effTitle.trim()) newErrors.title = 'Vui lòng nhập nội dung';
+      if (effAmount <= 0) newErrors.amount = 'Vui lòng nhập số tiền hợp lệ';
+      setErrors(newErrors);
+
       if (result.type && result.type !== type) {
         toast(`Ảnh này có vẻ là khoản ${result.type === 'income' ? 'thu' : 'chi'}, bạn đang nhập khoản ${isIncome ? 'thu' : 'chi'} — kiểm tra lại trước khi lưu nhé.`);
       } else if (filled.size === 0) {
@@ -211,7 +225,7 @@ export function TransactionForm({ open, type, editingTx, onClose }: TransactionF
         setAmount(0);
         // Fallback nếu user đã xoá default 'bank'/'none' — pick first available
         setSource((customSources.find(s => s.id === 'bank')?.id ?? customSources[0]?.id ?? 'bank') as TransactionSource);
-        setCategory((customCategories.find(c => c.id === 'none')?.id ?? customCategories[0]?.id ?? 'none') as TransactionCategory);
+        setCategory((CATEGORIES[0]?.value ?? 'saving') as TransactionCategory);
         setNote('');
         setDate(todayStr);
         setExcludedFromReports(false);
@@ -481,7 +495,7 @@ export function TransactionForm({ open, type, editingTx, onClose }: TransactionF
                 border: `1px solid ${excludedFromReports ? exclusionMuted : 'transparent'}`,
               }}
             >
-              <label className="flex items-center justify-between gap-3 cursor-pointer">
+              <label className="flex items-center justify-between gap-3 cursor-pointer" onClick={handleToggleExcludedFromReports}>
                 <div className="flex items-start gap-2">
                   <EyeOff
                     size={15}
@@ -500,8 +514,7 @@ export function TransactionForm({ open, type, editingTx, onClose }: TransactionF
                 <span
                   role="switch"
                   aria-checked={excludedFromReports}
-                  onClick={handleToggleExcludedFromReports}
-                  className="relative inline-flex shrink-0 cursor-pointer rounded-full transition-colors"
+                  className="relative inline-flex shrink-0 rounded-full transition-colors"
                   style={{
                     width: 36,
                     height: 20,
@@ -544,7 +557,17 @@ export function TransactionForm({ open, type, editingTx, onClose }: TransactionF
             {/* Split cost — only for expense (new or existing) */}
             {!isIncome && !excludedFromReports && (
               <div className="flex flex-col gap-3 p-3 rounded-xl" style={{ background: 'var(--muted)' }}>
-                <label className="flex items-center justify-between gap-3 cursor-pointer">
+                <label
+                  className="flex items-center justify-between gap-3"
+                  style={{ cursor: isSplitLocked ? 'not-allowed' : 'pointer' }}
+                  onClick={() => {
+                    if (isSplitLocked) {
+                      setSplitLockHint(true);
+                      return;
+                    }
+                    setSplitEnabled(v => !v);
+                  }}
+                >
                   <div className="flex items-center gap-2">
                     <Users size={15} style={{ color: 'var(--foreground)' }} />
                     <span className="text-sm font-semibold" style={{ color: 'var(--foreground)' }}>
@@ -554,11 +577,12 @@ export function TransactionForm({ open, type, editingTx, onClose }: TransactionF
                   <span
                     role="switch"
                     aria-checked={splitEnabled}
-                    onClick={() => setSplitEnabled(v => !v)}
-                    className="relative inline-flex shrink-0 cursor-pointer rounded-full transition-colors"
+                    aria-disabled={isSplitLocked}
+                    className="relative inline-flex shrink-0 rounded-full transition-colors"
                     style={{
                       width: 36, height: 20,
                       background: splitEnabled ? 'var(--primary)' : 'var(--border)',
+                      opacity: isSplitLocked ? 0.4 : 1,
                     }}
                   >
                     <span
@@ -568,7 +592,13 @@ export function TransactionForm({ open, type, editingTx, onClose }: TransactionF
                   </span>
                 </label>
 
-                {splitEnabled && (
+                {isSplitLocked && splitLockHint && (
+                  <p className="text-sm" style={{ color: 'var(--destructive)' }}>
+                    Vui lòng điền số tiền chi tiêu trước khi chia chi phí
+                  </p>
+                )}
+
+                {splitEnabled && !isSplitLocked && (
                   <>
                     <div className="flex flex-col gap-2">
                       <Label className="text-sm font-medium tracking-wide uppercase" style={{ color: 'var(--muted-foreground)' }}>

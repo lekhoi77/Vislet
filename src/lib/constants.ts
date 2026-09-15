@@ -18,6 +18,8 @@ export function resolveSourceLabel(sourceId: string, customSources: CustomSource
 }
 
 export function resolveCategoryLabel(categoryId: string, customCategories: CustomCategory[] = []): string {
+  // 'none' không còn đổi tên được qua UI — luôn dùng nhãn chuẩn, bỏ qua label cũ lưu sẵn trong DB.
+  if (categoryId === 'none') return CATEGORY_LABELS.none;
   return customCategories.find(c => c.id === categoryId)?.label
     ?? CATEGORY_LABELS[categoryId]
     ?? categoryId;
@@ -54,7 +56,7 @@ export const SOURCE_LABELS: Record<string, string> = {
 };
 
 export const CATEGORY_LABELS: Record<string, string> = {
-  none: 'Không phân loại',
+  none: 'Chưa phân loại',
   saving: 'Tiết kiệm',
   travel: 'Du lịch',
   soon: 'Sắp dùng',
