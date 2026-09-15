@@ -4,14 +4,34 @@ function sleep(ms: number): Promise<void> {
   return new Promise(resolve => setTimeout(resolve, ms));
 }
 
-// Model dùng để quét hoá đơn/chuyển khoản — đổi qua biến môi trường
+// Model chính dùng để quét hoá đơn/chuyển khoản — đổi qua biến môi trường
 // GEMINI_MODEL nếu cần, không phải sửa code.
 // Lưu ý: alias 'gemini-flash-latest' từng bị 503 "high demand" khi test
 // (có thể do nó trỏ tới 1 endpoint đang quá tải), trong khi ghim đúng
 // 'gemini-3.6-flash' (model Google khuyến nghị khi gemini-2.0/2.5-flash
 // bị khai tử) chạy ổn định với structured output — dùng model cụ thể này
 // làm mặc định thay vì alias.
-const MODEL = process.env.GEMINI_MODEL || 'gemini-3.6-flash';
+const PRIMARY_MODEL = process.env.GEMINI_MODEL || 'gemini-3.6-flash';
+
+// Free tier của Gemini giới hạn request/ngày rất thấp cho từng model riêng
+// biệt (ví dụ gemini-3.6-flash chỉ 20 request/ngày) — khi model chính hết
+// quota (lỗi 429 RESOURCE_EXHAUSTED), tự động rớt xuống model dự phòng kế
+// tiếp thay vì để tính năng ngưng hoạt động cả ngày. Vì mỗi model có quota
+// riêng, tổng dung lượng dùng được trong ngày sẽ cộng dồn theo số model
+// trong danh sách này. Đổi qua GEMINI_FALLBACK_MODELS (phân cách bởi dấu
+// phẩy) nếu cần tuỳ chỉnh, để trống để tắt hẳn fallback.
+// Lưu ý: đã verify trực tiếp bằng API key thật (09/2026) — KHÔNG dùng
+// gemini-2.5-flash/gemini-2.5-flash-lite làm fallback dù models.list vẫn
+// liệt kê chúng, vì gọi thực tế bị 404 "no longer available to new users"
+// (Google đã khai tử cho project mới, dù project cũ có thể vẫn gọi được).
+const FALLBACK_MODELS = (
+  process.env.GEMINI_FALLBACK_MODELS ?? 'gemini-3.7-flash,gemini-3.5-flash,gemini-3.5-flash-lite'
+)
+  .split(',')
+  .map(m => m.trim())
+  .filter(Boolean);
+
+const MODELS = [PRIMARY_MODEL, ...FALLBACK_MODELS.filter(m => m !== PRIMARY_MODEL)];
 
 let client: GoogleGenAI | null = null;
 function getClient(): GoogleGenAI {
@@ -98,27 +118,46 @@ function buildResponseSchema(input: ReceiptScanInput) {
   };
 }
 
-// Gemini thỉnh thoảng trả 503 "high demand" — lỗi tạm thời phía Google, tự
-// thử lại 1 lần sau độ trễ ngắn thay vì bắt người dùng tự bấm quét lại.
-async function generateContentWithRetry(
+// Lỗi khiến model hiện tại KHÔNG dùng được nhưng model khác trong danh sách
+// vẫn có thể ổn — nên rớt xuống fallback thay vì bỏ cuộc luôn:
+// 429 = hết quota free tier riêng của model đó, 503 = model đang quá tải,
+// 404 = model đã bị Google khai tử cho project này (đã gặp thực tế với
+// gemini-2.5-flash dù model đó vẫn nằm trong models.list).
+const FALLBACK_ELIGIBLE_STATUSES = new Set([429, 503, 404]);
+
+async function generateContentWithFallback(
   ai: GoogleGenAI,
-  params: Parameters<GoogleGenAI['models']['generateContent']>[0],
-) {
-  try {
-    return await ai.models.generateContent(params);
-  } catch (err) {
-    if (err instanceof ApiError && err.status === 503) {
-      await sleep(1500);
-      return await ai.models.generateContent(params);
+  buildParams: (model: string) => Parameters<GoogleGenAI['models']['generateContent']>[0],
+): Promise<{ response: Awaited<ReturnType<GoogleGenAI['models']['generateContent']>>; model: string }> {
+  let lastErr: unknown;
+  for (const model of MODELS) {
+    const params = buildParams(model);
+    try {
+      return { response: await ai.models.generateContent(params), model };
+    } catch (err) {
+      lastErr = err;
+      const status = err instanceof ApiError ? err.status : undefined;
+      if (status === 503) {
+        try {
+          await sleep(1500);
+          return { response: await ai.models.generateContent(params), model };
+        } catch (retryErr) {
+          lastErr = retryErr;
+        }
+      }
+      if (!status || !FALLBACK_ELIGIBLE_STATUSES.has(status)) {
+        // Lỗi không do quota/model quá tải/khai tử (vd request sai) — thử model khác cũng sẽ fail, dừng luôn.
+        throw err;
+      }
     }
-    throw err;
   }
+  throw lastErr;
 }
 
 export async function scanReceipt(input: ReceiptScanInput): Promise<ReceiptScanResult> {
   const ai = getClient();
-  const response = await generateContentWithRetry(ai, {
-    model: MODEL,
+  const { response, model } = await generateContentWithFallback(ai, model => ({
+    model,
     contents: [
       {
         role: 'user',
@@ -132,12 +171,12 @@ export async function scanReceipt(input: ReceiptScanInput): Promise<ReceiptScanR
       responseMimeType: 'application/json',
       responseSchema: buildResponseSchema(input),
     },
-  });
+  }));
 
   const usage = response.usageMetadata;
   if (usage) {
     console.log(
-      `receipt-scan tokens: prompt=${usage.promptTokenCount} output=${usage.candidatesTokenCount} total=${usage.totalTokenCount}`,
+      `receipt-scan tokens: model=${model} prompt=${usage.promptTokenCount} output=${usage.candidatesTokenCount} total=${usage.totalTokenCount}`,
     );
   }
 
