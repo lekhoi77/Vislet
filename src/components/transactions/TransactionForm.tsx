@@ -15,7 +15,13 @@ import { Button } from '@/components/ui/button';
 import { AmountInput } from '@/components/shared/AmountInput';
 import { useAppStore } from '@/store/app-store';
 import { Transaction, TransactionSource, TransactionCategory, TransactionType } from '@/lib/types';
-import { TrendingUp, TrendingDown, ArrowRight, Loader2, EyeOff, Camera, Sparkles } from 'lucide-react';
+import { TrendingUp, TrendingDown, ArrowRight, Loader2, EyeOff, Camera, Images, Sparkles } from 'lucide-react';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { formatVND } from '@/lib/format';
@@ -127,7 +133,8 @@ export function TransactionForm({ open, type, editingTx, onClose }: TransactionF
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [scanning, setScanning] = useState(false);
   const [aiFields, setAiFields] = useState<Set<string>>(new Set());
-  const fileInputRef = useRef<HTMLInputElement>(null);
+  const cameraInputRef = useRef<HTMLInputElement>(null);
+  const galleryInputRef = useRef<HTMLInputElement>(null);
   const isIncome = type === 'income';
 
   const clearAiField = (field: string) => {
@@ -139,9 +146,14 @@ export function TransactionForm({ open, type, editingTx, onClose }: TransactionF
     });
   };
 
-  const handleScanClick = () => {
+  const handleCameraClick = () => {
     if (scanning) return;
-    fileInputRef.current?.click();
+    cameraInputRef.current?.click();
+  };
+
+  const handleGalleryClick = () => {
+    if (scanning) return;
+    galleryInputRef.current?.click();
   };
 
   const handleFileSelected = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -674,23 +686,38 @@ export function TransactionForm({ open, type, editingTx, onClose }: TransactionF
         {/* Fixed footer */}
         <div className="shrink-0 px-5 pt-3 pb-8 flex items-center gap-2" style={{ borderTop: '1px solid var(--border)' }}>
           <input
-            ref={fileInputRef}
+            ref={cameraInputRef}
             type="file"
             accept="image/*"
             capture="environment"
             hidden
             onChange={handleFileSelected}
           />
-          <button
-            type="button"
-            onClick={handleScanClick}
-            disabled={scanning || isSubmitting}
-            aria-label="Quét hoá đơn bằng AI"
-            className="shrink-0 h-12 w-12 rounded-xl flex items-center justify-center transition-opacity disabled:opacity-60 disabled:cursor-not-allowed"
-            style={{ background: 'var(--muted)', color: 'var(--foreground)' }}
-          >
-            {scanning ? <Loader2 size={18} className="animate-spin" /> : <Camera size={18} />}
-          </button>
+          <input
+            ref={galleryInputRef}
+            type="file"
+            accept="image/*"
+            hidden
+            onChange={handleFileSelected}
+          />
+          <DropdownMenu>
+            <DropdownMenuTrigger
+              disabled={scanning || isSubmitting}
+              aria-label="Quét hoá đơn bằng AI"
+              className="shrink-0 h-12 w-12 rounded-xl flex items-center justify-center transition-opacity disabled:opacity-60 disabled:cursor-not-allowed"
+              style={{ background: 'var(--muted)', color: 'var(--foreground)' }}
+            >
+              {scanning ? <Loader2 size={18} className="animate-spin" /> : <Camera size={18} />}
+            </DropdownMenuTrigger>
+            <DropdownMenuContent side="top" align="start">
+              <DropdownMenuItem onClick={handleCameraClick}>
+                <Camera size={16} /> Chụp ảnh
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={handleGalleryClick}>
+                <Images size={16} /> Chọn từ thư viện
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
           <Button
             id="tx-submit"
             onClick={handleSubmit}
