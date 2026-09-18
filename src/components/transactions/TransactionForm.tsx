@@ -29,6 +29,20 @@ import { CategoryIcon, AppIcon } from '@/lib/icons';
 import { isReportableTransaction } from '@/lib/transaction-reporting';
 import { resizeImageToBase64 } from '@/lib/client-image';
 import { supabase } from '@/lib/supabase';
+import { ReceiptScanReviewSheet, DraftTransaction } from '@/components/transactions/ReceiptScanReviewSheet';
+import type { ReceiptScanResult } from '@/lib/receipt-scan';
+
+// Quá trình quét thực tế có thể mất đến ~1 phút (AI xử lý ảnh phức tạp) — đổi
+// thông báo theo thời gian chờ để người dùng thấy app vẫn đang xử lý, không bị
+// đứng. Chỉ mô tả tiến trình theo góc nhìn người dùng (đọc ảnh/giao dịch của họ),
+// không lộ chi tiết kỹ thuật bên trong (model AI, retry, fallback...).
+const SCAN_STAGE_MESSAGES = [
+  'Đang đọc ảnh...',
+  'Đang nhận diện thông tin giao dịch...',
+  'Ảnh có thể chứa nhiều giao dịch, đang trích xuất từng dòng...',
+  'Sắp xong, đang tổng hợp kết quả...',
+] as const;
+const SCAN_STAGE_INTERVAL_MS = 7000;
 
 function AiBadge() {
   return (
@@ -46,6 +60,12 @@ interface TransactionFormProps {
   type: TransactionType;
   editingTx?: Transaction | null;
   onClose: () => void;
+  /** Khi set: form khởi động với dữ liệu gợi ý từ AI (chưa lưu DB) — dùng khi sửa 1 giao dịch trong màn review quét nhiều giao dịch. */
+  draftInitial?: Omit<Transaction, 'id' | 'createdAt'> | null;
+  /** true nếu draftInitial là dòng trống mới tạo (bấm "+"), không phải dòng AI gợi ý sẵn — chỉ ảnh hưởng chữ tiêu đề "Thêm" vs "Sửa". */
+  isNewEntry?: boolean;
+  /** Khi set: sau khi lưu THẬT vào DB (như flow bình thường), gọi callback này để báo cho màn review biết dòng này đã xong, không cần chờ bấm "Xác nhận" nữa. */
+  onSaveDraft?: () => void;
 }
 
 function SelectGroup<T extends string>({
@@ -93,8 +113,9 @@ function SelectGroup<T extends string>({
 import { UserSearchPicker, PickedParticipant } from '@/components/shared/UserSearchPicker';
 import { Users } from 'lucide-react';
 
-export function TransactionForm({ open, type, editingTx, onClose }: TransactionFormProps) {
+export function TransactionForm({ open, type, editingTx, onClose, draftInitial, isNewEntry, onSaveDraft }: TransactionFormProps) {
   const { addTransaction, updateTransaction, createSharedExpense, transactions, customSources, customCategories, currentProfileId } = useAppStore();
+  const isDraftMode = !!onSaveDraft;
 
   // customSources/customCategories đã chứa cả defaults (bank/cash/momo, saving/...)
   // được seed trong fetchProfileData — không prepend BUILT_IN nữa, sẽ duplicate.
@@ -132,7 +153,10 @@ export function TransactionForm({ open, type, editingTx, onClose }: TransactionF
   const [splitDueDate, setSplitDueDate] = useState<string>('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [scanning, setScanning] = useState(false);
+  const [scanStageText, setScanStageText] = useState<string>(SCAN_STAGE_MESSAGES[0]);
   const [aiFields, setAiFields] = useState<Set<string>>(new Set());
+  const [multiScanItems, setMultiScanItems] = useState<DraftTransaction[] | null>(null);
+  const [scanBatchId, setScanBatchId] = useState(0);
   const cameraInputRef = useRef<HTMLInputElement>(null);
   const galleryInputRef = useRef<HTMLInputElement>(null);
   const isIncome = type === 'income';
@@ -161,6 +185,10 @@ export function TransactionForm({ open, type, editingTx, onClose }: TransactionF
     e.target.value = ''; // cho phép chọn lại cùng 1 file lần sau
     if (!file || !currentProfileId) return;
     setScanning(true);
+    setScanStageText(SCAN_STAGE_MESSAGES[0]);
+    const stageTimers = SCAN_STAGE_MESSAGES.slice(1).map((msg, i) =>
+      setTimeout(() => setScanStageText(msg), (i + 1) * SCAN_STAGE_INTERVAL_MS)
+    );
     try {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) {
@@ -188,7 +216,35 @@ export function TransactionForm({ open, type, editingTx, onClose }: TransactionF
         const body = await res.json().catch(() => null);
         throw new Error(body?.error ?? 'Không đọc được ảnh');
       }
-      const result = await res.json();
+      const body = await res.json();
+      const items: ReceiptScanResult[] = Array.isArray(body.transactions) ? body.transactions : [];
+
+      if (items.length === 0) {
+        toast.error('Không nhận diện được thông tin từ ảnh này, vui lòng nhập tay');
+        return;
+      }
+
+      if (items.length > 1) {
+        // Ảnh có nhiều giao dịch (vd lịch sử ngân hàng) — chuyển qua màn review
+        // để chọn/sửa từng dòng rồi tạo hàng loạt, thay vì điền vào form hiện tại.
+        const defaultSourceId = customSources.find(s => s.id === 'bank')?.id ?? customSources[0]?.id ?? 'bank';
+        const defaultCategoryId = customCategories.find(c => c.id !== 'none')?.id ?? 'saving';
+        setMultiScanItems(items.map((item): DraftTransaction => ({
+          type: item.type,
+          title: item.title || (item.type === 'income' ? 'Thu nhập' : 'Chi tiêu'),
+          amount: item.amount,
+          source: item.sourceId ?? defaultSourceId,
+          category: item.categoryId ?? defaultCategoryId,
+          note: item.note,
+          date: item.date ? new Date(item.date).toISOString() : new Date().toISOString(),
+        })));
+        setScanBatchId(id => id + 1);
+        toast.success(`Đã nhận diện ${items.length} giao dịch, kiểm tra lại trước khi lưu`);
+        onClose();
+        return;
+      }
+
+      const result = items[0];
       const filled = new Set<string>(result.fieldsFilledByAi ?? []);
 
       if (filled.has('title')) setTitle(result.title);
@@ -217,6 +273,7 @@ export function TransactionForm({ open, type, editingTx, onClose }: TransactionF
     } catch (err) {
       toast.error((err as Error).message || 'Không quét được ảnh này');
     } finally {
+      stageTimers.forEach(clearTimeout);
       setScanning(false);
     }
   };
@@ -224,14 +281,15 @@ export function TransactionForm({ open, type, editingTx, onClose }: TransactionF
   useEffect(() => {
     if (open) {
       const todayStr = new Date().toISOString().slice(0, 10);
-      if (editingTx) {
-        setTitle(editingTx.title);
-        setAmount(editingTx.amount);
-        setSource(editingTx.source);
-        setCategory(editingTx.category);
-        setNote(editingTx.note);
-        setDate(new Date(editingTx.date).toISOString().slice(0, 10));
-        setExcludedFromReports(editingTx.excludedFromReports ?? false);
+      const seed = editingTx ?? draftInitial;
+      if (seed) {
+        setTitle(seed.title);
+        setAmount(seed.amount);
+        setSource(seed.source);
+        setCategory(seed.category);
+        setNote(seed.note);
+        setDate(new Date(seed.date).toISOString().slice(0, 10));
+        setExcludedFromReports(seed.excludedFromReports ?? false);
       } else {
         setTitle('');
         setAmount(0);
@@ -251,7 +309,8 @@ export function TransactionForm({ open, type, editingTx, onClose }: TransactionF
       setAiFields(new Set());
       setScanning(false);
     }
-  }, [open, editingTx]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, editingTx, draftInitial]);
 
   const validate = () => {
     const e: Record<string, string> = {};
@@ -283,7 +342,6 @@ export function TransactionForm({ open, type, editingTx, onClose }: TransactionF
   const handleSubmit = useCallback(async () => {
     if (isSubmitting) return;
     if (!validate()) return;
-    setIsSubmitting(true);
     const txData = {
       type,
       title: title.trim(),
@@ -296,6 +354,8 @@ export function TransactionForm({ open, type, editingTx, onClose }: TransactionF
         ? { excludedFromReports }
         : {}),
     };
+
+    setIsSubmitting(true);
     try {
       let sourceTransactionId: string;
       if (editingTx) {
@@ -329,13 +389,14 @@ export function TransactionForm({ open, type, editingTx, onClose }: TransactionF
       } else {
         toast.success(type === 'income' ? 'Đã lưu thu nhập' : 'Đã lưu chi tiêu');
       }
+      onSaveDraft?.();
       onClose();
     } catch (err) {
       toast.error(`Lỗi: ${(err as Error).message ?? 'Không thể lưu giao dịch'}`);
       setIsSubmitting(false);
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [type, title, amount, source, category, note, date, editingTx, onClose, splitEnabled, splitParticipant, splitAmount, splitDueDate, isSubmitting, isIncome, excludedFromReports]);
+  }, [type, title, amount, source, category, note, date, editingTx, onClose, splitEnabled, splitParticipant, splitAmount, splitDueDate, isSubmitting, isIncome, excludedFromReports, onSaveDraft]);
 
   // Enter = submit (trừ khi đang gõ trong textarea)
   const handleSubmitRef = useRef(handleSubmit);
@@ -354,7 +415,7 @@ export function TransactionForm({ open, type, editingTx, onClose }: TransactionF
     return () => window.removeEventListener('keydown', handler);
   }, [open]);
 
-  const titleStr = editingTx
+  const titleStr = (editingTx || (draftInitial && !isNewEntry))
     ? (isIncome ? 'Sửa thu nhập' : 'Sửa chi tiêu')
     : (isIncome ? 'Thêm thu nhập' : 'Thêm chi tiêu');
   const exclusionColor = isIncome ? 'var(--primary)' : 'var(--orange)';
@@ -376,6 +437,7 @@ export function TransactionForm({ open, type, editingTx, onClose }: TransactionF
   const { expanded, sheetStyle, handleProps } = useDraggableSheet('tx-form-expanded', true);
 
   return (
+    <>
     <Sheet open={open} onOpenChange={v => !v && onClose()}>
       <SheetContent
        
@@ -419,7 +481,7 @@ export function TransactionForm({ open, type, editingTx, onClose }: TransactionF
                 style={{ background: 'var(--primary-soft)', color: 'var(--primary)' }}
               >
                 <Loader2 size={14} className="animate-spin" />
-                Đang đọc hoá đơn...
+                {scanStageText}
               </div>
             )}
             {/* Title */}
@@ -685,39 +747,43 @@ export function TransactionForm({ open, type, editingTx, onClose }: TransactionF
 
         {/* Fixed footer */}
         <div className="shrink-0 px-5 pt-3 pb-8 flex items-center gap-2" style={{ borderTop: '1px solid var(--border)' }}>
-          <input
-            ref={cameraInputRef}
-            type="file"
-            accept="image/*"
-            capture="environment"
-            hidden
-            onChange={handleFileSelected}
-          />
-          <input
-            ref={galleryInputRef}
-            type="file"
-            accept="image/*"
-            hidden
-            onChange={handleFileSelected}
-          />
-          <DropdownMenu>
-            <DropdownMenuTrigger
-              disabled={scanning || isSubmitting}
-              aria-label="Quét hoá đơn bằng AI"
-              className="shrink-0 h-12 w-12 rounded-xl flex items-center justify-center transition-opacity disabled:opacity-60 disabled:cursor-not-allowed"
-              style={{ background: 'var(--muted)', color: 'var(--foreground)' }}
-            >
-              {scanning ? <Loader2 size={18} className="animate-spin" /> : <Camera size={18} />}
-            </DropdownMenuTrigger>
-            <DropdownMenuContent side="top" align="start">
-              <DropdownMenuItem onClick={handleCameraClick}>
-                <Camera size={16} /> Chụp ảnh
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={handleGalleryClick}>
-                <Images size={16} /> Chọn từ thư viện
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
+          {!isDraftMode && (
+            <>
+              <input
+                ref={cameraInputRef}
+                type="file"
+                accept="image/*"
+                capture="environment"
+                hidden
+                onChange={handleFileSelected}
+              />
+              <input
+                ref={galleryInputRef}
+                type="file"
+                accept="image/*"
+                hidden
+                onChange={handleFileSelected}
+              />
+              <DropdownMenu>
+                <DropdownMenuTrigger
+                  disabled={scanning || isSubmitting}
+                  aria-label="Quét hoá đơn bằng AI"
+                  className="shrink-0 h-12 w-12 rounded-xl flex items-center justify-center transition-opacity disabled:opacity-60 disabled:cursor-not-allowed"
+                  style={{ background: 'var(--muted)', color: 'var(--foreground)' }}
+                >
+                  {scanning ? <Loader2 size={18} className="animate-spin" /> : <Camera size={18} />}
+                </DropdownMenuTrigger>
+                <DropdownMenuContent side="top" align="start">
+                  <DropdownMenuItem onClick={handleCameraClick}>
+                    <Camera size={16} /> Chụp ảnh
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={handleGalleryClick}>
+                    <Images size={16} /> Chọn từ thư viện
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </>
+          )}
           <Button
             id="tx-submit"
             onClick={handleSubmit}
@@ -739,5 +805,16 @@ export function TransactionForm({ open, type, editingTx, onClose }: TransactionF
         </div>
       </SheetContent>
     </Sheet>
+
+    {!isDraftMode && (
+      <ReceiptScanReviewSheet
+        key={scanBatchId}
+        open={multiScanItems !== null}
+        items={multiScanItems ?? []}
+        defaultType={type}
+        onClose={() => setMultiScanItems(null)}
+      />
+    )}
+    </>
   );
 }

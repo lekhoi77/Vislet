@@ -67,7 +67,7 @@ export async function POST(req: Request) {
   }
 
   try {
-    const result = await scanReceipt({
+    const transactions = await scanReceipt({
       imageBase64,
       mimeType,
       type,
@@ -75,7 +75,7 @@ export async function POST(req: Request) {
       categories: Array.isArray(categories) ? categories : [],
       sources: Array.isArray(sources) ? sources : [],
     });
-    return NextResponse.json(result);
+    return NextResponse.json({ transactions });
   } catch (err) {
     // Không log nội dung ảnh hay dữ liệu trích xuất được — chỉ log message lỗi.
     console.error('receipt-scan failed:', (err as Error).message);
